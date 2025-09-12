@@ -9,7 +9,7 @@ Er verwaltet Rollen, sendet Willkommensnachrichten und zeigt Live-Statistiken wi
 
 ### 1. Repository klonen
 ```bash
-git clone https://github.com/dein-user/HelvetiCraft.git
+git clone https://github.com/ByteClean/HelvetiCraft.git
 cd HelvetiCraft/Discord_Bot
 ```
 
