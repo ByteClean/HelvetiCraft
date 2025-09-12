@@ -30,7 +30,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/ByteClean/HelvetiCraft">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
+    <img src="Docs/Images/logo.png" alt="Logo" width="80" height="80">
   </a>
 
 <h3 align="center">HelvetiCraft</h3>
