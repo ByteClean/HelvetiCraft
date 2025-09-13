@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   discord-bot:
     build: ./Discord_Bot
@@ -16,14 +17,28 @@ services:
     container_name: helveticraft-mc-server
     restart: unless-stopped
     volumes:
-      - mc_server:/app/server         # All server files stored persistently
-      - ./Plugins:/app/data/plugins        # Plugins managed from host
-    working_dir: /app/server               # Set working directory to server folder
+      - mc_server:/app/server
+      - ./Plugins:/app/data/plugins
+    working_dir: /app/server
     environment:
       EULA: "TRUE"
     ports:
       - "25565:25565"
-    command: ["java", "-Xms2G", "-Xmx2G", "-jar", "server.jar", "--nogui"] # Run jar from /app/server
+    depends_on:
+      - mariadb
+    command: ["java", "-Xms2G", "-Xmx2G", "-jar", "server.jar", "--nogui"]
+
+  mariadb:
+    image: mariadb:11
+    container_name: helveticraft-mariadb
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mariadb_data:/var/lib/mysql
 
 volumes:
   mc_server:
@@ -32,3 +47,5 @@ volumes:
       type: none
       device: ${PWD}/mc_server
       o: bind
+
+  mariadb_data:
