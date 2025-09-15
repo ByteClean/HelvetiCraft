@@ -2,6 +2,7 @@
 .env
 __pycache__/
 *.pyc
+.$*
 
 # ignore Minecraft paper server jar file
 mc_server/server.jar
