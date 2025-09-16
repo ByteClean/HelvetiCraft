@@ -6,3 +6,9 @@ __pycache__/
 
 # ignore Minecraft paper server jar file
 mc_server/server.jar
+
+
+# IntelliJ IDEA project files
+.idea/
+*.iml
+out/

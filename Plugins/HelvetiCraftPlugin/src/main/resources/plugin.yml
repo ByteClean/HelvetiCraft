@@ -1,0 +1,6 @@
+name: HelvetiCraftPlugin
+version: 1.0.0
+main: com.helveticraft.helveticraftplugin.Main
+api-version: 1.21
+author: HelvetiCraft Team
+description: Official HelvetiCraft plugin that links Minecraft, backend, and Discord.
