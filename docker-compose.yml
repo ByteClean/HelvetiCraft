@@ -8,7 +8,7 @@ services:
       - ./Web:/app
     ports:
       - "80:5173"
-    command: ["npm", "run", "dev", "--", "--host"]
+  command: ["sh", "-c", "npm install && npm run dev -- --host"]
 
   discord-bot:
     build: ./Discord_Bot
