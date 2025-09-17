@@ -1,0 +1,6 @@
+# Dockerfile for React (Vite) development server
+FROM node:20-slim
+WORKDIR /app
+COPY . /app
+RUN npm install
+CMD ["npm", "run", "dev", "--", "--host"]
