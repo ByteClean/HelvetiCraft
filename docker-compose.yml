@@ -1,6 +1,17 @@
 version: '3.8'
 
 services:
+  web:
+    build: ./Web
+    container_name: helveticraft-web
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./Web:/app
+    ports:
+      - "80:5173"
+    command: ["npm", "run", "dev", "--", "--host"]
+
   discord-bot:
     build: ./Discord_Bot
     container_name: helveticraft-discord-bot
