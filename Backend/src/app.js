@@ -18,7 +18,7 @@ app.use(morgan("dev"));
 app.get("/health", (req, res) => res.json({ ok: true }));
 
 //app.use("/login-web", authRoutes);
-app.use("/", initiativesRoutes); // /all /own /accepted /new /edit /del /vote/:id
+app.use("/initiaives", initiativesRoutes); // /all /own /accepted /new /edit /del /vote/:id
 //app.use("/", financesRoutes);    // /  /taxes /pay/... /sell /networth...
 //app.use("/", statusRoutes);      // /mc-web /project /helveticraft
 //app.use("/", docsRoutes);        // /news /news/current /blogs /blogs/current /guides ...
