@@ -403,17 +403,22 @@ public class Main extends JavaPlugin implements Listener {
                 .title("§6New Initiative Title")
                 .text("Enter Title")
                 .itemLeft(new ItemStack(Material.PAPER))
-                .onClick(event -> {
-                    Player p = event.getPlayer();
-                    String text = event.getName();
-                    if (text == null || text.isEmpty()) {
+                .onClick((slot, stateSnapshot) -> {
+                    if (slot != AnvilGUI.Slot.OUTPUT) return Collections.emptyList();
+
+                    String text = stateSnapshot.getText();
+                    Player p = stateSnapshot.getPlayer();
+
+                    if (text == null || text.trim().isEmpty()) {
                         return AnvilGUI.Response.text("§cTitle cannot be empty!");
                     }
-                    askForDescription(p, text);
+
+                    // Open description GUI safely on the next server tick
+                    Bukkit.getScheduler().runTask(this, () -> askForDescription(p, text.trim()));
+
                     return AnvilGUI.Response.close();
                 })
-                .preventClose()
-                .open(player);
+                .open(player); // no preventClose here
     }
 
     private void askForDescription(Player player, String title) {
@@ -422,21 +427,31 @@ public class Main extends JavaPlugin implements Listener {
                 .title("§6New Initiative Description")
                 .text("Enter Description")
                 .itemLeft(new ItemStack(Material.BOOK))
-                .onClick(event -> {
-                    Player p = event.getPlayer();
-                    String text = event.getName();
-                    if (text == null || text.isEmpty()) {
+                .onClick((slot, stateSnapshot) -> {
+                    if (slot != AnvilGUI.Slot.OUTPUT) return Collections.emptyList();
+
+                    String text = stateSnapshot.getText();
+                    Player p = stateSnapshot.getPlayer();
+
+                    if (text == null || text.trim().isEmpty()) {
+                        // Let the player fix it without closing
                         return AnvilGUI.Response.text("§cDescription cannot be empty!");
                     }
-                    Initiative newInit = new Initiative(title, text, p.getName(), 0);
+
+                    // Add new initiative
+                    Initiative newInit = new Initiative(title, text.trim(), p.getName(), 0);
                     initiatives.put(title, newInit);
                     p.sendMessage("§aInitiative created: §b" + title);
+
+                    // Open the initiative menu after creation
                     openInitiativeMenu(p);
+
+                    // Close the AnvilGUI
                     return AnvilGUI.Response.close();
                 })
-                .preventClose()
-                .open(player);
+                .open(player); // no preventClose here
     }
+
 
     // Dummy class for initiatives with votes
     static class Initiative {
