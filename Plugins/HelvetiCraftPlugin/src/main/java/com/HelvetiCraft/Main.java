@@ -20,7 +20,7 @@ public class Main extends JavaPlugin {
         getCommand("initiative").setExecutor(new InitiativeCommand(initiativeManager));
         getCommand("verify").setExecutor(new VerifyCommand(this));
         getCommand("status").setExecutor(new StatusCommand());
-        getCommand("helveticraft").setExecutor(new HelveticraftCommand());
+        getCommand("helveticraft").setExecutor(new HelveticraftCommand(this));
 
         // Register listeners (GUI handling lives inside InitiativeManager)
         getServer().getPluginManager().registerEvents(initiativeManager, this);
