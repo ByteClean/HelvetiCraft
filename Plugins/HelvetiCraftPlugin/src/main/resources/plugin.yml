@@ -4,33 +4,36 @@ version: 1.2.0
 api-version: 1.21
 
 commands:
+  initiative:
+    description: Opens the initiative menu
+    permission: helveticraft.initiative
   verify:
-    description: Verify your Discord account with Minecraft
-    usage: /verify
+    description: Verify your account
     permission: helveticraft.verify
   status:
-    description: Shows the current project status and server info
-    usage: /status
+    description: Shows your current status
     permission: helveticraft.status
   helveticraft:
-    description: Server info, links, and short intro
-    usage: /helveticraft
+    description: Shows HelvetiCraft info
     permission: helveticraft.info
-  initiative:
-    description: View and manage active initiatives
-    usage: /initiative
-    permission: helveticraft.initiative
 
 permissions:
+  helveticraft.*:
+    description: Access to all HelvetiCraft commands
+    children:
+      helveticraft.initiative: true
+      helveticraft.verify: true
+      helveticraft.status: true
+      helveticraft.info: true
+  helveticraft.initiative:
+    description: Use the initiative command
+    default: true
   helveticraft.verify:
-    description: Allows players to use /verify
+    description: Use the verify command
     default: true
   helveticraft.status:
-    description: Allows players to see project/server status
+    description: Use the status command
     default: true
   helveticraft.info:
-    description: Allows players to see server info and links
-    default: true
-  helveticraft.initiative:
-    description: Allows players to view and interact with initiatives
+    description: Use the helveticraft info command
     default: true
