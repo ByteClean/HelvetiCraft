@@ -153,4 +153,12 @@ public class InitiativeManager implements Listener {
                 })
                 .open(player);
     }
+
+    public int getTotalInitiatives() {
+        return initiatives.size();
+    }
+
+    public int getTotalVotes() {
+        return initiatives.values().stream().mapToInt(Initiative::getVotes).sum();
+    }
 }
