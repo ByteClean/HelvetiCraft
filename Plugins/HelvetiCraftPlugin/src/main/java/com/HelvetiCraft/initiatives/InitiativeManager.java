@@ -58,34 +58,90 @@ public class InitiativeManager implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player player = (Player) event.getWhoClicked();
 
-        if (!event.getView().getTitle().startsWith("§6Active Initiatives")) return;
-        event.setCancelled(true);
-
         ItemStack clicked = event.getCurrentItem();
         if (clicked == null || !clicked.hasItemMeta()) return;
 
         String displayName = clicked.getItemMeta().getDisplayName();
-        String title = displayName.replace("§b", "").replace("§a", "");
+        event.setCancelled(true);
 
-        switch (clicked.getType()) {
-            case PAPER:
-            case GREEN_WOOL:
-                handleVote(player, title);
-                break;
-            case EMERALD:
-                player.closeInventory();
-                startInitiativeCreation(player);
-                break;
-            case ARROW:
-                if (displayName.contains("Previous")) {
-                    playerPages.put(player.getUniqueId(),
-                            playerPages.get(player.getUniqueId()) - 1);
-                } else {
-                    playerPages.put(player.getUniqueId(),
-                            playerPages.get(player.getUniqueId()) + 1);
-                }
-                openInitiativeMenu(player);
-                break;
+        // --- Main Initiatives Menu ---
+        if (event.getView().getTitle().startsWith("§6Active Initiatives")) {
+            String title = displayName.replace("§b", "").replace("§a", "");
+
+            switch (clicked.getType()) {
+                case PAPER:
+                case GREEN_WOOL:
+                    handleVote(player, title);
+                    break;
+                case EMERALD:
+                    player.closeInventory();
+                    startInitiativeCreation(player);
+                    break;
+                case BOOK:
+                    // Open player's own initiatives
+                    player.closeInventory();
+                    initiativeMenu.openPlayerInitiatives(player, 0);
+                    break;
+                case ARROW:
+                    if (displayName.contains("Previous")) {
+                        playerPages.put(player.getUniqueId(),
+                                playerPages.get(player.getUniqueId()) - 1);
+                    } else {
+                        playerPages.put(player.getUniqueId(),
+                                playerPages.get(player.getUniqueId()) + 1);
+                    }
+                    openInitiativeMenu(player);
+                    break;
+            }
+        }
+
+        // --- My Initiatives Menu ---
+        else if (event.getView().getTitle().startsWith("§6My Initiatives")) {
+            String selected = initiativeMenu.getSelected(player);
+
+            switch (clicked.getType()) {
+                case PAPER:
+                case ENCHANTED_BOOK:
+                    // Select this initiative
+                    String initiativeName = displayName.replace("§b", "");
+                    if (initiativeName.equals(selected)) {
+                        initiativeMenu.deselectInitiative(player);
+                    } else {
+                        initiativeMenu.selectInitiative(player, initiativeName);
+                    }
+                    initiativeMenu.openPlayerInitiatives(player,
+                            playerPages.getOrDefault(player.getUniqueId(), 0));
+                    break;
+
+                case ARROW:
+                    // Back to main menu
+                    player.closeInventory();
+                    openInitiativeMenu(player);
+                    break;
+
+                case YELLOW_WOOL:
+                    // Edit selected initiative
+                    if (selected == null) {
+                        player.sendMessage("§cNo initiative selected to edit!");
+                        return;
+                    }
+                    player.closeInventory();
+                    editInitiative(player, selected);
+                    break;
+
+                case RED_WOOL:
+                    // Delete selected initiative
+                    if (selected == null) {
+                        player.sendMessage("§cNo initiative selected to delete!");
+                        return;
+                    }
+                    initiatives.remove(selected);
+                    initiativeMenu.deselectInitiative(player);
+                    player.sendMessage("§cInitiative §b" + selected + " §chas been deleted.");
+                    initiativeMenu.openPlayerInitiatives(player,
+                            playerPages.getOrDefault(player.getUniqueId(), 0));
+                    break;
+            }
         }
     }
 
@@ -149,6 +205,32 @@ public class InitiativeManager implements Listener {
                             title, text.trim(), player.getName(), 0));
                     player.sendMessage("§aInitiative created: §b" + title);
                     openInitiativeMenu(player);
+                    return AnvilGUI.Response.close();
+                })
+                .open(player);
+    }
+
+    private void editInitiative(Player player, String title) {
+        Initiative initiative = initiatives.get(title);
+        if (initiative == null) return;
+
+        new AnvilGUI.Builder()
+                .plugin(plugin)
+                .title("§6Edit Initiative Description")
+                .text(initiative.getDescription())
+                .itemLeft(new ItemStack(Material.BOOK))
+                .onClick((slot, state) -> {
+                    if (slot != AnvilGUI.Slot.OUTPUT) return Collections.emptyList();
+
+                    String text = state.getText();
+                    if (text == null || text.trim().isEmpty()) {
+                        return AnvilGUI.Response.text("§cDescription cannot be empty!");
+                    }
+
+                    initiative.setDescription(text.trim());
+                    player.sendMessage("§aInitiative §b" + title + " §adescription updated!");
+                    initiativeMenu.openPlayerInitiatives(player,
+                            playerPages.getOrDefault(player.getUniqueId(), 0));
                     return AnvilGUI.Response.close();
                 })
                 .open(player);

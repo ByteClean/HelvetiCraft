@@ -2,7 +2,7 @@ package com.HelvetiCraft.initiatives;
 
 public class Initiative {
     private final String title;
-    private final String description;
+    private String description;
     private final String author;
     private int votes;
 
@@ -11,6 +11,10 @@ public class Initiative {
         this.description = description;
         this.author = author;
         this.votes = votes;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public String getTitle() { return title; }
