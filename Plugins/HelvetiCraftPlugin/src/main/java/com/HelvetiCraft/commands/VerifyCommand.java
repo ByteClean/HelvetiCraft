@@ -14,7 +14,7 @@ public class VerifyCommand implements CommandExecutor {
 
     private final Main plugin;
 
-    // Store temporary verification codes: MC UUID -> code
+    // Temporäre Verifizierungscodes speichern: MC UUID -> Code
     private final Map<UUID, String> pendingCodes = new HashMap<>();
 
     public VerifyCommand(Main plugin) {
@@ -24,48 +24,48 @@ public class VerifyCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage("§cOnly players can use this command.");
+            sender.sendMessage("§cNur Spieler können diesen Befehl ausführen.");
             return true;
         }
 
         Player player = (Player) sender;
 
         if (!player.hasPermission("helveticraft.verify")) {
-            player.sendMessage("§cYou don’t have permission to use this command.");
+            player.sendMessage("§cDu hast keine Berechtigung, diesen Befehl zu verwenden.");
             return true;
         }
 
-        // If no argument: generate code for the player
+        // Kein Argument: generiere Code für den Spieler
         if (args.length == 0) {
-            // TODO: Replace this with real backend request
+            // TODO: Mit echtem Backend ersetzen
             String code = generateDummyCode(player.getUniqueId());
-            player.sendMessage("§aYour verification code is: §e" + code);
-            player.sendMessage("§7Go to the Discord bot and type §b/verify " + code + " §7to verify your account.");
+            player.sendMessage("§aDein Verifizierungscode lautet: §e" + code);
+            player.sendMessage("§7Gehe zum Discord-Bot und gib §b/verify " + code + " §7ein, um dein Konto zu verifizieren.");
             return true;
         }
 
-        // If the player provides a code: attempt verification
+        // Spieler gibt einen Code ein: versuche Verifizierung
         String inputCode = args[0];
         String expectedCode = pendingCodes.get(player.getUniqueId());
 
         if (expectedCode == null) {
-            player.sendMessage("§cYou don’t have a pending verification. Run §e/verify §cto get a code first.");
+            player.sendMessage("§cDu hast keine ausstehende Verifizierung. Nutze §e/verify §c, um zuerst einen Code zu erhalten.");
             return true;
         }
 
         if (inputCode.equalsIgnoreCase(expectedCode)) {
-            player.sendMessage("§aYour Minecraft account has been successfully verified with Discord!");
+            player.sendMessage("§aDein Minecraft-Konto wurde erfolgreich mit Discord verifiziert!");
             pendingCodes.remove(player.getUniqueId());
-            plugin.getLogger().info(player.getName() + " has been verified (dummy).");
+            plugin.getLogger().info(player.getName() + " wurde erfolgreich verifiziert (Dummy).");
         } else {
-            player.sendMessage("§cIncorrect verification code. Please check the code from Discord.");
+            player.sendMessage("§cFalscher Verifizierungscode. Bitte überprüfe den Code aus Discord.");
         }
 
         return true;
     }
 
     private String generateDummyCode(UUID playerUUID) {
-        // Generate a simple 6-character alphanumeric code
+        // Einfachen 6-stelligen alphanumerischen Code generieren
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 6; i++) {
@@ -74,7 +74,7 @@ public class VerifyCommand implements CommandExecutor {
         }
         String code = sb.toString();
         pendingCodes.put(playerUUID, code);
-        plugin.getLogger().info("Generated dummy verification code " + code + " for UUID " + playerUUID);
+        plugin.getLogger().info("Generierter Dummy-Verifizierungscode " + code + " für UUID " + playerUUID);
         return code;
     }
 }

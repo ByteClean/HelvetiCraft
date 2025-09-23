@@ -20,7 +20,7 @@ public class InitiativeMenu {
         this.manager = manager;
     }
 
-    // --- Main initiatives menu ---
+    // --- Main Volksinitiativen menu ---
     public void open(Player player, int page) {
         int initiativesPerPage = 18;
         List<Initiative> initiativeList = new ArrayList<>(manager.getInitiatives().values());
@@ -33,7 +33,7 @@ public class InitiativeMenu {
         manager.getPlayerPages().put(player.getUniqueId(), page);
 
         Inventory inv = Bukkit.createInventory(null, 27,
-                "§6Active Initiatives (Page " + (page + 1) + "/" + totalPages + ")");
+                "§6Aktive Volksinitiativen (Seite " + (page + 1) + "/" + totalPages + ")");
 
         Set<String> votedSet = manager.getPlayerVotes()
                 .getOrDefault(player.getUniqueId(), new HashSet<>());
@@ -49,11 +49,11 @@ public class InitiativeMenu {
             if (meta != null) {
                 meta.setDisplayName((voted ? "§a" : "§b") + initiative.getTitle());
                 List<String> lore = new ArrayList<>();
-                lore.add("§7Author: " + initiative.getAuthor());
-                lore.add("§7Description: " + initiative.getDescription());
-                lore.add("§eVotes: " + initiative.getVotes());
-                if (voted) lore.add("§aYou already voted!");
-                else lore.add("§7[Click to Vote]");
+                lore.add("§7Autor: " + initiative.getAuthor());
+                lore.add("§7Beschreibung: " + initiative.getDescription());
+                lore.add("§eStimmen: " + initiative.getVotes());
+                if (voted) lore.add("§aDu hast bereits abgestimmt!");
+                else lore.add("§7[Klicken zum Abstimmen]");
                 meta.setLore(lore);
                 item.setItemMeta(meta);
             }
@@ -67,22 +67,22 @@ public class InitiativeMenu {
     }
 
     private void addControls(Inventory inv, int page, int totalPages) {
-        // Create Initiative
+        // Create Volksinitiative
         ItemStack createItem = new ItemStack(Material.EMERALD);
         ItemMeta createMeta = createItem.getItemMeta();
         if (createMeta != null) {
-            createMeta.setDisplayName("§aCreate New Initiative");
-            createMeta.setLore(Collections.singletonList("§7Click to create a new initiative"));
+            createMeta.setDisplayName("§aNeue Volksinitiative erstellen");
+            createMeta.setLore(Collections.singletonList("§7Klicke, um eine neue Volksinitiative zu starten"));
             createItem.setItemMeta(createMeta);
         }
         inv.setItem(18, createItem);
 
-        // My Initiatives Button
+        // My Volksinitiativen Button
         ItemStack myInitiatives = new ItemStack(Material.BOOK);
         ItemMeta bookMeta = myInitiatives.getItemMeta();
         if (bookMeta != null) {
-            bookMeta.setDisplayName("§eMy Initiatives");
-            bookMeta.setLore(Collections.singletonList("§7View and manage your initiatives"));
+            bookMeta.setDisplayName("§eMeine Volksinitiativen");
+            bookMeta.setLore(Collections.singletonList("§7Zeige und verwalte deine Volksinitiativen"));
             myInitiatives.setItemMeta(bookMeta);
         }
         inv.setItem(19, myInitiatives);
@@ -92,7 +92,7 @@ public class InitiativeMenu {
             ItemStack prev = new ItemStack(Material.ARROW);
             ItemMeta prevMeta = prev.getItemMeta();
             if (prevMeta != null) {
-                prevMeta.setDisplayName("§ePrevious Page");
+                prevMeta.setDisplayName("§eZurück");
                 prev.setItemMeta(prevMeta);
             }
             inv.setItem(24, prev);
@@ -103,14 +103,14 @@ public class InitiativeMenu {
             ItemStack next = new ItemStack(Material.ARROW);
             ItemMeta nextMeta = next.getItemMeta();
             if (nextMeta != null) {
-                nextMeta.setDisplayName("§eNext Page");
+                nextMeta.setDisplayName("§eWeiter");
                 next.setItemMeta(nextMeta);
             }
             inv.setItem(25, next);
         }
     }
 
-    // --- Player’s own initiatives menu ---
+    // --- Player’s own Volksinitiativen menu ---
     public void openPlayerInitiatives(Player player, int page) {
         List<Initiative> ownList = new ArrayList<>();
         for (Initiative i : manager.getInitiatives().values()) {
@@ -126,7 +126,7 @@ public class InitiativeMenu {
         manager.getPlayerPages().put(player.getUniqueId(), page);
 
         Inventory inv = Bukkit.createInventory(null, 27,
-                "§6My Initiatives (Page " + (page + 1) + "/" + totalPages + ")");
+                "§6Meine Volksinitiativen (Seite " + (page + 1) + "/" + totalPages + ")");
 
         int startIndex = page * initiativesPerPage;
         int endIndex = Math.min(startIndex + initiativesPerPage, ownList.size());
@@ -140,10 +140,10 @@ public class InitiativeMenu {
             if (meta != null) {
                 meta.setDisplayName("§b" + initiative.getTitle());
                 List<String> lore = new ArrayList<>();
-                lore.add("§7Description: " + initiative.getDescription());
-                lore.add("§eVotes: " + initiative.getVotes());
-                if (initiative.getTitle().equals(selected)) lore.add("§aSelected!");
-                else lore.add("§7[Click to Select]");
+                lore.add("§7Beschreibung: " + initiative.getDescription());
+                lore.add("§eStimmen: " + initiative.getVotes());
+                if (initiative.getTitle().equals(selected)) lore.add("§aAusgewählt!");
+                else lore.add("§7[Klicken zum Auswählen]");
                 meta.setLore(lore);
                 item.setItemMeta(meta);
             }
@@ -155,7 +155,7 @@ public class InitiativeMenu {
         ItemStack back = new ItemStack(Material.ARROW);
         ItemMeta backMeta = back.getItemMeta();
         if (backMeta != null) {
-            backMeta.setDisplayName("§eBack to Initiatives");
+            backMeta.setDisplayName("§eZurück zu den Volksinitiativen");
             back.setItemMeta(backMeta);
         }
         inv.setItem(18, back);
@@ -164,7 +164,7 @@ public class InitiativeMenu {
         ItemStack edit = new ItemStack(Material.YELLOW_WOOL);
         ItemMeta editMeta = edit.getItemMeta();
         if (editMeta != null) {
-            editMeta.setDisplayName("§6Edit Selected");
+            editMeta.setDisplayName("§6Ausgewählte bearbeiten");
             edit.setItemMeta(editMeta);
         }
         inv.setItem(19, edit);
@@ -173,7 +173,7 @@ public class InitiativeMenu {
         ItemStack delete = new ItemStack(Material.RED_WOOL);
         ItemMeta deleteMeta = delete.getItemMeta();
         if (deleteMeta != null) {
-            deleteMeta.setDisplayName("§cDelete Selected");
+            deleteMeta.setDisplayName("§cAusgewählte löschen");
             delete.setItemMeta(deleteMeta);
         }
         inv.setItem(20, delete);
@@ -193,5 +193,4 @@ public class InitiativeMenu {
     public String getSelected(Player player) {
         return selectedInitiatives.get(player.getUniqueId());
     }
-
 }

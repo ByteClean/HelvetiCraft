@@ -17,14 +17,14 @@ public class InitiativeCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage("§cOnly players can use this command.");
+            sender.sendMessage("§cNur Spieler können diesen Befehl verwenden.");
             return true;
         }
 
         Player player = (Player) sender;
 
         if (!player.hasPermission("helveticraft.initiative")) {
-            player.sendMessage("§cYou don’t have permission to use this command.");
+            player.sendMessage("§cDu hast keine Berechtigung, diesen Befehl zu verwenden.");
             return true;
         }
         initiativeManager.openInitiativeMenu(player);
