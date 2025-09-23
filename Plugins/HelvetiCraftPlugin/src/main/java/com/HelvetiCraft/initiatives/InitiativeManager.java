@@ -61,86 +61,86 @@ public class InitiativeManager implements Listener {
         ItemStack clicked = event.getCurrentItem();
         if (clicked == null || !clicked.hasItemMeta()) return;
 
-        String displayName = clicked.getItemMeta().getDisplayName();
-        event.setCancelled(true);
+        String title = event.getView().getTitle();
 
-        // --- Main Initiatives Menu ---
-        if (event.getView().getTitle().startsWith("§6Active Initiatives")) {
-            String title = displayName.replace("§b", "").replace("§a", "");
+        // Only cancel in your menus
+        if (title.startsWith("§6Active Initiatives") || title.startsWith("§6My Initiatives")) {
+            event.setCancelled(true);
 
-            switch (clicked.getType()) {
-                case PAPER:
-                case GREEN_WOOL:
-                    handleVote(player, title);
-                    break;
-                case EMERALD:
-                    player.closeInventory();
-                    startInitiativeCreation(player);
-                    break;
-                case BOOK:
-                    // Open player's own initiatives
-                    player.closeInventory();
-                    initiativeMenu.openPlayerInitiatives(player, 0);
-                    break;
-                case ARROW:
-                    if (displayName.contains("Previous")) {
-                        playerPages.put(player.getUniqueId(),
-                                playerPages.get(player.getUniqueId()) - 1);
-                    } else {
-                        playerPages.put(player.getUniqueId(),
-                                playerPages.get(player.getUniqueId()) + 1);
-                    }
-                    openInitiativeMenu(player);
-                    break;
+            String displayName = clicked.getItemMeta().getDisplayName();
+
+            // --- Active Initiatives Menu ---
+            if (title.startsWith("§6Active Initiatives")) {
+                String initiativeTitle = displayName.replace("§b", "").replace("§a", "");
+                switch (clicked.getType()) {
+                    case PAPER:
+                    case GREEN_WOOL:
+                        handleVote(player, initiativeTitle);
+                        break;
+                    case EMERALD:
+                        player.closeInventory();
+                        startInitiativeCreation(player);
+                        break;
+                    case BOOK:
+                        player.closeInventory();
+                        initiativeMenu.openPlayerInitiatives(player, 0);
+                        break;
+                    case ARROW:
+                        if (displayName.contains("Previous")) {
+                            playerPages.put(player.getUniqueId(),
+                                    playerPages.get(player.getUniqueId()) - 1);
+                        } else {
+                            playerPages.put(player.getUniqueId(),
+                                    playerPages.get(player.getUniqueId()) + 1);
+                        }
+                        openInitiativeMenu(player);
+                        break;
+                }
             }
-        }
 
-        // --- My Initiatives Menu ---
-        else if (event.getView().getTitle().startsWith("§6My Initiatives")) {
-            String selected = initiativeMenu.getSelected(player);
+            // --- My Initiatives Menu ---
+            else if (title.startsWith("§6My Initiatives")) {
+                String selected = initiativeMenu.getSelected(player);
 
-            switch (clicked.getType()) {
-                case PAPER:
-                case ENCHANTED_BOOK:
-                    // Select this initiative
-                    String initiativeName = displayName.replace("§b", "");
-                    if (initiativeName.equals(selected)) {
+                switch (clicked.getType()) {
+                    case PAPER:
+                    case ENCHANTED_BOOK:
+                        String initiativeName = displayName.replace("§b", "");
+                        if (initiativeName.equals(selected)) {
+                            initiativeMenu.deselectInitiative(player);
+                        } else {
+                            initiativeMenu.selectInitiative(player, initiativeName);
+                        }
+                        initiativeMenu.openPlayerInitiatives(player,
+                                playerPages.getOrDefault(player.getUniqueId(), 0));
+                        break;
+
+                    case ARROW:
+                        player.closeInventory();
+                        openInitiativeMenu(player);
+                        break;
+
+                    case YELLOW_WOOL:
+                        if (selected == null) {
+                            player.sendMessage("§cNo initiative selected to edit!");
+                            return;
+                        }
+                        player.closeInventory();
+                        editInitiative(player, selected);
+                        break;
+
+                    case RED_WOOL:
+                        if (selected == null) {
+                            player.sendMessage("§cNo initiative selected to delete!");
+                            return;
+                        }
+                        initiatives.remove(selected);
                         initiativeMenu.deselectInitiative(player);
-                    } else {
-                        initiativeMenu.selectInitiative(player, initiativeName);
-                    }
-                    initiativeMenu.openPlayerInitiatives(player,
-                            playerPages.getOrDefault(player.getUniqueId(), 0));
-                    break;
-
-                case ARROW:
-                    // Back to main menu
-                    player.closeInventory();
-                    openInitiativeMenu(player);
-                    break;
-
-                case YELLOW_WOOL:
-                    // Edit selected initiative
-                    if (selected == null) {
-                        player.sendMessage("§cNo initiative selected to edit!");
-                        return;
-                    }
-                    player.closeInventory();
-                    editInitiative(player, selected);
-                    break;
-
-                case RED_WOOL:
-                    // Delete selected initiative
-                    if (selected == null) {
-                        player.sendMessage("§cNo initiative selected to delete!");
-                        return;
-                    }
-                    initiatives.remove(selected);
-                    initiativeMenu.deselectInitiative(player);
-                    player.sendMessage("§cInitiative §b" + selected + " §chas been deleted.");
-                    initiativeMenu.openPlayerInitiatives(player,
-                            playerPages.getOrDefault(player.getUniqueId(), 0));
-                    break;
+                        player.sendMessage("§cInitiative §b" + selected + " §chas been deleted.");
+                        initiativeMenu.openPlayerInitiatives(player,
+                                playerPages.getOrDefault(player.getUniqueId(), 0));
+                        break;
+                }
             }
         }
     }
