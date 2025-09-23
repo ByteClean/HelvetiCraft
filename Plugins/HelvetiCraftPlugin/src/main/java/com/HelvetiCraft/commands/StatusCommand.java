@@ -19,31 +19,31 @@ public class StatusCommand implements CommandExecutor {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         // Permission check
         if (!sender.hasPermission("helveticraft.status")) {
-            sender.sendMessage("§cYou don’t have permission to use this command.");
+            sender.sendMessage("§cDu hast keine Berechtigung, diesen Befehl zu verwenden.");
             return true;
         }
 
-        sender.sendMessage("§6--- §bHelvetiCraft Project Status §6---");
+        sender.sendMessage("§6--- §bHelvetiCraft Projektstatus §6---");
 
-        // Project stage and next update
-        String stage = plugin.getConfig().getString("PROJECT_STAGE", "Unknown");
-        String nextUpdate = plugin.getConfig().getString("NEXT_UPDATE", "TBD");
+        // Projektphase und nächstes Update
+        String stage = plugin.getConfig().getString("PROJECT_STAGE", "Unbekannt");
+        String nextUpdate = plugin.getConfig().getString("NEXT_UPDATE", "Noch nicht festgelegt");
 
-        sender.sendMessage("§aStage: §e" + stage);
-        sender.sendMessage("§aNext Update: §e" + nextUpdate);
+        sender.sendMessage("§aProjektphase: §e" + stage);
+        sender.sendMessage("§aNächstes Update: §e" + nextUpdate);
 
-        // Online players
+        // Online-Spieler
         int online = Bukkit.getOnlinePlayers().size();
         int max = Bukkit.getMaxPlayers();
         sender.sendMessage("§aServer Online: §e" + online + "/" + max);
 
-        // Initiatives info
+        // Volksinitiativen-Infos
         int totalInitiatives = plugin.getInitiativeManager().getTotalInitiatives();
         int totalVotes = plugin.getInitiativeManager().getTotalVotes();
-        sender.sendMessage("§aTotal Initiatives: §e" + totalInitiatives);
-        sender.sendMessage("§aTotal Votes: §e" + totalVotes);
+        sender.sendMessage("§aGesamtanzahl Volksinitiativen: §e" + totalInitiatives);
+        sender.sendMessage("§aGesamtanzahl Stimmen: §e" + totalVotes);
 
-        sender.sendMessage("§7This information is relevant for the IDPA project work.");
+        sender.sendMessage("§7Diese Informationen sind relevant für die IDPA-Projektarbeit.");
         return true;
     }
 }

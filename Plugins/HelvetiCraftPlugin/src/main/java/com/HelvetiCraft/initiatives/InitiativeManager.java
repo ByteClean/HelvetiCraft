@@ -26,12 +26,12 @@ public class InitiativeManager implements Listener {
         this.initiativeMenu = new InitiativeMenu(this);
 
         // TODO: Replace with database later
-        initiatives.put("Build a Park", new Initiative("Build a Park",
-                "Create a new community park in the spawn area", "Alice", 5));
-        initiatives.put("New Spawn Monument", new Initiative("New Spawn Monument",
-                "Erect a monument for the server anniversary", "Bob", 3));
-        initiatives.put("Community Farm", new Initiative("Community Farm",
-                "Build a farm to share resources among players", "Charlie", 7));
+        initiatives.put("Park bauen", new Initiative("Park bauen",
+                "Errichte einen neuen Gemeinschaftspark am Spawn", "Alice", 5));
+        initiatives.put("Neues Spawn-Denkmal", new Initiative("Neues Spawn-Denkmal",
+                "Baue ein Denkmal für das Server-Jubiläum", "Bob", 3));
+        initiatives.put("Gemeinschaftsfarm", new Initiative("Gemeinschaftsfarm",
+                "Baue eine Farm, um Ressourcen mit allen zu teilen", "Charlie", 7));
     }
 
     // --- Public API ---
@@ -64,13 +64,13 @@ public class InitiativeManager implements Listener {
         String title = event.getView().getTitle();
 
         // Only cancel in your menus
-        if (title.startsWith("§6Active Initiatives") || title.startsWith("§6My Initiatives")) {
+        if (title.startsWith("§6Aktive Volksinitiativen") || title.startsWith("§6Meine Volksinitiativen")) {
             event.setCancelled(true);
 
             String displayName = clicked.getItemMeta().getDisplayName();
 
-            // --- Active Initiatives Menu ---
-            if (title.startsWith("§6Active Initiatives")) {
+            // --- Active Volksinitiativen Menu ---
+            if (title.startsWith("§6Aktive Volksinitiativen")) {
                 String initiativeTitle = displayName.replace("§b", "").replace("§a", "");
                 switch (clicked.getType()) {
                     case PAPER:
@@ -86,7 +86,7 @@ public class InitiativeManager implements Listener {
                         initiativeMenu.openPlayerInitiatives(player, 0);
                         break;
                     case ARROW:
-                        if (displayName.contains("Previous")) {
+                        if (displayName.contains("Zurück")) {
                             playerPages.put(player.getUniqueId(),
                                     playerPages.get(player.getUniqueId()) - 1);
                         } else {
@@ -98,8 +98,8 @@ public class InitiativeManager implements Listener {
                 }
             }
 
-            // --- My Initiatives Menu ---
-            else if (title.startsWith("§6My Initiatives")) {
+            // --- My Volksinitiativen Menu ---
+            else if (title.startsWith("§6Meine Volksinitiativen")) {
                 String selected = initiativeMenu.getSelected(player);
 
                 switch (clicked.getType()) {
@@ -122,7 +122,7 @@ public class InitiativeManager implements Listener {
 
                     case YELLOW_WOOL:
                         if (selected == null) {
-                            player.sendMessage("§cNo initiative selected to edit!");
+                            player.sendMessage("§cKeine Volksinitiative zum Bearbeiten ausgewählt!");
                             return;
                         }
                         player.closeInventory();
@@ -131,12 +131,12 @@ public class InitiativeManager implements Listener {
 
                     case RED_WOOL:
                         if (selected == null) {
-                            player.sendMessage("§cNo initiative selected to delete!");
+                            player.sendMessage("§cKeine Volksinitiative zum Löschen ausgewählt!");
                             return;
                         }
                         initiatives.remove(selected);
                         initiativeMenu.deselectInitiative(player);
-                        player.sendMessage("§cInitiative §b" + selected + " §chas been deleted.");
+                        player.sendMessage("§cVolksinitiative §b" + selected + " §cwurde gelöscht.");
                         initiativeMenu.openPlayerInitiatives(player,
                                 playerPages.getOrDefault(player.getUniqueId(), 0));
                         break;
@@ -156,28 +156,28 @@ public class InitiativeManager implements Listener {
         if (votedSet.contains(title)) {
             votedSet.remove(title);
             initiative.decrementVotes();
-            player.sendMessage("§cYou removed your vote for §b" + title);
+            player.sendMessage("§cDu hast deine Stimme für §b" + title + " §czurückgezogen.");
         } else {
             votedSet.add(title);
             initiative.incrementVotes();
-            player.sendMessage("§aYou voted for §b" + title);
+            player.sendMessage("§aDu hast für §b" + title + " §aabgestimmt.");
         }
         openInitiativeMenu(player);
     }
 
-    // --- Initiative Creation ---
+    // --- Volksinitiative Creation ---
     private void startInitiativeCreation(Player player) {
         new AnvilGUI.Builder()
                 .plugin(plugin)
-                .title("§6New Initiative Title")
-                .text("Enter Title")
+                .title("§6Neuer Titel der Volksinitiative")
+                .text("Titel eingeben")
                 .itemLeft(new ItemStack(Material.PAPER))
                 .onClick((slot, state) -> {
                     if (slot != AnvilGUI.Slot.OUTPUT) return Collections.emptyList();
 
                     String text = state.getText();
                     if (text == null || text.trim().isEmpty()) {
-                        return AnvilGUI.Response.text("§cTitle cannot be empty!");
+                        return AnvilGUI.Response.text("§cTitel darf nicht leer sein!");
                     }
 
                     Bukkit.getScheduler().runTask(plugin,
@@ -190,20 +190,20 @@ public class InitiativeManager implements Listener {
     private void askForDescription(Player player, String title) {
         new AnvilGUI.Builder()
                 .plugin(plugin)
-                .title("§6New Initiative Description")
-                .text("Enter Description")
+                .title("§6Beschreibung der Volksinitiative")
+                .text("Beschreibung eingeben")
                 .itemLeft(new ItemStack(Material.BOOK))
                 .onClick((slot, state) -> {
                     if (slot != AnvilGUI.Slot.OUTPUT) return Collections.emptyList();
 
                     String text = state.getText();
                     if (text == null || text.trim().isEmpty()) {
-                        return AnvilGUI.Response.text("§cDescription cannot be empty!");
+                        return AnvilGUI.Response.text("§cBeschreibung darf nicht leer sein!");
                     }
 
                     initiatives.put(title, new Initiative(
                             title, text.trim(), player.getName(), 0));
-                    player.sendMessage("§aInitiative created: §b" + title);
+                    player.sendMessage("§aVolksinitiative erstellt: §b" + title);
                     openInitiativeMenu(player);
                     return AnvilGUI.Response.close();
                 })
@@ -216,7 +216,7 @@ public class InitiativeManager implements Listener {
 
         new AnvilGUI.Builder()
                 .plugin(plugin)
-                .title("§6Edit Initiative Description")
+                .title("§6Beschreibung bearbeiten")
                 .text(initiative.getDescription())
                 .itemLeft(new ItemStack(Material.BOOK))
                 .onClick((slot, state) -> {
@@ -224,11 +224,11 @@ public class InitiativeManager implements Listener {
 
                     String text = state.getText();
                     if (text == null || text.trim().isEmpty()) {
-                        return AnvilGUI.Response.text("§cDescription cannot be empty!");
+                        return AnvilGUI.Response.text("§cBeschreibung darf nicht leer sein!");
                     }
 
                     initiative.setDescription(text.trim());
-                    player.sendMessage("§aInitiative §b" + title + " §adescription updated!");
+                    player.sendMessage("§aBeschreibung der Volksinitiative §b" + title + " §awurde aktualisiert!");
                     initiativeMenu.openPlayerInitiatives(player,
                             playerPages.getOrDefault(player.getUniqueId(), 0));
                     return AnvilGUI.Response.close();

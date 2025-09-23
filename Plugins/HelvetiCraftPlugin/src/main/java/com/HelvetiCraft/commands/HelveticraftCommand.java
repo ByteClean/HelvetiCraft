@@ -20,13 +20,13 @@ public class HelveticraftCommand implements CommandExecutor {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         // Permission check
         if (!sender.hasPermission("helveticraft.help")) {
-            sender.sendMessage("§cYou don’t have permission to use this command.");
+            sender.sendMessage("§cDu hast keine Berechtigung, diesen Befehl zu verwenden.");
             return true;
         }
 
         sender.sendMessage("§6====== §bHelvetiCraft Server Info §6======");
-        sender.sendMessage("§7A fun and engaging Minecraft server for the community.");
-        sender.sendMessage("§7Check out the server resources and connect with us:");
+        sender.sendMessage("§7Ein unterhaltsamer und gemeinschaftlicher Minecraft-Server.");
+        sender.sendMessage("§7Hier findest du Ressourcen und Kontaktmöglichkeiten:");
 
         if (sender instanceof Player player) {
             String discordUrl = plugin.getConfig().getString("DISCORD_URL", "https://discord.gg/placeholder");
@@ -45,9 +45,9 @@ public class HelveticraftCommand implements CommandExecutor {
             sender.sendMessage("§7Website: " + plugin.getConfig().getString("WEBSITE_URL"));
         }
 
-        sender.sendMessage("§e/initiative §7- Open initiatives menu");
-        sender.sendMessage("§e/status §7- Check your status");
-        sender.sendMessage("§e/verify §7- Verify your account");
+        sender.sendMessage("§e/initiative §7- Öffne das Volksinitiativen-Menü");
+        sender.sendMessage("§e/status §7- Überprüfe deinen Status");
+        sender.sendMessage("§e/verify §7- Verifiziere deinen Discord Account");
 
         return true;
     }
