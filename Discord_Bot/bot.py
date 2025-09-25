@@ -19,8 +19,19 @@ repo_root = str(pkg_root.parent)
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
-import Discord_Bot.config as config
-import Discord_Bot.events as events
+try:
+    import Discord_Bot.config as config
+    import Discord_Bot.events as events
+    pkg_mode = True
+except ModuleNotFoundError:
+    # Running as a script inside the package folder (for example in Docker when
+    # WORKDIR is set to the package root) may not have the package available.
+    # Fall back to local imports so bot.py can run directly.
+    import config
+    import events
+    config = config
+    events = events
+    pkg_mode = False
 
 
 TOKEN = config.TOKEN
@@ -45,7 +56,10 @@ logging.getLogger('discord').setLevel(logging.DEBUG)
 
 # Load text-based (!) commands cog so prefix commands like !initiative work
 try:
-    import Discord_Bot.text_commands as text_commands
+    if pkg_mode:
+        import Discord_Bot.text_commands as text_commands
+    else:
+        import text_commands
     # If the module exposes async setup(bot), call it; otherwise add the Cog class
     if hasattr(text_commands, 'setup'):
         import asyncio
@@ -58,7 +72,10 @@ except Exception as e:
 
 # Load application (slash) commands via commands.setup(bot)
 try:
-    import Discord_Bot.commands as app_commands_module
+    if pkg_mode:
+        import Discord_Bot.commands as app_commands_module
+    else:
+        import commands as app_commands_module
     # If module exposes async setup(bot), call it so commands register on bot.tree
     if hasattr(app_commands_module, 'setup'):
         import asyncio
