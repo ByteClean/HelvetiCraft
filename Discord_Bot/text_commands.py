@@ -75,6 +75,32 @@ class TextCommands(commands.Cog):
         embed.add_field(name="Expenses / day", value=f"{expenses:,}", inline=True)
         await ctx.send(embed=embed)
 
+    @commands.command(name="sync_commands")
+    @commands.has_guild_permissions(manage_guild=True)
+    async def sync_commands(self, ctx: commands.Context):
+        """Force the bot to bulk-register and sync application commands for the guild.
+
+        This uses the bot's token to author the guild commands (same as on_ready logic).
+        """
+        bot = self.bot
+        app_id = getattr(bot, 'application_id', None) or (getattr(bot.user, 'id', None) if getattr(bot, 'user', None) else None)
+        if not app_id:
+            await ctx.send("Could not determine application id for registration.")
+            return
+        try:
+            payload = []
+            for cmd in bot.tree.walk_commands():
+                if getattr(cmd, 'parent', None):
+                    continue
+                desc = getattr(cmd, 'description', '') or ''
+                payload.append({'name': cmd.name, 'description': desc, 'type': 1})
+            route = discord.http.Route('PUT', '/applications/{application_id}/guilds/{guild_id}/commands', application_id=app_id, guild_id=ctx.guild.id)
+            data = await bot.http.request(route, json=payload)
+            await bot.tree.sync(guild=discord.Object(id=ctx.guild.id))
+            await ctx.send(f"Force-registered {len(payload)} commands. Response entries: {len(data)}")
+        except Exception as e:
+            await ctx.send(f"Error during force-register: {e}")
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(TextCommands(bot))

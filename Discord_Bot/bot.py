@@ -11,6 +11,7 @@ we adjust sys.path and set __package__ so the package-relative imports work.
 import sys
 import pathlib
 import discord
+import logging
 from discord.ext import commands
 # Ensure repository root is on sys.path so absolute package imports work
 pkg_root = pathlib.Path(__file__).resolve().parent
@@ -37,6 +38,11 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# Enable verbose logging to help diagnose gateway/interaction delivery problems.
+# This sets the root logger to DEBUG so discord.py emits gateway events.
+logging.basicConfig(level=logging.DEBUG)
+logging.getLogger('discord').setLevel(logging.DEBUG)
+
 # Load text-based (!) commands cog so prefix commands like !initiative work
 try:
     import Discord_Bot.text_commands as text_commands
@@ -49,6 +55,17 @@ try:
     print("Text commands cog loaded")
 except Exception as e:
     print(f"Could not load text commands cog: {e}")
+
+# Load application (slash) commands via commands.setup(bot)
+try:
+    import Discord_Bot.commands as app_commands_module
+    # If module exposes async setup(bot), call it so commands register on bot.tree
+    if hasattr(app_commands_module, 'setup'):
+        import asyncio
+        asyncio.get_event_loop().run_until_complete(app_commands_module.setup(bot))
+        print("Application commands registered via commands.setup")
+except Exception as e:
+    print(f"Could not register application commands: {e}")
 
 
 
@@ -73,6 +90,38 @@ async def on_member_remove(member):
 async def on_raw_reaction_add(payload):
     # events.on_raw_reaction_add needs the bot instance too
     await events.on_raw_reaction_add(payload, bot)
+
+
+# Diagnostic listener: log incoming interaction events so we can confirm whether
+# Discord is delivering interactions to this process.
+@bot.event
+async def on_interaction(interaction: discord.Interaction):
+    try:
+        name = None
+        if hasattr(interaction, 'data') and isinstance(interaction.data, dict):
+            name = interaction.data.get('name')
+    except Exception:
+        name = None
+    print(
+        f"ON_INTERACTION: id={getattr(interaction,'id',None)} type={getattr(interaction,'type',None)} name={name} user_id={getattr(interaction.user,'id',None)} channel_id={getattr(interaction.channel,'id',None)}"
+    )
+
+
+@bot.event
+async def on_socket_response(msg):
+    """Log raw socket messages for diagnostics. We're especially interested in
+    INTERACTION_CREATE events which indicate Discord is sending interactions
+    to this connection.
+    """
+    try:
+        t = msg.get('t')
+        if t:
+            print(f"SOCKET_EVENT: t={t} op={msg.get('op')} d_keys={list(msg.get('d',{}).keys()) if isinstance(msg.get('d',None), dict) else type(msg.get('d'))}")
+        else:
+            # For non-dispatch opcodes, just print opcode
+            print(f"SOCKET_EVENT: op={msg.get('op')}")
+    except Exception as e:
+        print(f"on_socket_response error: {e}")
 
 
 if __name__ == "__main__":
