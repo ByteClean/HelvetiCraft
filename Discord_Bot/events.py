@@ -3,17 +3,30 @@ import discord
 import aiohttp
 import json
 from discord.ext import tasks
-from Discord_Bot.config import (
-    GUILD_ID,
-    RULES_CHANNEL_ID,
-    RULES_MESSAGE_ID,
-    GUEST_ROLE,
-    PLAYER_ROLE,
-    VERIFY_EMOJI,
-    WELCOME_CHANNEL_ID,
-)
-from Discord_Bot.stats import setup_stats_channels, update_stats_channels
-from Discord_Bot.config import COMMANDS_CHANNEL_NAME, INITIATIVES_CHANNEL_NAME, TOKEN
+try:
+    from Discord_Bot.config import (
+        GUILD_ID,
+        RULES_CHANNEL_ID,
+        RULES_MESSAGE_ID,
+        GUEST_ROLE,
+        PLAYER_ROLE,
+        VERIFY_EMOJI,
+        WELCOME_CHANNEL_ID,
+    )
+    from Discord_Bot.stats import setup_stats_channels, update_stats_channels
+    from Discord_Bot.config import COMMANDS_CHANNEL_NAME, INITIATIVES_CHANNEL_NAME, TOKEN
+except ModuleNotFoundError:
+    from config import (
+        GUILD_ID,
+        RULES_CHANNEL_ID,
+        RULES_MESSAGE_ID,
+        GUEST_ROLE,
+        PLAYER_ROLE,
+        VERIFY_EMOJI,
+        WELCOME_CHANNEL_ID,
+    )
+    from stats import setup_stats_channels, update_stats_channels
+    from config import COMMANDS_CHANNEL_NAME, INITIATIVES_CHANNEL_NAME, TOKEN
 
 # Guard to ensure we only register/sync commands once per process
 _commands_registered = False

@@ -1,7 +1,10 @@
 """Minecraft server status helper using mcstatus."""
 import asyncio
 from mcstatus import JavaServer
-from Discord_Bot.config import MC_SERVER_URL
+try:
+    from Discord_Bot.config import MC_SERVER_URL
+except ModuleNotFoundError:
+    from config import MC_SERVER_URL
 
 
 async def get_mc_status():

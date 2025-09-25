@@ -1,7 +1,11 @@
 """Manage statistics category and voice channels in a guild."""
 import discord
-from Discord_Bot.config import STATS_CATEGORY_NAME, MEMBER_CHANNEL_NAME, MC_CHANNEL_NAME
-from Discord_Bot.mc_status import get_mc_status
+try:
+    from Discord_Bot.config import STATS_CATEGORY_NAME, MEMBER_CHANNEL_NAME, MC_CHANNEL_NAME
+    from Discord_Bot.mc_status import get_mc_status
+except ModuleNotFoundError:
+    from config import STATS_CATEGORY_NAME, MEMBER_CHANNEL_NAME, MC_CHANNEL_NAME
+    from mc_status import get_mc_status
 
 async def setup_stats_channels(guild: discord.Guild):
     """Ensure the category and channels exist once."""

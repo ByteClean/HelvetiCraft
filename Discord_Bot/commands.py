@@ -9,8 +9,12 @@ import json
 import os
 from discord import ui
 from discord import TextStyle
-from .initiatives_store import create_initiative
-from .config import COMMANDS_CHANNEL_NAME, INITIATIVES_CHANNEL_NAME, INITIATIVES_CHANNEL_ID, COMMANDS_CHANNEL_ID, TOKEN, GUILD_ID
+try:
+    from Discord_Bot.initiatives_store import create_initiative
+    from Discord_Bot.config import COMMANDS_CHANNEL_NAME, INITIATIVES_CHANNEL_NAME, INITIATIVES_CHANNEL_ID, COMMANDS_CHANNEL_ID, TOKEN, GUILD_ID
+except ModuleNotFoundError:
+    from initiatives_store import create_initiative
+    from config import COMMANDS_CHANNEL_NAME, INITIATIVES_CHANNEL_NAME, INITIATIVES_CHANNEL_ID, COMMANDS_CHANNEL_ID, TOKEN, GUILD_ID
 
 
 class InitiativeModal(ui.Modal, title="Create Initiative"):

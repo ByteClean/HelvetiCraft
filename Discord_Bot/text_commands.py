@@ -1,12 +1,21 @@
 import discord
 from discord.ext import commands
-from .initiatives_store import create_initiative
-from .config import (
-    COMMANDS_CHANNEL_ID,
-    COMMANDS_CHANNEL_NAME,
-    INITIATIVES_CHANNEL_ID,
-    INITIATIVES_CHANNEL_NAME,
-)
+try:
+    from Discord_Bot.initiatives_store import create_initiative
+    from Discord_Bot.config import (
+        COMMANDS_CHANNEL_ID,
+        COMMANDS_CHANNEL_NAME,
+        INITIATIVES_CHANNEL_ID,
+        INITIATIVES_CHANNEL_NAME,
+    )
+except ModuleNotFoundError:
+    from initiatives_store import create_initiative
+    from config import (
+        COMMANDS_CHANNEL_ID,
+        COMMANDS_CHANNEL_NAME,
+        INITIATIVES_CHANNEL_ID,
+        INITIATIVES_CHANNEL_NAME,
+    )
 
 
 class TextCommands(commands.Cog):
