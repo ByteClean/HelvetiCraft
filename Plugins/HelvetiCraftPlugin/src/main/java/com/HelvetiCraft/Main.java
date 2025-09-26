@@ -1,6 +1,7 @@
 package com.helveticraft.helveticraftplugin;
 
 import com.HelvetiCraft.commands.*;
+import com.HelvetiCraft.expansions.FinanceExpansion;
 import com.HelvetiCraft.initiatives.InitiativeManager;
 import com.HelvetiCraft.finance.FinanceManager;
 import com.HelvetiCraft.finance.FinanceJoinListener;
@@ -27,6 +28,8 @@ public class Main extends JavaPlugin {
 
         // Finance manager (initialize before registering finance commands/listeners)
         financeManager = new FinanceManager(this);
+        new FinanceExpansion(financeManager).register();
+        getLogger().info("FinanceExpansion placeholders registered!");
 
         // Finance commands
         getCommand("finance").setExecutor(new FinanceCommand(financeManager));
