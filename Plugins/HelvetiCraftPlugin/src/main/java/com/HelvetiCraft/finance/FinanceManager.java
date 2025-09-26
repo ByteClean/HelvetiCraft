@@ -64,6 +64,17 @@ public class FinanceManager {
         cache.computeIfAbsent(id, k -> new Account(0L, 0L));
     }
 
+    /**
+     * Returns true if the player already has a stored account (in data file or cache).
+     * This helps distinguish first-time joins from returning players.
+     */
+    public boolean hasAccount(UUID id) {
+        // Check persisted data first
+        if (data.isSet("players." + id.toString())) return true;
+        // Then check in-memory cache
+        return cache.containsKey(id);
+    }
+
     public Account getAccount(UUID id) {
         ensureAccount(id);
         return cache.get(id);
