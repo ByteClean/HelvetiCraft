@@ -48,6 +48,12 @@ public class HelveticraftCommand implements CommandExecutor {
         sender.sendMessage("§e/initiative §7- Öffne das Volksinitiativen-Menü");
         sender.sendMessage("§e/status §7- Überprüfe deinen Status");
         sender.sendMessage("§e/verify §7- Verifiziere deinen Discord Account");
+        sender.sendMessage("§e/finance §7- Finanzübersicht anzeigen");
+        sender.sendMessage("§e/networth §7- Zeige dein Vermögen an");
+        sender.sendMessage("§e/pay <Spieler> <Betrag> §7- Überweise Geld an einen Spieler");
+        sender.sendMessage("§e/sell <Anzahl> §7- Verkaufe Items aus deiner Hand");
+        sender.sendMessage("§e/save <Betrag> <main|savings> §7- Verschiebe Geld zwischen Haupt- und Sparkonto");
+        sender.sendMessage("§6=====================================");
 
         return true;
     }
