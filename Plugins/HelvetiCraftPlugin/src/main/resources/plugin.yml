@@ -1,7 +1,8 @@
 name: HelvetiCraftPlugin
 main: com.helveticraft.helveticraftplugin.Main
-version: 1.2.0
+version: 1.2.1
 api-version: 1.21
+softdepend: [PlaceholderAPI]
 
 commands:
   initiative:
@@ -11,11 +12,39 @@ commands:
     description: Verify your account
     permission: helveticraft.verify
   status:
-    description: Shows your current status
+    description: Shows project status
     permission: helveticraft.status
   helveticraft:
     description: Shows HelvetiCraft info
     permission: helveticraft.info
+  finance:
+    description: Show your finance overview (main and savings)
+    usage: /finance
+    permission: helveticraft.finance
+  networth:
+    description: Show total net worth of all players (main+savings)
+    usage: /networth
+    permission: helveticraft.networth
+  pay:
+    description: Transfer money to another player from your main account
+    usage: /pay <player> <amount>
+    permission: helveticraft.pay
+  sell:
+    description: Sell the item in your hand to another player for a price
+    usage: /sell <player> <amount>
+    permission: helveticraft.sell
+  sellaccept:
+    description: Accept a pending sell offer (internal)
+    usage: /sellaccept
+    permission: helveticraft.sell
+  selldecline:
+    description: Decline a pending sell offer (internal)
+    usage: /selldecline
+    permission: helveticraft.sell
+  save:
+    description: Move money between your main account and savings account
+    usage: /save <amount>
+    permission: helveticraft.save
 
 permissions:
   helveticraft.*:
@@ -25,6 +54,11 @@ permissions:
       helveticraft.verify: true
       helveticraft.status: true
       helveticraft.info: true
+      helveticraft.finance: true
+      helveticraft.networth: true
+      helveticraft.pay: true
+      helveticraft.sell: true
+      helveticraft.save: true
   helveticraft.initiative:
     description: Use the initiative command
     default: true
@@ -36,4 +70,19 @@ permissions:
     default: true
   helveticraft.info:
     description: Use the helveticraft info command
+    default: true
+  helveticraft.finance:
+    description: Use /finance
+    default: true
+  helveticraft.networth:
+    description: Use /networth
+    default: true
+  helveticraft.pay:
+    description: Use /pay
+    default: true
+  helveticraft.sell:
+    description: Use /sell
+    default: true
+  helveticraft.save:
+    description: Use /save to move money between main and savings
     default: true
