@@ -36,6 +36,7 @@ public class Main extends JavaPlugin {
         getCommand("networth").setExecutor(new NetworthCommand(financeManager));
         getCommand("pay").setExecutor(new PayCommand(financeManager));
         getCommand("sell").setExecutor(new SellCommand(this, financeManager));
+        getCommand("save").setExecutor(new SaveCommand(financeManager));
 
 
         // Register listeners (GUI handling lives inside InitiativeManager)

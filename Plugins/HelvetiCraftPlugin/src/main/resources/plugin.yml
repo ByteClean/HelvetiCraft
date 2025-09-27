@@ -41,6 +41,10 @@ commands:
     description: Decline a pending sell offer (internal)
     usage: /selldecline
     permission: helveticraft.sell
+  save:
+    description: Move money between your main account and savings account
+    usage: /save <amount>
+    permission: helveticraft.save
 
 permissions:
   helveticraft.*:
@@ -54,6 +58,7 @@ permissions:
       helveticraft.networth: true
       helveticraft.pay: true
       helveticraft.sell: true
+      helveticraft.save: true
   helveticraft.initiative:
     description: Use the initiative command
     default: true
@@ -77,4 +82,7 @@ permissions:
     default: true
   helveticraft.sell:
     description: Use /sell
+    default: true
+  helveticraft.save:
+    description: Use /save to move money between main and savings
     default: true

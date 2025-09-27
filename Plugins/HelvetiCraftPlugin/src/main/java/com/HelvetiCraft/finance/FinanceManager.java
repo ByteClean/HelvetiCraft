@@ -75,6 +75,24 @@ public class FinanceManager {
         return cache.containsKey(id);
     }
 
+    public boolean moveMainToSavings(UUID id, long cents) {
+        if (cents <= 0) return false;
+        Account acc = getAccount(id);
+        if (acc.main < cents) return false;
+        acc.main -= cents;
+        acc.savings += cents;
+        return true;
+    }
+
+    public boolean moveSavingsToMain(UUID id, long cents) {
+        if (cents <= 0) return false;
+        Account acc = getAccount(id);
+        if (acc.savings < cents) return false;
+        acc.savings -= cents;
+        acc.main += cents;
+        return true;
+    }
+
     public Account getAccount(UUID id) {
         ensureAccount(id);
         return cache.get(id);
@@ -120,16 +138,31 @@ public class FinanceManager {
 
     public static long parseAmountToCents(String input) throws IllegalArgumentException {
         String cleaned = input.replace(",", ".").trim();
-        if (!cleaned.matches("\\d+(\\.\\d{1,2})?")) throw new IllegalArgumentException("Invalid amount");
+
+        // allow optional leading "-"
+        if (!cleaned.matches("-?\\d+(\\.\\d{1,2})?"))
+            throw new IllegalArgumentException("Invalid amount");
+
+        boolean negative = cleaned.startsWith("-");
+        if (negative) {
+            cleaned = cleaned.substring(1); // strip "-" for parsing
+        }
+
         int dot = cleaned.indexOf('.');
-        if (dot < 0) return Math.multiplyExact(Long.parseLong(cleaned), 100L);
-        String whole = cleaned.substring(0, dot);
-        String frac = cleaned.substring(dot + 1);
-        if (frac.length() == 1) frac = frac + "0";
-        if (frac.length() > 2) frac = frac.substring(0, 2);
-        long wholePart = Long.parseLong(whole);
-        long fracPart = Long.parseLong(frac);
-        return Math.addExact(Math.multiplyExact(wholePart, 100L), fracPart);
+        long result;
+        if (dot < 0) {
+            result = Math.multiplyExact(Long.parseLong(cleaned), 100L);
+        } else {
+            String whole = cleaned.substring(0, dot);
+            String frac = cleaned.substring(dot + 1);
+            if (frac.length() == 1) frac = frac + "0";
+            if (frac.length() > 2) frac = frac.substring(0, 2);
+            long wholePart = Long.parseLong(whole);
+            long fracPart = Long.parseLong(frac);
+            result = Math.addExact(Math.multiplyExact(wholePart, 100L), fracPart);
+        }
+
+        return negative ? -result : result;
     }
 
     public static String formatCents(long cents) {
