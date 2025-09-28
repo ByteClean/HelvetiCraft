@@ -1,6 +1,6 @@
 package com.HelvetiCraft.commands;
 
-import com.helveticraft.helveticraftplugin.Main;
+import com.HelvetiCraft.Main;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.command.Command;

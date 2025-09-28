@@ -1,6 +1,6 @@
 package com.HelvetiCraft.initiatives;
 
-import com.helveticraft.helveticraftplugin.Main;
+import com.HelvetiCraft.Main;
 import net.wesjd.anvilgui.AnvilGUI;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -21,9 +21,22 @@ public class InitiativeManager implements Listener {
     private final Map<UUID, Set<String>> playerVotes = new HashMap<>();
     private final Map<UUID, Integer> playerPages = new HashMap<>();
 
+    // Phase tracking
+    private int currentPhase = 1;
+    private long phaseStartTime;
+    private final int phaseDurationTicks;
+    private final int totalRounds;
+
     public InitiativeManager(Main plugin) {
         this.plugin = plugin;
         this.initiativeMenu = new InitiativeMenu(this);
+
+        // Load config values
+        long durationDays = plugin.getConfig().getLong("initiatives.phases.duration-days", 3);
+        this.totalRounds = plugin.getConfig().getInt("initiatives.phases.rounds", 5);
+        // Minecraft day = 24000 ticks, 1 tick ~ 50ms real time
+        this.phaseDurationTicks = (int) (durationDays * 24000);
+        this.phaseStartTime = System.currentTimeMillis();
 
         // TODO: Replace with database later
         initiatives.put("Park bauen", new Initiative("Park bauen",
@@ -32,9 +45,35 @@ public class InitiativeManager implements Listener {
                 "Baue ein Denkmal für das Server-Jubiläum", "Bob", 3));
         initiatives.put("Gemeinschaftsfarm", new Initiative("Gemeinschaftsfarm",
                 "Baue eine Farm, um Ressourcen mit allen zu teilen", "Charlie", 7));
+
+        // Schedule phase advancement
+        Bukkit.getScheduler().runTaskTimer(plugin, this::advancePhase, 20L, 20L);
     }
 
+    private void advancePhase() {
+        long now = System.currentTimeMillis();
+        long durationMs = phaseDurationTicks * 50; // convert ticks to ms
+        if (now - phaseStartTime >= durationMs && currentPhase < totalRounds) {
+            currentPhase++;
+            phaseStartTime = now;
+            plugin.getServer().broadcastMessage("§aPhase " + currentPhase + " der Volksinitiativen hat begonnen!");
+        }
+    }
+
+    // --- PAPI placeholders ---
+    public int getCurrentPhase() {
+        return currentPhase;
+    }
+
+    public int getPastPhases() {
+        return currentPhase - 1;
+    }
     // --- Public API ---
+    public long getPhaseEndTime() {
+        long durationMs = phaseDurationTicks * 50;
+        return phaseStartTime + durationMs;
+    }
+
     public void openInitiativeMenu(Player player) {
         int page = playerPages.getOrDefault(player.getUniqueId(), 0);
         initiativeMenu.open(player, page);
@@ -51,7 +90,6 @@ public class InitiativeManager implements Listener {
     public Map<UUID, Integer> getPlayerPages() {
         return playerPages;
     }
-
     // --- Events ---
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
@@ -66,9 +104,7 @@ public class InitiativeManager implements Listener {
         // Only cancel in your menus
         if (title.startsWith("§6Aktive Volksinitiativen") || title.startsWith("§6Meine Volksinitiativen")) {
             event.setCancelled(true);
-
             String displayName = clicked.getItemMeta().getDisplayName();
-
             // --- Active Volksinitiativen Menu ---
             if (title.startsWith("§6Aktive Volksinitiativen")) {
                 String initiativeTitle = displayName.replace("§b", "").replace("§a", "");
@@ -96,12 +132,8 @@ public class InitiativeManager implements Listener {
                         openInitiativeMenu(player);
                         break;
                 }
-            }
-
-            // --- My Volksinitiativen Menu ---
-            else if (title.startsWith("§6Meine Volksinitiativen")) {
+            } else if (title.startsWith("§6Meine Volksinitiativen")) {
                 String selected = initiativeMenu.getSelected(player);
-
                 switch (clicked.getType()) {
                     case PAPER:
                     case ENCHANTED_BOOK:
@@ -114,12 +146,10 @@ public class InitiativeManager implements Listener {
                         initiativeMenu.openPlayerInitiatives(player,
                                 playerPages.getOrDefault(player.getUniqueId(), 0));
                         break;
-
                     case ARROW:
                         player.closeInventory();
                         openInitiativeMenu(player);
                         break;
-
                     case YELLOW_WOOL:
                         if (selected == null) {
                             player.sendMessage("§cKeine Volksinitiative zum Bearbeiten ausgewählt!");
@@ -128,7 +158,6 @@ public class InitiativeManager implements Listener {
                         player.closeInventory();
                         editInitiative(player, selected);
                         break;
-
                     case RED_WOOL:
                         if (selected == null) {
                             player.sendMessage("§cKeine Volksinitiative zum Löschen ausgewählt!");
@@ -145,13 +174,11 @@ public class InitiativeManager implements Listener {
         }
     }
 
-    // --- Voting ---
     private void handleVote(Player player, String title) {
         Initiative initiative = initiatives.get(title);
         if (initiative == null) return;
 
-        Set<String> votedSet = playerVotes
-                .computeIfAbsent(player.getUniqueId(), k -> new HashSet<>());
+        Set<String> votedSet = playerVotes.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>());
 
         if (votedSet.contains(title)) {
             votedSet.remove(title);
@@ -165,7 +192,7 @@ public class InitiativeManager implements Listener {
         openInitiativeMenu(player);
     }
 
-    // --- Volksinitiative Creation ---
+    // --- Creation / Editing ---
     private void startInitiativeCreation(Player player) {
         new AnvilGUI.Builder()
                 .plugin(plugin)

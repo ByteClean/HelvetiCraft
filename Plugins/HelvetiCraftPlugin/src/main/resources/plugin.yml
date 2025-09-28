@@ -1,5 +1,5 @@
 name: HelvetiCraftPlugin
-main: com.helveticraft.helveticraftplugin.Main
+main: com.HelvetiCraft.Main
 version: 1.2.1
 api-version: 1.21
 softdepend: [PlaceholderAPI]

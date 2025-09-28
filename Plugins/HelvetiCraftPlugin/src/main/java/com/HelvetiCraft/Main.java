@@ -1,10 +1,12 @@
-package com.helveticraft.helveticraftplugin;
+package com.HelvetiCraft;
 
 import com.HelvetiCraft.commands.*;
 import com.HelvetiCraft.expansions.FinanceExpansion;
+import com.HelvetiCraft.expansions.InitiativeExpansion;
 import com.HelvetiCraft.initiatives.InitiativeManager;
 import com.HelvetiCraft.finance.FinanceManager;
 import com.HelvetiCraft.finance.FinanceJoinListener;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class Main extends JavaPlugin {
@@ -19,6 +21,12 @@ public class Main extends JavaPlugin {
 
         // Initialize initiative manager
         initiativeManager = new InitiativeManager(this);
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            new InitiativeExpansion(initiativeManager).register();
+            getLogger().info("InitiativeExpansion placeholders registered!");
+        } else {
+            getLogger().warning("PlaceholderAPI not found! Initiative placeholders will not work.");
+        }
 
         // Register commands with executors
         getCommand("initiative").setExecutor(new InitiativeCommand(initiativeManager));

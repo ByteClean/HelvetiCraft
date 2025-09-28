@@ -5,7 +5,7 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.helveticraft</groupId>
+    <groupId>com.HelvetiCraft</groupId>
     <artifactId>helveticraftplugin</artifactId>
     <version>1.2.1</version>
     <packaging>jar</packaging>
@@ -92,7 +92,7 @@
                             <relocations>
                                 <relocation>
                                     <pattern>net.wesjd.anvilgui</pattern>
-                                    <shadedPattern>com.helveticraft.libs.anvilgui</shadedPattern>
+                                    <shadedPattern>com.HelvetiCraft.libs.anvilgui</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>
