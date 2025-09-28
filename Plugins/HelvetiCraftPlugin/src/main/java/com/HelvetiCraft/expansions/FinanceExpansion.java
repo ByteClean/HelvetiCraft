@@ -17,7 +17,7 @@ public class FinanceExpansion extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getIdentifier() {
-        return "helveticraft"; // => %helveticraft_...%
+        return "hcfinance"; // => %helveticraft_...%
     }
 
     @Override

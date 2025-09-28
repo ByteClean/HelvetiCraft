@@ -1,6 +1,6 @@
 package com.HelvetiCraft.commands;
 
-import com.helveticraft.helveticraftplugin.Main;
+import com.HelvetiCraft.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
