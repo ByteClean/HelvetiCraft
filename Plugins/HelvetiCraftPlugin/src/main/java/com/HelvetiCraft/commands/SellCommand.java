@@ -19,8 +19,8 @@ public class SellCommand implements CommandExecutor, TabCompleter {
     private final JavaPlugin plugin;
     private final FinanceManager finance;
 
-    // Pending offers buyerId -> Offer
-    private final Map<UUID, Offer> pending = new ConcurrentHashMap<>();
+    // Pending offers: buyerId -> list of offers
+    private final Map<UUID, List<Offer>> pending = new ConcurrentHashMap<>();
 
     private static class Offer {
         final UUID sellerId;
@@ -46,7 +46,10 @@ public class SellCommand implements CommandExecutor, TabCompleter {
             @Override
             public void run() {
                 long now = System.currentTimeMillis();
-                pending.values().removeIf(o -> o.expiresAt < now);
+                for (List<Offer> list : pending.values()) {
+                    list.removeIf(o -> o.expiresAt < now);
+                }
+                pending.entrySet().removeIf(e -> e.getValue().isEmpty());
             }
         }.runTaskTimer(plugin, 20L, 20L * 10); // every 10 seconds
     }
@@ -66,9 +69,9 @@ public class SellCommand implements CommandExecutor, TabCompleter {
             case "sell":
                 return handleSell(player, args);
             case "sellaccept":
-                return handleAccept(player);
+                return handleAccept(player, args);
             case "selldecline":
-                return handleDecline(player);
+                return handleDecline(player, args);
         }
         return false;
     }
@@ -86,6 +89,16 @@ public class SellCommand implements CommandExecutor, TabCompleter {
         }
         if (buyer.getUniqueId().equals(seller.getUniqueId())) {
             seller.sendMessage("§cDu kannst nicht an dich selbst verkaufen.");
+            return true;
+        }
+
+        // Check if seller already has an active offer
+        boolean hasOffer = pending.values().stream()
+                .flatMap(List::stream)
+                .anyMatch(o -> o.sellerId.equals(seller.getUniqueId()) && o.expiresAt > System.currentTimeMillis());
+
+        if (hasOffer) {
+            seller.sendMessage("§cDu hast bereits ein aktives Angebot laufen.");
             return true;
         }
 
@@ -108,31 +121,51 @@ public class SellCommand implements CommandExecutor, TabCompleter {
         }
 
         ItemStack offered = inHand.clone();
-        long expiresAt = System.currentTimeMillis() + 30_000L;
+        long expiresAt = System.currentTimeMillis() + 120_000L; // 2 minutes
         Offer offer = new Offer(seller.getUniqueId(), buyer.getUniqueId(), offered, cents, expiresAt);
-        pending.put(buyer.getUniqueId(), offer);
+        pending.computeIfAbsent(buyer.getUniqueId(), k -> new ArrayList<>()).add(offer);
 
         String priceStr = FinanceManager.formatCents(cents);
-        seller.sendMessage("§aAngebot gesendet an §f" + buyer.getName() + " §afür §f" + priceStr + "§a. Läuft in 30s ab.");
+        seller.sendMessage("§aAngebot gesendet an §f" + buyer.getName() + " §afür §f" + priceStr + "§a. Läuft in 2 Minuten ab.");
 
         // Clickable message
         TextComponent base = new TextComponent("§e" + seller.getName() + " bietet dir " + offered.getAmount() + "x "
                 + prettify(offered.getType()) + " für §a" + priceStr + "§e an. ");
         TextComponent accept = new TextComponent("§a[Annehmen]");
-        accept.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/sellaccept"));
+        accept.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/sellaccept " + seller.getName()));
         TextComponent decline = new TextComponent(" §c[Ablehnen]");
-        decline.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/selldecline"));
+        decline.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/selldecline " + seller.getName()));
         buyer.spigot().sendMessage(base, accept, decline);
 
         return true;
     }
 
-    private boolean handleAccept(Player buyer) {
-        Offer o = pending.remove(buyer.getUniqueId());
-        if (o == null) {
-            buyer.sendMessage("§cKein ausstehendes Angebot.");
+    private boolean handleAccept(Player buyer, String[] args) {
+        List<Offer> offers = pending.get(buyer.getUniqueId());
+        if (offers == null || offers.isEmpty()) {
+            buyer.sendMessage("§cKeine ausstehenden Angebote.");
             return true;
         }
+
+        Offer o;
+        if (args.length >= 1) {
+            Player seller = Bukkit.getPlayerExact(args[0]);
+            if (seller == null) {
+                buyer.sendMessage("§cVerkäufer nicht gefunden.");
+                return true;
+            }
+            o = offers.stream().filter(of -> of.sellerId.equals(seller.getUniqueId())).findFirst().orElse(null);
+            if (o == null) {
+                buyer.sendMessage("§cKein Angebot von diesem Verkäufer gefunden.");
+                return true;
+            }
+            offers.remove(o);
+        } else {
+            o = offers.remove(0); // oldest
+        }
+
+        if (offers.isEmpty()) pending.remove(buyer.getUniqueId());
+
         if (System.currentTimeMillis() > o.expiresAt) {
             buyer.sendMessage("§cAngebot ist abgelaufen.");
             return true;
@@ -182,16 +215,35 @@ public class SellCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    private boolean handleDecline(Player buyer) {
-        Offer o = pending.remove(buyer.getUniqueId());
-        if (o == null) {
-            buyer.sendMessage("§cKein ausstehendes Angebot.");
+    private boolean handleDecline(Player buyer, String[] args) {
+        List<Offer> offers = pending.get(buyer.getUniqueId());
+        if (offers == null || offers.isEmpty()) {
+            buyer.sendMessage("§cKeine ausstehenden Angebote.");
             return true;
         }
 
+        Offer o;
+        if (args.length >= 1) {
+            Player seller = Bukkit.getPlayerExact(args[0]);
+            if (seller == null) {
+                buyer.sendMessage("§cVerkäufer nicht gefunden.");
+                return true;
+            }
+            o = offers.stream().filter(of -> of.sellerId.equals(seller.getUniqueId())).findFirst().orElse(null);
+            if (o == null) {
+                buyer.sendMessage("§cKein Angebot von diesem Verkäufer gefunden.");
+                return true;
+            }
+            offers.remove(o);
+        } else {
+            o = offers.remove(0); // oldest
+        }
+
+        if (offers.isEmpty()) pending.remove(buyer.getUniqueId());
+
         Player seller = Bukkit.getPlayer(o.sellerId);
         if (seller != null && seller.isOnline()) {
-            seller.sendMessage("§e" + buyer.getName() + " §chat das Angebot abgelehnt.");
+            seller.sendMessage("§e" + buyer.getName() + " §chat dein Angebot abgelehnt.");
         }
         buyer.sendMessage("§eAngebot abgelehnt.");
         return true;
@@ -205,14 +257,37 @@ public class SellCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         List<String> res = new ArrayList<>();
-        if (args.length == 1) {
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                if (sender.getName().equalsIgnoreCase(p.getName())) continue;
-                if (p.getName().toLowerCase().startsWith(args[0].toLowerCase())) {
-                    res.add(p.getName());
+
+        if (!(sender instanceof Player)) return res;
+
+        Player player = (Player) sender;
+
+        switch (cmd.getName().toLowerCase()) {
+            case "sell":
+                if (args.length == 1) {
+                    for (Player p : Bukkit.getOnlinePlayers()) {
+                        if (!p.equals(player) && p.getName().toLowerCase().startsWith(args[0].toLowerCase())) {
+                            res.add(p.getName());
+                        }
+                    }
                 }
-            }
+                break;
+            case "sellaccept":
+            case "selldecline":
+                if (args.length == 1) {
+                    List<Offer> offers = pending.get(player.getUniqueId());
+                    if (offers != null) {
+                        for (Offer o : offers) {
+                            Player seller = Bukkit.getPlayer(o.sellerId);
+                            if (seller != null && seller.getName().toLowerCase().startsWith(args[0].toLowerCase())) {
+                                res.add(seller.getName());
+                            }
+                        }
+                    }
+                }
+                break;
         }
+
         return res;
     }
 }
