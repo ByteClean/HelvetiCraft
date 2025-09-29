@@ -43,7 +43,10 @@ public class Main extends JavaPlugin {
         getCommand("finance").setExecutor(new FinanceCommand(financeManager));
         getCommand("networth").setExecutor(new NetworthCommand(financeManager));
         getCommand("pay").setExecutor(new PayCommand(financeManager));
-        getCommand("sell").setExecutor(new SellCommand(this, financeManager));
+        SellCommand sell = new SellCommand(this, financeManager);
+        getCommand("sell").setExecutor(sell);
+        getCommand("sellaccept").setExecutor(sell);
+        getCommand("selldecline").setExecutor(sell);
         getCommand("save").setExecutor(new SaveCommand(financeManager));
 
 
