@@ -6,7 +6,9 @@ import com.HelvetiCraft.expansions.InitiativeExpansion;
 import com.HelvetiCraft.initiatives.InitiativeManager;
 import com.HelvetiCraft.finance.FinanceManager;
 import com.HelvetiCraft.finance.FinanceJoinListener;
+import com.HelvetiCraft.economy.VaultEconomyBridge;
 import org.bukkit.Bukkit;
+import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class Main extends JavaPlugin {
@@ -19,7 +21,7 @@ public class Main extends JavaPlugin {
         getLogger().info("HelvetiCraft Plugin has been enabled!");
         saveDefaultConfig();
 
-        // Initialize initiative manager
+        // Initiative manager
         initiativeManager = new InitiativeManager(this);
         if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             new InitiativeExpansion(initiativeManager).register();
@@ -28,13 +30,13 @@ public class Main extends JavaPlugin {
             getLogger().warning("PlaceholderAPI not found! Initiative placeholders will not work.");
         }
 
-        // Register commands with executors
+        // Register commands
         getCommand("initiative").setExecutor(new InitiativeCommand(initiativeManager));
         getCommand("verify").setExecutor(new VerifyCommand(this));
         getCommand("status").setExecutor(new StatusCommand(this));
         getCommand("helveticraft").setExecutor(new HelveticraftCommand(this));
 
-        // Finance manager (initialize before registering finance commands/listeners)
+        // Finance manager
         financeManager = new FinanceManager(this);
         new FinanceExpansion(financeManager).register();
         getLogger().info("FinanceExpansion placeholders registered!");
@@ -49,11 +51,22 @@ public class Main extends JavaPlugin {
         getCommand("selldecline").setExecutor(sell);
         getCommand("save").setExecutor(new SaveCommand(financeManager));
 
-
-        // Register listeners (GUI handling lives inside InitiativeManager)
+        // Listeners
         getServer().getPluginManager().registerEvents(initiativeManager, this);
-    getServer().getPluginManager().registerEvents(new FinanceJoinListener(financeManager), this);
+        getServer().getPluginManager().registerEvents(new FinanceJoinListener(financeManager), this);
 
+        // Vault economy bridge
+        if (Bukkit.getPluginManager().isPluginEnabled("Vault")) {
+            Bukkit.getServicesManager().register(
+                    net.milkbowl.vault.economy.Economy.class,
+                    new VaultEconomyBridge(financeManager),
+                    this,
+                    ServicePriority.High
+            );
+            getLogger().info("Vault economy bridge registered!");
+        } else {
+            getLogger().warning("Vault not found! Economy plugins like ChestShop will not work.");
+        }
     }
 
     @Override
@@ -68,5 +81,4 @@ public class Main extends JavaPlugin {
     public FinanceManager getFinanceManager() {
         return financeManager;
     }
-
 }

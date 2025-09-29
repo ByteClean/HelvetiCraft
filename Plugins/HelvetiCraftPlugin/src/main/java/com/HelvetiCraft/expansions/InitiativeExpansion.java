@@ -41,7 +41,6 @@ public class InitiativeExpansion extends PlaceholderExpansion {
 
     @Override
     public String onRequest(OfflinePlayer player, @NotNull String params) {
-        Bukkit.getLogger().info("[DEBUG] InitiativeExpansion onRequest called with params=" + params);
         if (player == null) return "";
 
         UUID id = player.getUniqueId();
