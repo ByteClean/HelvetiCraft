@@ -1,66 +1,95 @@
-// src/routes/initiatives.routes.js
 import { Router } from "express";
+import pool from "../services/mysql.service.js";
+
 const r = Router();
 
-// Alle Initiativen
-r.get("/all", (req, res) => {
-  res.json([
-    { id: "abc123", title: "Bessere Strassen", status: "open" },
-    { id: "def456", title: "Mehr Baeume", status: "voting" }
-  ]);
+/**
+ * Alle Initiativen
+ */
+r.get("/initiatives", async (req, res, next) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT i.id, i.title, i.description, i.status,
+              i.created_at, i.updated_at,
+              u.username AS author
+       FROM initiatives i
+       JOIN authme u ON u.id = i.author_id`
+    );
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
 });
 
-// Eigene Initiativen
-r.get("/own", (req, res) => {
-  res.json([
-    { id: "ghi789", title: "Meine Initiative", status: "draft" }
-  ]);
+/**
+ * Einzelne Initiative
+ */
+r.get("/initiatives/:id", async (req, res, next) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT i.id, i.title, i.description, i.status,
+              i.created_at, i.updated_at,
+              u.username AS author
+       FROM initiatives i
+       JOIN authme u ON u.id = i.author_id
+       WHERE i.id = ?`,
+      [req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: "not_found" });
+    res.json(rows[0]);
+  } catch (err) {
+    next(err);
+  }
 });
 
-// Akzeptierte Initiativen
-r.get("/accepted", (req, res) => {
-  res.json([
-    { id: "jkl012", title: "Spielplatz erweitern", status: "accepted" }
-  ]);
+/**
+ * Neue Initiative anlegen
+ * Body: { author_id, title, description }
+ */
+r.post("/initiatives", async (req, res, next) => {
+  const { author_id, title, description } = req.body;
+  try {
+    const [result] = await pool.query(
+      "INSERT INTO initiatives (author_id, title, description) VALUES (?,?,?)",
+      [author_id, title, description]
+    );
+    res.status(201).json({ id: result.insertId, author_id, title, description, status: "draft" });
+  } catch (err) {
+    if (err.code === "ER_NO_REFERENCED_ROW_2") {
+      return res.status(400).json({ error: "invalid_author_id" });
+    }
+    next(err);
+  }
 });
 
-// Neue Initiative anlegen
-r.post("/new", (req, res) => {
-  const { title, body } = req.body;
-  res.status(201).json({
-    id: "new_abc123",
-    title: title || "Dummy Titel",
-    body: body || "Dummy Beschreibung"
-  });
+/**
+ * Initiative bearbeiten
+ */
+r.put("/initiatives/:id", async (req, res, next) => {
+  const { title, description, status } = req.body;
+  try {
+    const [result] = await pool.query(
+      "UPDATE initiatives SET title=?, description=?, status=? WHERE id=?",
+      [title, description, status, req.params.id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: "not_found" });
+    res.json({ id: req.params.id, title, description, status });
+  } catch (err) {
+    next(err);
+  }
 });
 
-// Initiative bearbeiten
-r.put("/edit", (req, res) => {
-  const { id, ...patch } = req.body;
-  res.json({
-    id: id || "edit_abc123",
-    updated: patch
-  });
-});
-
-// Initiative löschen
-r.delete("/del", (req, res) => {
-  const { id } = req.body;
-  res.json({
-    id: id || "del_abc123",
-    deleted: true
-  });
-});
-
-// Abstimmung
-r.post("/vote/:initiative_id", (req, res) => {
-  const { initiative_id } = req.params;
-  const { vote } = req.body;
-  res.json({
-    initiative_id,
-    vote: vote || "yes",
-    voter: "user_abc123"
-  });
+/**
+ * Initiative löschen
+ */
+r.delete("/initiatives/:id", async (req, res, next) => {
+  try {
+    const [result] = await pool.query("DELETE FROM initiatives WHERE id=?", [req.params.id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: "not_found" });
+    res.json({ id: req.params.id, deleted: true });
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default r;
