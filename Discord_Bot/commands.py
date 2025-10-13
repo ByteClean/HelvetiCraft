@@ -11,10 +11,24 @@ from discord import ui
 from discord import TextStyle
 try:
     from Discord_Bot.initiatives_store import create_initiative
-    from Discord_Bot.config import COMMANDS_CHANNEL_NAME, INITIATIVES_CHANNEL_NAME, INITIATIVES_CHANNEL_ID, COMMANDS_CHANNEL_ID, TOKEN, GUILD_ID
+    from Discord_Bot.config import (
+        COMMANDS_CHANNEL_NAME,
+        INITIATIVES_CHANNEL_NAME,
+        INITIATIVES_CHANNEL_ID,
+        COMMANDS_CHANNEL_ID,
+        TOKEN,
+        GUILD_ID,
+    )
 except ModuleNotFoundError:
     from initiatives_store import create_initiative
-    from config import COMMANDS_CHANNEL_NAME, INITIATIVES_CHANNEL_NAME, INITIATIVES_CHANNEL_ID, COMMANDS_CHANNEL_ID, TOKEN, GUILD_ID
+    from config import (
+        COMMANDS_CHANNEL_NAME,
+        INITIATIVES_CHANNEL_NAME,
+        INITIATIVES_CHANNEL_ID,
+        COMMANDS_CHANNEL_ID,
+        TOKEN,
+        GUILD_ID,
+    )
 
 
 class InitiativeModal(ui.Modal, title="Create Initiative"):
@@ -32,7 +46,10 @@ class InitiativeModal(ui.Modal, title="Create Initiative"):
             if not chan:
                 chan = discord.utils.get(guild.text_channels, name=INITIATIVES_CHANNEL_NAME)
             if chan:
-                await chan.send(f"New Initiative #{item['id']} by {interaction.user.mention}\n**{item['title']}**\n{item['description']}")
+                await chan.send(
+                    f"New Initiative #{item['id']} by {interaction.user.mention}\n"
+                    f"**{item['title']}**\n{item['description']}"
+                )
 
         await interaction.response.send_message(f"Initiative created with id {item['id']}.", ephemeral=True)
 
@@ -48,9 +65,13 @@ async def setup(bot: discord.Client):
     @decorator
     async def initiative(interaction: discord.Interaction):
         invoked_channel_id = interaction.channel.id if interaction.channel else None
-        print(f"DEBUG: /initiative invoked in channel id={invoked_channel_id}, configured COMMANDS_CHANNEL_ID={COMMANDS_CHANNEL_ID}")
+        print(
+            f"DEBUG: /initiative invoked in channel id={invoked_channel_id}, configured COMMANDS_CHANNEL_ID={COMMANDS_CHANNEL_ID}"
+        )
         if COMMANDS_CHANNEL_ID and invoked_channel_id != COMMANDS_CHANNEL_ID:
-            await interaction.response.send_message(f"Please use this command in the configured commands channel.", ephemeral=True)
+            await interaction.response.send_message(
+                f"Please use this command in the configured commands channel.", ephemeral=True
+            )
             return
         if not COMMANDS_CHANNEL_ID and interaction.channel and interaction.channel.name != COMMANDS_CHANNEL_NAME:
             await interaction.response.send_message(f"Please use this command in #{COMMANDS_CHANNEL_NAME}", ephemeral=True)
@@ -64,7 +85,9 @@ async def setup(bot: discord.Client):
     @decorator
     async def networth(interaction: discord.Interaction):
         invoked_channel_id = interaction.channel.id if interaction.channel else None
-        print(f"DEBUG: /networth invoked in channel id={invoked_channel_id}, configured COMMANDS_CHANNEL_ID={COMMANDS_CHANNEL_ID}")
+        print(
+            f"DEBUG: /networth invoked in channel id={invoked_channel_id}, configured COMMANDS_CHANNEL_ID={COMMANDS_CHANNEL_ID}"
+        )
         if COMMANDS_CHANNEL_ID and invoked_channel_id != COMMANDS_CHANNEL_ID:
             await interaction.response.send_message("Please use the configured commands channel.", ephemeral=True)
             return
@@ -82,7 +105,9 @@ async def setup(bot: discord.Client):
     @decorator
     async def finance(interaction: discord.Interaction):
         invoked_channel_id = interaction.channel.id if interaction.channel else None
-        print(f"DEBUG: /finance invoked in channel id={invoked_channel_id}, configured COMMANDS_CHANNEL_ID={COMMANDS_CHANNEL_ID}")
+        print(
+            f"DEBUG: /finance invoked in channel id={invoked_channel_id}, configured COMMANDS_CHANNEL_ID={COMMANDS_CHANNEL_ID}"
+        )
         if COMMANDS_CHANNEL_ID and invoked_channel_id != COMMANDS_CHANNEL_ID:
             await interaction.response.send_message("Please use the configured commands channel.", ephemeral=True)
             return
@@ -97,25 +122,4 @@ async def setup(bot: discord.Client):
         embed.set_footer(text="Data is placeholder — connect a data source to show real stats")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # diag
-    decorator = bot.tree.command(name="diag", description="Diagnostic command: logs and replies")
-
-    @decorator
-    async def diag(interaction: discord.Interaction):
-        invoked_channel = interaction.channel.id if interaction.channel else None
-        user = interaction.user
-        print(f"DIAG_CMD invoked by user={user} (id={getattr(user,'id',None)}) in channel_id={invoked_channel}")
-        try:
-            await interaction.response.send_message(f"Diag OK — user id={getattr(user,'id',None)} channel id={invoked_channel}")
-        except Exception as e:
-            print(f"DIAG_CMD: initial response failed: {e}")
-            try:
-                await interaction.followup.send(f"DIAG fallback — {e}")
-            except Exception as e2:
-                print(f"DIAG_CMD: followup also failed: {e2}")
-
     print("Registered commands via bot.tree.command in setup()")
-
-    # Application commands are registered at on_ready in events.py (single source of truth)
-
-    # (application commands registered on startup in events.on_ready)
