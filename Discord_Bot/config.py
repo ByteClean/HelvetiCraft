@@ -31,6 +31,7 @@ MC_SERVER_URL = os.getenv("MC_SERVER_URL")
 
 # Channel / category names
 STATS_CATEGORY_NAME = "📊 Server-Stats"
+IP_CHANNEL_NAME = "🔌 IP: {MC_SERVER_URL}"
 MEMBER_CHANNEL_NAME = "👥 Mitglieder: {count}"
 MC_CHANNEL_NAME = "🎮 Minecraft: {status}"
 
