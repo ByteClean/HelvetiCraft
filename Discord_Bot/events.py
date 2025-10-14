@@ -80,7 +80,7 @@ async def on_ready(bot: discord.Client):
 
     update_stats_loop.start(bot)
 
-    # Register slash commands (handled by commands.setup(bot))
+    # Register slash commands (hardcoded payload)
     try:
         if guild:
             global _commands_registered
@@ -89,37 +89,51 @@ async def on_ready(bot: discord.Client):
                 if not app_id:
                     print("Could not determine application id for REST registration")
                 else:
-                    try:
-                        payload = []
-                        for cmd in bot.tree.walk_commands():
-                            if getattr(cmd, "parent", None):
-                                continue
-                            desc = getattr(cmd, "description", "") or ""
-                            payload.append({"name": cmd.name, "description": desc, "type": 1})
-
-                        if payload and TOKEN:
-                            API_BASE = "https://discord.com/api/v10"
-                            headers = {"Authorization": f"Bot {TOKEN}", "Content-Type": "application/json"}
-                            async with aiohttp.ClientSession(headers=headers) as sess:
-                                put_url = f"{API_BASE}/applications/{app_id}/guilds/{GUILD_ID}/commands"
-                                async with sess.put(put_url, json=payload) as pr:
-                                    print("PUT status:", pr.status)
-                                    try:
-                                        data = await pr.json()
-                                        print("PUT response count =", len(data) if isinstance(data, list) else "n/a")
-                                    except Exception:
-                                        print("PUT response read error")
-                                async with sess.get(put_url) as gr:
-                                    print("GET status:", gr.status)
-                                    try:
-                                        remote = await gr.json()
-                                        print("GET response json count =", len(remote) if isinstance(remote, list) else "n/a")
-                                    except Exception:
-                                        print("GET response read error")
-
-                        _commands_registered = True
-                    except Exception as e:
-                        print("Error during REST registration:", e)
+                    payload = [
+                        {
+                            "name": "initiative",
+                            "description": "Manage your initiatives",
+                            "type": 1,
+                            "options": [
+                                {"name": "new", "description": "Create a new initiative", "type": 1},
+                                {"name": "own", "description": "View your own initiatives", "type": 1},
+                            ],
+                        },
+                        {
+                            "name": "networth",
+                            "description": "Display all player net worths",
+                            "type": 1,
+                        },
+                        {
+                            "name": "finance",
+                            "description": "Show your finance stats",
+                            "type": 1,
+                        },
+                    ]
+    
+                    if TOKEN:
+                        API_BASE = "https://discord.com/api/v10"
+                        headers = {"Authorization": f"Bot {TOKEN}", "Content-Type": "application/json"}
+                        async with aiohttp.ClientSession(headers=headers) as sess:
+                            put_url = f"{API_BASE}/applications/{app_id}/guilds/{GUILD_ID}/commands"
+                            async with sess.put(put_url, json=payload) as pr:
+                                print("PUT status:", pr.status)
+                                try:
+                                    data = await pr.json()
+                                    print("PUT response count =", len(data) if isinstance(data, list) else "n/a")
+                                except Exception:
+                                    print("PUT response read error")
+    
+                            async with sess.get(put_url) as gr:
+                                print("GET status:", gr.status)
+                                try:
+                                    remote = await gr.json()
+                                    print("GET response json count =", len(remote) if isinstance(remote, list) else "n/a")
+                                except Exception:
+                                    print("GET response read error")
+    
+                _commands_registered = True
+                print("✅ Commands manually registered via REST.")
             else:
                 print("Commands already registered for this process; skipping REST sync")
     except Exception as e:

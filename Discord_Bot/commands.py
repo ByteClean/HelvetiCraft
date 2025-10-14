@@ -1,43 +1,52 @@
 """Top-level slash commands for the Discord bot: /initiative, /networth, /finance.
 
-The `/initiative` command uses a Discord Modal for a nicer UX.
+Uses dummy API requests in the /requests folder.
 """
+
 import discord
-import aiohttp
-import asyncio
-import json
+from discord import ui, app_commands, TextStyle
+from discord.ext import commands
 import os
-from discord import ui
-from discord import TextStyle
+
+# === Import from dummy requests ===
 try:
-    from Discord_Bot.initiatives_store import create_initiative
+    from Discord_Bot.http_requests.initiative_requests import (
+        create_initiative_request,
+        get_user_initiatives_request,
+    )
+    from Discord_Bot.http_requests.networth_requests import get_all_networths_request
+    from Discord_Bot.http_requests.finance_requests import get_finance_data_request
     from Discord_Bot.config import (
         COMMANDS_CHANNEL_NAME,
         INITIATIVES_CHANNEL_NAME,
         INITIATIVES_CHANNEL_ID,
         COMMANDS_CHANNEL_ID,
-        TOKEN,
-        GUILD_ID,
     )
 except ModuleNotFoundError:
-    from initiatives_store import create_initiative
+    from http_requests.initiative_requests import (
+        create_initiative_request,
+        get_user_initiatives_request,
+    )
+    from http_requests.networth_requests import get_all_networths_request
+    from http_requests.finance_requests import get_finance_data_request
     from config import (
         COMMANDS_CHANNEL_NAME,
         INITIATIVES_CHANNEL_NAME,
         INITIATIVES_CHANNEL_ID,
         COMMANDS_CHANNEL_ID,
-        TOKEN,
-        GUILD_ID,
     )
 
 
+# === Initiative Modal ===
 class InitiativeModal(ui.Modal, title="Create Initiative"):
     title_input = ui.TextInput(label="Title", style=TextStyle.short, max_length=100)
     description_input = ui.TextInput(label="Description", style=TextStyle.long, max_length=2000)
 
     async def on_submit(self, interaction: discord.Interaction):
-        # Create and post the initiative
-        item = create_initiative(interaction.user.id, self.title_input.value, self.description_input.value)
+        item = create_initiative_request(
+            interaction.user.id, self.title_input.value, self.description_input.value
+        )
+
         guild = interaction.guild
         if guild:
             chan = None
@@ -51,75 +60,74 @@ class InitiativeModal(ui.Modal, title="Create Initiative"):
                     f"**{item['title']}**\n{item['description']}"
                 )
 
-        await interaction.response.send_message(f"Initiative created with id {item['id']}.", ephemeral=True)
-
-
-async def setup(bot: discord.Client):
-    """Register application commands on the bot's CommandTree using @bot.tree.command.
-
-    This ensures commands are registered at runtime against the active client.
-    """
-    # initiative
-    decorator = bot.tree.command(name="initiative", description="Create a new initiative")
-
-    @decorator
-    async def initiative(interaction: discord.Interaction):
-        invoked_channel_id = interaction.channel.id if interaction.channel else None
-        print(
-            f"DEBUG: /initiative invoked in channel id={invoked_channel_id}, configured COMMANDS_CHANNEL_ID={COMMANDS_CHANNEL_ID}"
+        await interaction.response.send_message(
+            f"Initiative created with id {item['id']}.", ephemeral=True
         )
-        if COMMANDS_CHANNEL_ID and invoked_channel_id != COMMANDS_CHANNEL_ID:
+
+
+# === Initiative Command Group ===
+class Initiative(commands.GroupCog, name="initiative"):
+    """Manage your initiatives"""
+
+    @app_commands.command(name="new", description="Create a new initiative")
+    async def new(self, interaction: discord.Interaction):
+        if COMMANDS_CHANNEL_ID and interaction.channel.id != COMMANDS_CHANNEL_ID:
             await interaction.response.send_message(
                 f"Please use this command in the configured commands channel.", ephemeral=True
             )
             return
-        if not COMMANDS_CHANNEL_ID and interaction.channel and interaction.channel.name != COMMANDS_CHANNEL_NAME:
-            await interaction.response.send_message(f"Please use this command in #{COMMANDS_CHANNEL_NAME}", ephemeral=True)
-            return
-
         await interaction.response.send_modal(InitiativeModal())
 
-    # networth
-    decorator = bot.tree.command(name="networth", description="Display all player networth")
-
-    @decorator
-    async def networth(interaction: discord.Interaction):
-        invoked_channel_id = interaction.channel.id if interaction.channel else None
-        print(
-            f"DEBUG: /networth invoked in channel id={invoked_channel_id}, configured COMMANDS_CHANNEL_ID={COMMANDS_CHANNEL_ID}"
-        )
-        if COMMANDS_CHANNEL_ID and invoked_channel_id != COMMANDS_CHANNEL_ID:
-            await interaction.response.send_message("Please use the configured commands channel.", ephemeral=True)
+    @app_commands.command(name="own", description="View your own initiatives (only visible to you)")
+    async def own(self, interaction: discord.Interaction):
+        user_id = interaction.user.id
+        initiatives = get_user_initiatives_request(user_id)
+        if not initiatives:
+            await interaction.response.send_message("You don’t have any initiatives yet.", ephemeral=True)
             return
 
-        players = [("player1", 1000), ("player2", 500), ("player3", 250)]
+        embed = discord.Embed(
+            title=f"Your Initiatives ({len(initiatives)})",
+            color=discord.Color.orange()
+        )
+        for item in initiatives[:10]:
+            embed.add_field(
+                name=f"#{item['id']} — {item['title']}",
+                value=item.get("description", "No description."),
+                inline=False,
+            )
+        if len(initiatives) > 10:
+            embed.set_footer(text="Only showing first 10 initiatives.")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# === Setup Function ===
+async def setup(bot: commands.Bot):
+    # Add /initiative group
+    await bot.add_cog(Initiative(bot))
+
+    # === /networth ===
+    @bot.tree.command(name="networth", description="Display all player networth")
+    async def networth(interaction: discord.Interaction):
+        players = get_all_networths_request()
         embed = discord.Embed(title="Player Networth", color=discord.Color.green())
-        for name, amount in players:
-            embed.add_field(name=name, value=f"{amount:,} coins", inline=False)
+        for p in players:
+            embed.add_field(name=p["name"], value=f"{p['amount']:,} coins", inline=False)
         embed.set_footer(text="Networth snapshot")
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
-    # finance
-    decorator = bot.tree.command(name="finance", description="Show your finance stats")
-
-    @decorator
+    # === /finance ===
+    @bot.tree.command(name="finance", description="Show your finance stats")
     async def finance(interaction: discord.Interaction):
-        invoked_channel_id = interaction.channel.id if interaction.channel else None
-        print(
-            f"DEBUG: /finance invoked in channel id={invoked_channel_id}, configured COMMANDS_CHANNEL_ID={COMMANDS_CHANNEL_ID}"
+        data = get_finance_data_request(interaction.user.id)
+        embed = discord.Embed(
+            title=f"Finance for {interaction.user.display_name}",
+            color=discord.Color.blue(),
         )
-        if COMMANDS_CHANNEL_ID and invoked_channel_id != COMMANDS_CHANNEL_ID:
-            await interaction.response.send_message("Please use the configured commands channel.", ephemeral=True)
-            return
-
-        balance = 12345
-        income = 250
-        expenses = 75
-        embed = discord.Embed(title=f"Finance for {interaction.user.display_name}", color=discord.Color.blue())
-        embed.add_field(name="Balance", value=f"{balance:,} coins", inline=True)
-        embed.add_field(name="Income / day", value=f"{income:,}", inline=True)
-        embed.add_field(name="Expenses / day", value=f"{expenses:,}", inline=True)
+        embed.add_field(name="Balance", value=f"{data['balance']:,} coins", inline=True)
+        embed.add_field(name="Income / day", value=f"{data['income']:,}", inline=True)
+        embed.add_field(name="Expenses / day", value=f"{data['expenses']:,}", inline=True)
         embed.set_footer(text="Data is placeholder — connect a data source to show real stats")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    print("Registered commands via bot.tree.command in setup()")
+    print("✅ Registered slash commands (initiative group, networth, finance)")
