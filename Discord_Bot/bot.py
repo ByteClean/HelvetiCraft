@@ -39,8 +39,8 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Enable verbose logging
-logging.basicConfig(level=logging.DEBUG)
-logging.getLogger('discord').setLevel(logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
+logging.getLogger('discord').setLevel(logging.WARNING)
 
 
 async def main():
@@ -119,7 +119,11 @@ async def main():
         )
 
     # === RUN BOT ===
-    await bot.start(TOKEN)
+    try:
+        await bot.start(TOKEN)
+    except KeyboardInterrupt:
+        print("Shutting down bot…")
+        await bot.close()
 
 
 if __name__ == "__main__":
