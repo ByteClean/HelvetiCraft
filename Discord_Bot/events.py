@@ -1,8 +1,10 @@
 """Event handlers and background tasks for the Discord bot."""
+
 import discord
-import aiohttp
 import json
 from discord.ext import tasks
+import aiohttp
+
 try:
     from Discord_Bot.config import (
         GUILD_ID,
@@ -12,9 +14,11 @@ try:
         PLAYER_ROLE,
         VERIFY_EMOJI,
         WELCOME_CHANNEL_ID,
+        COMMANDS_CHANNEL_NAME,
+        INITIATIVES_CHANNEL_NAME,
+        TOKEN,
     )
     from Discord_Bot.stats import setup_stats_channels, update_stats_channels
-    from Discord_Bot.config import COMMANDS_CHANNEL_NAME, INITIATIVES_CHANNEL_NAME, TOKEN
 except ModuleNotFoundError:
     from config import (
         GUILD_ID,
@@ -24,16 +28,17 @@ except ModuleNotFoundError:
         PLAYER_ROLE,
         VERIFY_EMOJI,
         WELCOME_CHANNEL_ID,
+        COMMANDS_CHANNEL_NAME,
+        INITIATIVES_CHANNEL_NAME,
+        TOKEN,
     )
     from stats import setup_stats_channels, update_stats_channels
-    from config import COMMANDS_CHANNEL_NAME, INITIATIVES_CHANNEL_NAME, TOKEN
-
-_commands_registered = False
 
 
 async def on_ready(bot: discord.Client):
+    """Called when the bot successfully connects and is ready."""
     try:
-        print(f"Bot is online as {bot.user} (id={getattr(bot.user, 'id', None)})")
+        print(f"✅ Bot is online as {bot.user} (id={getattr(bot.user, 'id', None)})")
         print("DIAG: bot.application_id =", getattr(bot, "application_id", None))
         print("DIAG: configured GUILD_ID =", GUILD_ID)
         guild = bot.get_guild(GUILD_ID)
@@ -41,110 +46,51 @@ async def on_ready(bot: discord.Client):
     except Exception as e:
         print(f"DIAG: error printing basic diagnostics: {e}")
 
+    # === Setup statistics ===
     await setup_stats_channels(guild)
 
-    # Add reaction to rules message if missing
-    channel = guild.get_channel(RULES_CHANNEL_ID)
+    # === Add reaction to rules message if missing ===
     try:
+        channel = guild.get_channel(RULES_CHANNEL_ID)
         message = await channel.fetch_message(RULES_MESSAGE_ID)
         if not any(reaction.emoji == VERIFY_EMOJI for reaction in message.reactions):
             await message.add_reaction(VERIFY_EMOJI)
-            print("Reaction added to rules message")
+            print("✅ Reaction added to rules message")
     except Exception as e:
-        print(f"Could not add reaction: {e}")
+        print(f"⚠️ Could not add reaction: {e}")
 
-    # Ensure command and initiatives text channels exist
+    # === Ensure text channels exist ===
     try:
-        from Discord_Bot.config import COMMANDS_CHANNEL_ID, INITIATIVES_CHANNEL_ID
         if guild:
-            cmd_chan = None
-            if COMMANDS_CHANNEL_ID:
-                cmd_chan = guild.get_channel(COMMANDS_CHANNEL_ID)
-                print(f"DEBUG: Looking up commands channel by id={COMMANDS_CHANNEL_ID} -> {cmd_chan}")
-            if not cmd_chan:
-                cmd_chan = discord.utils.get(guild.text_channels, name=COMMANDS_CHANNEL_NAME)
+            cmd_chan = discord.utils.get(guild.text_channels, name=COMMANDS_CHANNEL_NAME)
             if not cmd_chan:
                 cmd_chan = await guild.create_text_channel(COMMANDS_CHANNEL_NAME)
-                print(f"Created commands channel: {cmd_chan}")
+                print(f"✅ Created commands channel: {cmd_chan}")
 
-            init_chan = None
-            if INITIATIVES_CHANNEL_ID:
-                init_chan = guild.get_channel(INITIATIVES_CHANNEL_ID)
-            if not init_chan:
-                init_chan = discord.utils.get(guild.text_channels, name=INITIATIVES_CHANNEL_NAME)
+            init_chan = discord.utils.get(guild.text_channels, name=INITIATIVES_CHANNEL_NAME)
             if not init_chan:
                 init_chan = await guild.create_text_channel(INITIATIVES_CHANNEL_NAME)
-                print(f"Created initiatives channel: {init_chan}")
+                print(f"✅ Created initiatives channel: {init_chan}")
     except Exception as e:
-        print(f"Could not create/find text channels: {e}")
+        print(f"⚠️ Could not create/find text channels: {e}")
 
+    # === Start background tasks ===
     update_stats_loop.start(bot)
 
-    # Register slash commands (hardcoded payload)
+    # === Sync slash commands (official way) ===
     try:
-        if guild:
-            global _commands_registered
-            if not _commands_registered:
-                app_id = getattr(bot, "application_id", None) or getattr(bot.user, "id", None)
-                if not app_id:
-                    print("Could not determine application id for REST registration")
-                else:
-                    payload = [
-                        {
-                            "name": "initiative",
-                            "description": "Manage your initiatives",
-                            "type": 1,
-                            "options": [
-                                {"name": "new", "description": "Create a new initiative", "type": 1},
-                                {"name": "own", "description": "View your own initiatives", "type": 1},
-                            ],
-                        },
-                        {
-                            "name": "networth",
-                            "description": "Display all player net worths",
-                            "type": 1,
-                        },
-                        {
-                            "name": "finance",
-                            "description": "Show your finance stats",
-                            "type": 1,
-                        },
-                    ]
-    
-                    if TOKEN:
-                        API_BASE = "https://discord.com/api/v10"
-                        headers = {"Authorization": f"Bot {TOKEN}", "Content-Type": "application/json"}
-                        async with aiohttp.ClientSession(headers=headers) as sess:
-                            put_url = f"{API_BASE}/applications/{app_id}/guilds/{GUILD_ID}/commands"
-                            async with sess.put(put_url, json=payload) as pr:
-                                print("PUT status:", pr.status)
-                                try:
-                                    data = await pr.json()
-                                    print("PUT response count =", len(data) if isinstance(data, list) else "n/a")
-                                except Exception:
-                                    print("PUT response read error")
-    
-                            async with sess.get(put_url) as gr:
-                                print("GET status:", gr.status)
-                                try:
-                                    remote = await gr.json()
-                                    print("GET response json count =", len(remote) if isinstance(remote, list) else "n/a")
-                                except Exception:
-                                    print("GET response read error")
-    
-                _commands_registered = True
-                print("✅ Commands manually registered via REST.")
-            else:
-                print("Commands already registered for this process; skipping REST sync")
+        synced = await bot.tree.sync()
+        print(f"✅ Synced {len(synced)} slash commands with Discord.")
     except Exception as e:
-        print(f"Unexpected error during command registration: {e}")
+        print(f"⚠️ Failed to sync slash commands: {e}")
 
 
 async def on_member_join(member: discord.Member):
+    """Called when a new member joins the server."""
     role = discord.utils.get(member.guild.roles, name=GUEST_ROLE)
     if role:
         await member.add_roles(role)
-    print(f"Gast role assigned to {member.name}")
+    print(f"👤 Gast role assigned to {member.name}")
 
     await update_stats_channels(member.guild)
 
@@ -158,10 +104,12 @@ async def on_member_join(member: discord.Member):
 
 
 async def on_member_remove(member: discord.Member):
+    """Called when a member leaves the server."""
     await update_stats_channels(member.guild)
 
 
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent, bot: discord.Client):
+    """Handles verification reaction on the rules message."""
     if payload.message_id != RULES_MESSAGE_ID:
         return
     if str(payload.emoji) != VERIFY_EMOJI:
@@ -178,11 +126,12 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent, bot: disc
     if guest_role in member.roles:
         await member.remove_roles(guest_role)
         await member.add_roles(player_role)
-    print(f"{member.name} verified and role updated.")
+    print(f"✅ {member.name} verified and role updated.")
 
 
 @tasks.loop(minutes=1)
 async def update_stats_loop(bot: discord.Client):
+    """Background task to periodically update server statistics."""
     guild = bot.get_guild(GUILD_ID)
     if guild:
         await update_stats_channels(guild)

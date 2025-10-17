@@ -70,6 +70,19 @@ payload = [
         "type": 1,
     },
     {
+        "name": "verify",
+        "description": "Verify your Minecraft account with a code",
+        "type": 1,
+        "options": [
+            {
+                "type": 3,  # STRING
+                "name": "code",
+                "description": "The verification code you received in Minecraft",
+                "required": True
+            }
+        ]
+    },
+    {
         "name": "diag",
         "description": "Diagnostic command: logs and replies",
         "type": 1,
