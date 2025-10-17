@@ -1,4 +1,4 @@
-"""Top-level slash commands for the Discord bot: /initiative, /networth, /finance.
+"""Top-level slash commands for the Discord bot: /initiative, /networth, /finance, /verify.
 
 Uses dummy API requests in the /requests folder.
 """
@@ -16,6 +16,7 @@ try:
     )
     from Discord_Bot.http_requests.networth_requests import get_all_networths_request
     from Discord_Bot.http_requests.finance_requests import get_finance_data_request
+    from Discord_Bot.http_requests.verify_requests import verify_code_request
     from Discord_Bot.config import (
         COMMANDS_CHANNEL_NAME,
         INITIATIVES_CHANNEL_NAME,
@@ -29,13 +30,13 @@ except ModuleNotFoundError:
     )
     from http_requests.networth_requests import get_all_networths_request
     from http_requests.finance_requests import get_finance_data_request
+    from http_requests.verify_requests import verify_code_request
     from config import (
         COMMANDS_CHANNEL_NAME,
         INITIATIVES_CHANNEL_NAME,
         INITIATIVES_CHANNEL_ID,
         COMMANDS_CHANNEL_ID,
     )
-
 
 # === Initiative Modal ===
 class InitiativeModal(ui.Modal, title="Create Initiative"):
@@ -91,10 +92,36 @@ class Initiative(commands.GroupCog, name="initiative"):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+# === /verify command ===
+class Verify(commands.Cog):
+    """Handle Minecraft/Discord verification"""
+
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
+
+    @app_commands.command(name="verify", description="Verify your Minecraft account with a code")
+    @app_commands.describe(code="The verification code you received in Minecraft")
+    async def verify(self, interaction: discord.Interaction, code: str):
+        # Dummy backend request
+        success, message = verify_code_request(interaction.user.id, code)
+
+        if success:
+            await interaction.response.send_message(
+                f"✅ Verification successful! {message}", ephemeral=True
+            )
+        else:
+            await interaction.response.send_message(
+                f"❌ Verification failed: {message}", ephemeral=True
+            )
+
+
 # === Setup Function ===
 async def setup(bot: commands.Bot):
     # Add /initiative group
     await bot.add_cog(Initiative(bot))
+
+    # Add /verify command
+    await bot.add_cog(Verify(bot))
 
     # === /networth ===
     @bot.tree.command(name="networth", description="Display all player networth")
@@ -120,4 +147,4 @@ async def setup(bot: commands.Bot):
         embed.set_footer(text="Data is placeholder — connect a data source to show real stats")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    print("✅ Registered slash commands (initiative group, networth, finance)")
+    print("✅ Registered slash commands (initiative group, networth, finance, verify)")

@@ -27,6 +27,7 @@ except ModuleNotFoundError:
     pkg_mode = False
 
 TOKEN = config.TOKEN
+GUILD_ID = config.GUILD_ID
 
 # === BOT SETUP ===
 intents = discord.Intents.default()
@@ -40,7 +41,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Enable verbose logging
 logging.basicConfig(level=logging.INFO)
-logging.getLogger('discord').setLevel(logging.WARNING)
+logging.getLogger("discord").setLevel(logging.WARNING)
 
 
 async def main():
@@ -89,7 +90,14 @@ async def main():
     # === EVENTS ===
     @bot.event
     async def on_ready():
+        """Triggered when bot connects to Discord."""
         await events.on_ready(bot)
+        # 🔹 Sync all slash commands to the guild instantly
+        try:
+            synced = await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
+            print(f"✅ Synced {len(synced)} slash commands to guild ID {GUILD_ID}.")
+        except Exception as e:
+            print(f"⚠️ Could not sync slash commands: {e}")
 
     @bot.event
     async def on_member_join(member):
@@ -128,6 +136,6 @@ async def main():
 
 if __name__ == "__main__":
     if not TOKEN:
-        print("ERROR: DISCORD_TOKEN is not set.")
+        print("❌ ERROR: DISCORD_TOKEN is not set.")
     else:
         asyncio.run(main())
