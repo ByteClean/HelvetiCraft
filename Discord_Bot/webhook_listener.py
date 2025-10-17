@@ -40,33 +40,40 @@ class WebhookListener(commands.Cog):
             data = await request.json()
             print("⚙️ handle_initiative triggered")
             print(f"Received webhook: {data}")
-
+    
             guilds = self.bot.guilds
             if not guilds:
                 return web.json_response({"error": "Bot not connected to any guilds"}, status=500)
-
+    
             guild = guilds[0]
-
+    
             channel = guild.get_channel(INITIATIVES_CHANNEL_ID) or \
                       discord.utils.get(guild.text_channels, name=INITIATIVES_CHANNEL_NAME)
-
+    
             if not channel:
                 return web.json_response({"error": "Could not find initiative channel"}, status=404)
-
+    
+            # Compose the embed according to your requested format
+            owner_name = f"{data.get('discord_name', 'Unknown')} | {data.get('minecraft_name', 'Unknown')}"
+            initiative_id = data.get("id", "?")
+            title = data.get("title", "Untitled")
+            description = data.get("description", "")
+    
             embed = discord.Embed(
-                title=f"New Initiative #{data.get('id', '?')}",
-                description=data.get("description", ""),
+                title=f"{title}",
+                description=f"**{description}**",
                 color=discord.Color.orange()
             )
-            embed.set_author(name=f"User ID: {data.get('user_id')}")
-            embed.add_field(name="Title", value=data.get("title", "Untitled"), inline=False)
-
+            embed.set_author(name=owner_name)
+            embed.add_field(name="Initiative ID", value=str(initiative_id), inline=False)
+    
             await channel.send(embed=embed)
             return web.json_response({"status": "ok"})
-
+    
         except Exception as e:
             print(f"Webhook error: {e}")
             return web.json_response({"error": str(e)}, status=500)
+
 
 
 async def setup(bot: commands.Bot):
