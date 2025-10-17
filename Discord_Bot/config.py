@@ -37,7 +37,7 @@ MC_CHANNEL_NAME = "🎮 Minecraft: {status}"
 
 # Text channels used by the bot
 COMMANDS_CHANNEL_NAME = "bot-commands"
-INITIATIVES_CHANNEL_NAME = "volksinitiativen"
+INITIATIVES_CHANNEL_NAME = "📄-volksinitiativen"
 
 # Optional: specify channel IDs to enforce commands by channel id instead of name
 COMMANDS_CHANNEL_ID = _int_env("COMMANDS_CHANNEL_ID")
