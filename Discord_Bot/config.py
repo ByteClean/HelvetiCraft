@@ -50,3 +50,6 @@ BACKEND_VOTE_URL = os.getenv("BACKEND_VOTE_URL")
 
 ACCEPTED_CHANNEL_NAME = "✅-akzeptierte-initiativen"
 REJECTED_CHANNEL_NAME = "❌-abgelehnte-initiativen"
+
+NEWS_CHANNEL_ID = os.getenv("NEWS_CHANNEL_ID")
+NEWS_CHANNEL_NAME = "ankündigungen"

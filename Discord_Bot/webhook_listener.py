@@ -15,6 +15,8 @@ try:
         REJECTED_CHANNEL_ID,
         REJECTED_CHANNEL_NAME,
         BACKEND_VOTE_URL,
+        NEWS_CHANNEL_ID,
+        NEWS_CHANNEL_NAME,
     )
 except ModuleNotFoundError:
     from config import (
@@ -25,6 +27,8 @@ except ModuleNotFoundError:
         REJECTED_CHANNEL_ID,
         REJECTED_CHANNEL_NAME,
         BACKEND_VOTE_URL,
+        NEWS_CHANNEL_ID,
+        NEWS_CHANNEL_NAME,
     )
 
 if not BACKEND_VOTE_URL:
@@ -122,6 +126,9 @@ class WebhookListener(commands.Cog):
             web.post('/initiative-webhook', self.handle_initiative),
             web.post('/initiative-votes-update', self.update_votes),
             web.post('/initiative-change', self.handle_change),
+            web.post('/news-create', self.handle_news_create),
+            web.post('/news-delete', self.handle_news_delete),
+            web.get('/news-list', self.handle_news_list),
         ])
         self.runner: web.AppRunner | None = None
         self.site: web.TCPSite | None = None
@@ -154,6 +161,18 @@ class WebhookListener(commands.Cog):
             if found:
                 return msg
         return None
+    
+    async def _get_all_news_messages(self, channel: discord.TextChannel, limit: int = 200):
+        """Return a list of news messages in the channel with their IDs and titles."""
+        news_messages = []
+        async for msg in channel.history(limit=limit):
+            if msg.embeds:
+                embed = msg.embeds[0]
+                news_messages.append({
+                    "id": msg.id,
+                    "title": embed.title if embed.title else "",
+                })
+        return news_messages
 
     async def handle_initiative(self, request: web.Request):
         try:
@@ -289,6 +308,74 @@ class WebhookListener(commands.Cog):
             return web.json_response({"error": "unknown action"}, status=400)
         except Exception as e:
             print(f"[handle_change error] {e}")
+            return web.json_response({"error": str(e)}, status=500)
+        
+    # === NEWS HANDLERS ===
+    async def handle_news_create(self, request: web.Request):
+        """POST /news-create -> creates a new news post with optional image."""
+        try:
+            data = await request.json()
+            title = data.get("title", "📰 Neue Ankündigung")
+            content = data.get("content", "")
+            author = data.get("author", "Server Team")
+            image_url = data.get("image_url")  # optional
+    
+            guild = self.bot.guilds[0]
+            news_channel = _channel_by_fallback(guild, NEWS_CHANNEL_ID, NEWS_CHANNEL_NAME)
+            if not news_channel:
+                return web.json_response({"error": "news channel not found"}, status=404)
+    
+            embed = discord.Embed(
+                title=title,
+                description=content or "Keine Details angegeben.",
+                color=discord.Color.blurple()
+            )
+            embed.set_footer(text=f"Veröffentlicht von {author}")
+    
+            if image_url:
+                embed.set_image(url=image_url)
+    
+            sent = await news_channel.send(embed=embed)
+            print(f"[news-create] Posted announcement: {title} (msg_id={sent.id})")
+            return web.json_response({"status": "ok", "message_id": sent.id})
+        except Exception as e:
+            print(f"[handle_news_create error] {e}")
+            return web.json_response({"error": str(e)}, status=500)
+
+    
+    
+    async def handle_news_delete(self, request: web.Request):
+        """POST /news-delete -> deletes a news post by message_id."""
+        try:
+            data = await request.json()
+            message_id = int(data.get("message_id"))
+    
+            guild = self.bot.guilds[0]
+            news_channel = _channel_by_fallback(guild, NEWS_CHANNEL_ID, NEWS_CHANNEL_NAME)
+            if not news_channel:
+                return web.json_response({"error": "news channel not found"}, status=404)
+    
+            msg = await news_channel.fetch_message(message_id)
+            await msg.delete()
+            print(f"[news-delete] Deleted message {message_id}")
+            return web.json_response({"status": "deleted"})
+        except Exception as e:
+            print(f"[handle_news_delete error] {e}")
+            return web.json_response({"error": str(e)}, status=500)
+    
+    async def handle_news_list(self, request: web.Request):
+        """Return all news posts currently in Discord (so backend knows the IDs)."""
+        try:
+            guild = self.bot.guilds[0]
+            news_channel = _channel_by_fallback(guild, NEWS_CHANNEL_ID, NEWS_CHANNEL_NAME)
+            if not news_channel:
+                return web.json_response({"error": "News channel not found"}, status=404)
+
+            news_messages = await self._get_all_news_messages(news_channel)
+            print(f"[news-list] Returning {len(news_messages)} news messages")
+            return web.json_response({"news_posts": news_messages})
+        except Exception as e:
+            print(f"[handle_news_list error] {e}")
             return web.json_response({"error": str(e)}, status=500)
 
 
