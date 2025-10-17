@@ -43,25 +43,15 @@ class InitiativeModal(ui.Modal, title="Create Initiative"):
     description_input = ui.TextInput(label="Description", style=TextStyle.long, max_length=2000)
 
     async def on_submit(self, interaction: discord.Interaction):
+        # Only send the creation request to backend, no channel posting here.
         item = create_initiative_request(
             interaction.user.id, self.title_input.value, self.description_input.value
         )
 
-        guild = interaction.guild
-        if guild:
-            chan = None
-            if INITIATIVES_CHANNEL_ID:
-                chan = guild.get_channel(INITIATIVES_CHANNEL_ID)
-            if not chan:
-                chan = discord.utils.get(guild.text_channels, name=INITIATIVES_CHANNEL_NAME)
-            if chan:
-                await chan.send(
-                    f"New Initiative #{item['id']} by {interaction.user.mention}\n"
-                    f"**{item['title']}**\n{item['description']}"
-                )
-
         await interaction.response.send_message(
-            f"Initiative created with id {item['id']}.", ephemeral=True
+            f"✅ Initiative submitted successfully! (backend id: {item['id']})\n"
+            f"It will be posted automatically once the backend confirms it.",
+            ephemeral=True
         )
 
 

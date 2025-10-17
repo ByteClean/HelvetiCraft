@@ -1,0 +1,74 @@
+import aiohttp
+from aiohttp import web
+import discord
+from discord.ext import commands
+
+# Import your channel config
+try:
+    from Discord_Bot.config import INITIATIVES_CHANNEL_ID, INITIATIVES_CHANNEL_NAME
+except ModuleNotFoundError:
+    from config import INITIATIVES_CHANNEL_ID, INITIATIVES_CHANNEL_NAME
+
+
+class WebhookListener(commands.Cog):
+    """Cog to handle incoming webhooks from the backend."""
+
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
+        self.app = web.Application()
+        self.app.add_routes([web.post('/initiative-webhook', self.handle_initiative)])
+        self.runner: web.AppRunner | None = None
+        self.site: web.TCPSite | None = None
+
+    async def cog_load(self):
+        """Start aiohttp server when the cog loads."""
+        self.runner = web.AppRunner(self.app)
+        await self.runner.setup()
+        self.site = web.TCPSite(self.runner, "127.0.0.1", 8081)
+        await self.site.start()
+        print("✅ Webhook listener running on http://127.0.0.1:8081")
+
+    async def cog_unload(self):
+        """Stop aiohttp server when the cog unloads."""
+        if self.runner:
+            await self.runner.cleanup()
+            print("🛑 Webhook listener stopped")
+
+    async def handle_initiative(self, request: web.Request):
+        """Receive POST webhook from backend and post to Discord."""
+        try:
+            data = await request.json()
+            print("⚙️ handle_initiative triggered")
+            print(f"Received webhook: {data}")
+
+            guilds = self.bot.guilds
+            if not guilds:
+                return web.json_response({"error": "Bot not connected to any guilds"}, status=500)
+
+            guild = guilds[0]
+
+            channel = guild.get_channel(INITIATIVES_CHANNEL_ID) or \
+                      discord.utils.get(guild.text_channels, name=INITIATIVES_CHANNEL_NAME)
+
+            if not channel:
+                return web.json_response({"error": "Could not find initiative channel"}, status=404)
+
+            embed = discord.Embed(
+                title=f"New Initiative #{data.get('id', '?')}",
+                description=data.get("description", ""),
+                color=discord.Color.orange()
+            )
+            embed.set_author(name=f"User ID: {data.get('user_id')}")
+            embed.add_field(name="Title", value=data.get("title", "Untitled"), inline=False)
+
+            await channel.send(embed=embed)
+            return web.json_response({"status": "ok"})
+
+        except Exception as e:
+            print(f"Webhook error: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+
+
+async def setup(bot: commands.Bot):
+    """Discord.py 2.0+ automatic cog setup."""
+    await bot.add_cog(WebhookListener(bot))
