@@ -1,95 +1,117 @@
 # HelvetiCraft Discord Bot
 
 Ein Discord-Bot für den HelvetiCraft Server.  
-Er verwaltet Rollen, sendet Willkommensnachrichten und zeigt Live-Statistiken wie die Mitgliederzahl und den Minecraft-Serverstatus an.
+Er verwaltet Rollen, sendet Willkommensnachrichten, zeigt Live-Statistiken wie Mitgliederzahl und Minecraft-Serverstatus an und unterstützt das neue **Initiativen-System**.
 
 ---
 
 ## Setup
 
 ### 1. Repository klonen
-```bash
-git clone https://github.com/ByteClean/HelvetiCraft.git
-cd HelvetiCraft/Discord_Bot
-```
+
+`git clone https://github.com/ByteClean/HelvetiCraft.git cd HelvetiCraft/Discord_Bot`
 
 ### 2. Virtuelle Umgebung erstellen (empfohlen)
-```
-python -m venv venv
-source venv/bin/activate   # Linux/macOS
-venv\Scripts\activate      # Windows
-```
+
+`python -m venv venv source venv/bin/activate   # Linux/macOS venv\Scripts\activate      # Windows`
 
 ### 3. Abhängigkeiten installieren
 
-```
-pip install -r requirements.txt
-```
+`pip install -r requirements.txt`
 
-### 4. ``.env`` Datei erstellen
+### 4. Bot starten
 
-Lege im ``Discord_Bot/``-Ordner eine .env Datei mit folgendem Inhalt an:
-```yml
-DISCORD_TOKEN=dein_discord_token
-GUILD_ID=123456789012345678
-RULES_CHANNEL_ID=123456789012345678
-RULES_MESSAGE_ID=123456789012345678
-WELCOME_CHANNEL_ID=123456789012345678
-GUEST_ROLE=Gast
-PLAYER_ROLE=Spieler
-VERIFY_EMOJI=✅
-MC_SERVER_URL=mc.example.com:25565
-```
+`python bot.py`
 
-### 5. Bot starten
-```
-python bot.py
-```
+---
 
-### Features
+## Features
+
+### Basisfunktionen
 
 - ✅ Rollenmanagement (Gast → Spieler nach Verifizierung)
-
+    
 - 👋 Willkommensnachricht für neue Mitglieder
-
+    
 - 📊 Server-Statistiken als Voice-Channels (Mitgliederzahl, Minecraft-Status)
-
+    
 - 🔄 Automatische Aktualisierung der Statistiken
+    
 
-### Dependencies
+### Slash Commands
 
-- [discord.py](https://pypi.org/project/discord.py/)
-- [python-dotenv](https://pypi.org/project/python-dotenv/)
-- [mcstatus](https://pypi.org/project/mcstatus/)
+- Die Bot-Instanz registriert automatisch Guild-scoped Slash-/Application-Commands (`commands.py`) beim Start. Änderungen werden beim nächsten Neustart übernommen.
+    
 
-### Hinweise
-- Stelle sicher, dass der Bot die richtigen Berechtigungen hat (Rollen verwalten, Nachrichten lesen/schreiben, Reaktionen hinzufügen).
-- Halte dein ``.env`` lokal und privat – niemals in die Repo pushen!
+---
 
-## Slash commands (Anwendungsbefehle)
+## Initiativen-System
 
-- Die Bot-Instanz registriert die Guild-scoped Slash-/Application-Commands automatisch beim Start. Das heißt: beim Starten von `python bot.py` wird der Bot versuchen, die definierten Befehle in `commands.py` für die konfigurierte Guild (`GUILD_ID`) per REST an Discord zu schreiben.
-- Änderungen an den in `commands.py` definierten Befehlen werden beim nächsten Neustart des Bots auf die Guild angewendet.
+Der Bot unterstützt ein zweistufiges Initiativen-System mit Discord-Buttons:
 
-Troubleshooting:
+1. **Volksinitiative (Schritt 1)**
+    
+    - Jeder Spieler kann über den Button **"Unterschreiben"** eine Initiative unterstützen.
+        
+    - Signaturen werden an das Backend gesendet.
+        
+    - Das Embed zeigt die aktuelle Signaturanzahl.
+        
+2. **Running Initiative (Schritt 2)**
+    
+    - Nach Freigabe durch die Admins wird die Initiative erneut gepostet.
+        
+    - Spieler können über Buttons **"Für"** oder **"Gegen"** abstimmen.
+        
+    - Stimmen werden an das Backend gesendet und die Embed-Fußzeile wird aktualisiert.
+        
+3. **Finalisierung**
+    
+    - Nach Abschluss der Abstimmung wird die Initiative in **akzeptierte** oder **abgelehnte** Channels verschoben.
+        
+    - Der Name des Initiativen-Erstellers wird in diesen Embeds angezeigt.
+        
 
-- Falls neue Befehle nicht sofort im Discord-Client erscheinen, lade den Client neu (Desktop: `Ctrl+R`) oder prüfe die Web-Version (https://discord.com/app). Client-seitiges Caching kann die Anzeige verzögern.
-- Stelle sicher, dass dein Benutzer die Berechtigung "Use Application Commands" hat (Server Settings → Rollen → Use Application Commands), sonst werden Befehle für dich nicht sichtbar/ausführbar.
-- Achte darauf, dass nur eine Bot-Instanz mit demselben Token gleichzeitig laufen sollte, da konkurrierende Prozesse Commands überschreiben können.
+---
 
-Entwicklerhinweis
+## Dummy-Webhooks für Tests
 
-- Der Code registriert die Befehle beim `on_ready`-Event (siehe `Discord_Bot/events.py`). Dort wird die Bot-Instanz den REST-Aufruf machen, um die Guild-Befehle zu erstellen/überschreiben und danach die lokale CommandTree-Synchronisation auszuführen.
-- Wenn du die automatische Registrierung deaktivieren möchtest, kannst du temporär die Registrierung im `events.on_ready`-Block auskommentieren oder den Guard `_commands_registered` setzen. Falls du eine konfigurierbare Schalter-Variable bevorzugst (z. B. `DISABLE_AUTO_REGISTER`), kann ich das gerne hinzufügen.
+### 1️⃣ Neue Initiative erstellen (Schritt 1)
 
-Entwicklung & Debugging
+`curl -X POST http://127.0.0.1:8081/initiative-webhook \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "step": 1,   "title": "Build a Redstone Tower",   "description": "A massive tower to show off our redstone skills!",   "owner_discord": "RedstoneMaster#1234",   "owner_minecraft": "RSBuilder" }'`
 
-- Für lokale Tests wurden während der Entwicklung kurze Debug-Skripte genutzt, die manuell REST-Calls an Discord senden konnten. Diese Debug-Helper wurden aus dem Produktiv-Code entfernt, da der Bot die Registrierung nun selbst vornimmt.
-- Wenn du Probleme bei der Installation oder beim Starten hast, überprüfe zuerst die `.env`-Werte und die installierten Abhängigkeiten per:
+### 2️⃣ Signaturen aktualisieren (Schritt 1)
 
-```powershell
-pip install -r requirements.txt
-python .\Discord_Bot\bot.py
-```
+`curl -X POST http://127.0.0.1:8081/initiative-votes-update \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "step": 1,   "signatures": 15 }'`
 
-Wenn du möchtest, füge ich auf Wunsch noch ein optionales Konfigurations-Flag hinzu, um die automatische Registrierung zu steuern (bspw. `DISABLE_AUTO_REGISTER=true`).
+### 3️⃣ Initiative promoten auf Schritt 2
+
+`curl -X POST http://127.0.0.1:8081/initiative-change \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "action": "promote",   "title": "Build a Redstone Tower",   "description": "Promoted after signatures and admin verification.",   "owner_discord": "RedstoneMaster#1234",   "owner_minecraft": "RSBuilder" }'`
+
+### 4️⃣ Stimmen aktualisieren (Schritt 2)
+
+`curl -X POST http://127.0.0.1:8081/initiative-votes-update \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "step": 2,   "votes_for": 120,   "votes_against": 30 }'`
+
+### 5️⃣ Initiative finalisieren – akzeptiert
+
+`curl -X POST http://127.0.0.1:8081/initiative-change \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "action": "finalize",   "result": "accepted",   "title": "Build a Redstone Tower",   "description": "Accepted by the council.",   "owner_discord": "RedstoneMaster#1234",   "owner_minecraft": "RSBuilder" }'`
+
+### 6️⃣ Initiative finalisieren – abgelehnt
+
+`curl -X POST http://127.0.0.1:8081/initiative-change \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "action": "finalize",   "result": "rejected",   "title": "Build a Redstone Tower",   "description": "Rejected after review.",   "owner_discord": "RedstoneMaster#1234",   "owner_minecraft": "RSBuilder" }'`
+
+---
+
+## Hinweise
+
+- Stelle sicher, dass der Bot die richtigen Berechtigungen hat:
+    
+    - Rollen verwalten
+        
+    - Nachrichten lesen/schreiben
+        
+    - Reaktionen hinzufügen
+        
+- Halte dein `.env` lokal und privat – niemals ins Repo pushen.
+    
+- Nur eine Bot-Instanz pro Token gleichzeitig starten, um Command-Registrierungskonflikte zu vermeiden.
