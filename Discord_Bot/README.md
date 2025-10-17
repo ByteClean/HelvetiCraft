@@ -78,27 +78,39 @@ Der Bot unterstützt ein zweistufiges Initiativen-System mit Discord-Buttons:
 
 ### 1️⃣ Neue Initiative erstellen (Schritt 1)
 
-`curl -X POST http://127.0.0.1:8081/initiative-webhook \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "step": 1,   "title": "Build a Redstone Tower",   "description": "A massive tower to show off our redstone skills!",   "owner_discord": "RedstoneMaster#1234",   "owner_minecraft": "RSBuilder" }'`
+```
+curl -X POST http://127.0.0.1:8081/initiative-webhook \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "step": 1,   "title": "Build a Redstone Tower",   "description": "A massive tower to show off our redstone skills!",   "owner_discord": "RedstoneMaster#1234",   "owner_minecraft": "RSBuilder" }
+```
 
 ### 2️⃣ Signaturen aktualisieren (Schritt 1)
 
-`curl -X POST http://127.0.0.1:8081/initiative-votes-update \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "step": 1,   "signatures": 15 }'`
+```
+curl -X POST http://127.0.0.1:8081/initiative-votes-update \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "step": 1,   "signatures": 15 }
+```
 
 ### 3️⃣ Initiative promoten auf Schritt 2
 
-`curl -X POST http://127.0.0.1:8081/initiative-change \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "action": "promote",   "title": "Build a Redstone Tower",   "description": "Promoted after signatures and admin verification.",   "owner_discord": "RedstoneMaster#1234",   "owner_minecraft": "RSBuilder" }'`
+```
+curl -X POST http://127.0.0.1:8081/initiative-change \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "action": "promote",   "title": "Build a Redstone Tower",   "description": "Promoted after signatures and admin verification.",   "owner_discord": "RedstoneMaster#1234",   "owner_minecraft": "RSBuilder" }
+```
 
 ### 4️⃣ Stimmen aktualisieren (Schritt 2)
 
-`curl -X POST http://127.0.0.1:8081/initiative-votes-update \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "step": 2,   "votes_for": 120,   "votes_against": 30 }'`
+```
+curl -X POST http://127.0.0.1:8081/initiative-votes-update \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "step": 2,   "votes_for": 120,   "votes_against": 30 }
+```
 
 ### 5️⃣ Initiative finalisieren – akzeptiert
 
-`curl -X POST http://127.0.0.1:8081/initiative-change \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "action": "finalize",   "result": "accepted",   "title": "Build a Redstone Tower",   "description": "Accepted by the council.",   "owner_discord": "RedstoneMaster#1234",   "owner_minecraft": "RSBuilder" }'`
+```
+curl -X POST http://127.0.0.1:8081/initiative-change \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "action": "finalize",   "result": "accepted",   "title": "Build a Redstone Tower",   "description": "Accepted by the council.",   "owner_discord": "RedstoneMaster#1234",   "owner_minecraft": "RSBuilder" }
+```
 
 ### 6️⃣ Initiative finalisieren – abgelehnt
 
-`curl -X POST http://127.0.0.1:8081/initiative-change \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "action": "finalize",   "result": "rejected",   "title": "Build a Redstone Tower",   "description": "Rejected after review.",   "owner_discord": "RedstoneMaster#1234",   "owner_minecraft": "RSBuilder" }'`
+```
+curl -X POST http://127.0.0.1:8081/initiative-change \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "action": "finalize",   "result": "rejected",   "title": "Build a Redstone Tower",   "description": "Rejected after review.",   "owner_discord": "RedstoneMaster#1234",   "owner_minecraft": "RSBuilder" }
+```
 
 ---
 
