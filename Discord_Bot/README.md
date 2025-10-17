@@ -45,6 +45,20 @@ Er verwaltet Rollen, sendet Willkommensnachrichten, zeigt Live-Statistiken wie M
 
 ---
 
+## Verify-Funktion
+
+- Neue Mitglieder erhalten zunächst die Rolle **Gast**.
+    
+- Durch Reagieren auf die Regeln können sie bestätigen, dass sie die Regeln gelesen haben, und erhalten dann die Rolle **Spieler (verifiziert)**.
+    
+    - Erst danach können sie normal auf dem Discord-Server interagieren.
+        
+- Der Slash-Command `/verify` dient zur **Verknüpfung des Minecraft- und Discord-Kontos**.
+    
+    - Er ist notwendig, damit andere Discord-Befehle und Funktionen korrekt genutzt werden können.
+
+---
+
 ## Initiativen-System
 
 Der Bot unterstützt ein zweistufiges Initiativen-System mit Discord-Buttons:
@@ -74,42 +88,123 @@ Der Bot unterstützt ein zweistufiges Initiativen-System mit Discord-Buttons:
 
 ---
 
-## Dummy-Webhooks für Tests
+## News-System
 
-### 1️⃣ Neue Initiative erstellen (Schritt 1)
+- Administratoren oder Bots können neue News posten.
+    
+- News bestehen aus:
+    
+    - Titel
+        
+    - Textinhalt
+        
+    - Autor
+        
+    - Optional: Bild
+        
+- Nachrichten werden als Embed in den `ankündigung`-Channel gepostet.
+    
+- Backend kann über Webhook die IDs aller aktuellen News abrufen oder einzelne Nachrichten löschen.
+    
 
-```
-curl -X POST http://127.0.0.1:8081/initiative-webhook \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "step": 1,   "title": "Build a Redstone Tower",   "description": "A massive tower to show off our redstone skills!",   "owner_discord": "RedstoneMaster#1234",   "owner_minecraft": "RSBuilder" }
-```
-
-### 2️⃣ Signaturen aktualisieren (Schritt 1)
-
-```
-curl -X POST http://127.0.0.1:8081/initiative-votes-update \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "step": 1,   "signatures": 15 }
-```
-
-### 3️⃣ Initiative promoten auf Schritt 2
-
-```
-curl -X POST http://127.0.0.1:8081/initiative-change \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "action": "promote",   "title": "Build a Redstone Tower",   "description": "Promoted after signatures and admin verification.",   "owner_discord": "RedstoneMaster#1234",   "owner_minecraft": "RSBuilder" }
-```
-
-### 4️⃣ Stimmen aktualisieren (Schritt 2)
-
-```
-curl -X POST http://127.0.0.1:8081/initiative-votes-update \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "step": 2,   "votes_for": 120,   "votes_against": 30 }
-```
-
-### 5️⃣ Initiative finalisieren – akzeptiert
+### Beispiel: Neue News erstellen
 
 ```
-curl -X POST http://127.0.0.1:8081/initiative-change \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "action": "finalize",   "result": "accepted",   "title": "Build a Redstone Tower",   "description": "Accepted by the council.",   "owner_discord": "RedstoneMaster#1234",   "owner_minecraft": "RSBuilder" }
+curl -X POST http://127.0.0.1:8081/news-create \
+     -H "Content-Type: application/json" \
+     -d '{
+           "title": "Server Update 🚀",
+           "content": "Wir haben ein neues Feature eingeführt! Bitte schaut es euch an.",
+           "author": "Admin Team",
+           "image_url": "https://example.com/image.png"
+         }'
+
 ```
 
-### 6️⃣ Initiative finalisieren – abgelehnt
+### Beispiel: Alle News abrufen
 
 ```
-curl -X POST http://127.0.0.1:8081/initiative-change \ -H "Content-Type: application/json" \ -d '{   "id": 43,   "action": "finalize",   "result": "rejected",   "title": "Build a Redstone Tower",   "description": "Rejected after review.",   "owner_discord": "RedstoneMaster#1234",   "owner_minecraft": "RSBuilder" }
+curl http://127.0.0.1:8081/news-list
+
+```
+
+Antwort:
+
+```
+{
+  "news_posts": [
+    {"id": 123456789012345678, "title": "Server Update 🚀"},
+    {"id": 123456789012345679, "title": "Weekly Event"}
+  ]
+}
+
+```
+
+### Beispiel: News löschen
+
+```
+curl -X POST http://127.0.0.1:8081/news-delete \
+     -H "Content-Type: application/json" \
+     -d '{ "message_id": 123456789012345678 }'
+
+```
+
+---
+
+## Dummy-Webhooks für Initiativen-Tests
+
+1️⃣ Neue Initiative erstellen (Schritt 1):
+
+```
+curl -X POST http://127.0.0.1:8081/initiative-webhook \
+     -H "Content-Type: application/json" \
+     -d '{ "id": 43, "step": 1, "title": "Build a Redstone Tower", "description": "A massive tower to show off our redstone skills!", "owner_discord": "RedstoneMaster#1234", "owner_minecraft": "RSBuilder" }'
+
+```
+
+2️⃣ Signaturen aktualisieren (Schritt 1):
+
+```
+curl -X POST http://127.0.0.1:8081/initiative-votes-update \
+     -H "Content-Type: application/json" \
+     -d '{ "id": 43, "step": 1, "signatures": 15 }'
+
+```
+
+3️⃣ Initiative promoten auf Schritt 2:
+
+```
+curl -X POST http://127.0.0.1:8081/initiative-change \
+     -H "Content-Type: application/json" \
+     -d '{ "id": 43, "action": "promote", "title": "Build a Redstone Tower", "description": "Promoted after signatures and admin verification.", "owner_discord": "RedstoneMaster#1234", "owner_minecraft": "RSBuilder" }'
+
+```
+
+4️⃣ Stimmen aktualisieren (Schritt 2):
+
+```
+curl -X POST http://127.0.0.1:8081/initiative-votes-update \
+     -H "Content-Type: application/json" \
+     -d '{ "id": 43, "step": 2, "votes_for": 120, "votes_against": 30 }'
+
+```
+
+5️⃣ Initiative finalisieren – akzeptiert:
+
+```
+curl -X POST http://127.0.0.1:8081/initiative-change \
+     -H "Content-Type: application/json" \
+     -d '{ "id": 43, "action": "finalize", "result": "accepted", "title": "Build a Redstone Tower", "description": "Accepted by the council.", "owner_discord": "RedstoneMaster#1234", "owner_minecraft": "RSBuilder" }'
+
+```
+
+6️⃣ Initiative finalisieren – abgelehnt:
+
+```
+curl -X POST http://127.0.0.1:8081/initiative-change \
+     -H "Content-Type: application/json" \
+     -d '{ "id": 43, "action": "finalize", "result": "rejected", "title": "Build a Redstone Tower", "description": "Rejected after review.", "owner_discord": "RedstoneMaster#1234", "owner_minecraft": "RSBuilder" }'
+
 ```
 
 ---
@@ -124,6 +219,6 @@ curl -X POST http://127.0.0.1:8081/initiative-change \ -H "Content-Type: applica
         
     - Reaktionen hinzufügen
         
-- Halte dein `.env` lokal und privat – niemals ins Repo pushen.
-    
 - Nur eine Bot-Instanz pro Token gleichzeitig starten, um Command-Registrierungskonflikte zu vermeiden.
+    
+- Für das News- und Initiativen-System muss der Bot Schreibrechte im jeweiligen Channel haben.
