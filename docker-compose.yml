@@ -18,6 +18,8 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+    env_file:
+      - ./Backend/.env
     # Use the image CMD (node src/server.js) so we don't run dev startup
 
   discord-bot:
