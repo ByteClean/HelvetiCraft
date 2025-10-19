@@ -6,7 +6,7 @@ const r = Router();
 /**
  * Alle Initiativen
  */
-r.get("/", async (req, res, next) => {
+r.get("/all", async (req, res, next) => {
   try {
     const [rows] = await pool.query(
       `SELECT i.id, i.title, i.description, i.status,
@@ -41,12 +41,11 @@ r.get("/:id", async (req, res, next) => {
     next(err);
   }
 });
-
 /**
  * Neue Initiative anlegen
  * Body: { author_id, title, description }
  */
-r.post("/", async (req, res, next) => {
+r.post("/new", async (req, res, next) => {
   const { author_id, title, description } = req.body;
   try {
     const [result] = await pool.query(
@@ -65,7 +64,7 @@ r.post("/", async (req, res, next) => {
 /**
  * Initiative bearbeiten
  */
-r.put("/:id", async (req, res, next) => {
+r.put("/edit/:id", async (req, res, next) => {
   const { title, description, status } = req.body;
   try {
     const [result] = await pool.query(
@@ -82,7 +81,7 @@ r.put("/:id", async (req, res, next) => {
 /**
  * Initiative löschen
  */
-r.delete("/:id", async (req, res, next) => {
+r.delete("/del/:id", async (req, res, next) => {
   try {
     const [result] = await pool.query("DELETE FROM initiatives WHERE id=?", [req.params.id]);
     if (result.affectedRows === 0) return res.status(404).json({ error: "not_found" });
