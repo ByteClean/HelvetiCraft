@@ -1,23 +1,14 @@
 package com.HelvetiCraft.expansions;
 
 import com.HelvetiCraft.initiatives.Initiative;
-import com.HelvetiCraft.initiatives.InitiativeManager;
+import com.HelvetiCraft.requests.InitiativeRequests;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
-import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 public class InitiativeExpansion extends PlaceholderExpansion {
-
-    private final InitiativeManager initiatives;
-
-    public InitiativeExpansion(InitiativeManager initiatives) {
-        this.initiatives = initiatives;
-    }
 
     @Override
     public @NotNull String getIdentifier() {
@@ -36,31 +27,32 @@ public class InitiativeExpansion extends PlaceholderExpansion {
 
     @Override
     public boolean persist() {
-        return true;
+        return true; // Keep expansion loaded across reloads
     }
 
     @Override
     public String onRequest(OfflinePlayer player, @NotNull String params) {
         if (player == null) return "";
 
-        UUID id = player.getUniqueId();
-
         switch (params.toLowerCase()) {
             case "initiatives": {
-                long count = initiatives.getInitiatives().values().stream()
+                // Count initiatives authored by this player
+                long count = InitiativeRequests.getAllInitiatives().stream()
                         .filter(i -> i.getAuthor().equalsIgnoreCase(player.getName()))
                         .count();
                 return String.valueOf(count);
             }
             case "phase": {
-                return "Phase " + initiatives.getCurrentPhase();
+                // Get the current phase – assuming InitiativeRequests tracks it
+                // Otherwise, you may need a separate PhaseManager or InitiativeManager instance
+                return "Phase " + InitiativeRequests.getCurrentPhase();
             }
             case "pastphases": {
-                return String.valueOf(initiatives.getPastPhases());
+                return String.valueOf(InitiativeRequests.getPastPhases());
             }
             case "timeleft": {
                 long now = System.currentTimeMillis();
-                long diff = initiatives.getPhaseEndTime() - now;
+                long diff = InitiativeRequests.getPhaseEndTime() - now;
                 if (diff <= 0) return "Abgelaufen";
                 long minutes = diff / 60000;
                 long seconds = (diff / 1000) % 60;
