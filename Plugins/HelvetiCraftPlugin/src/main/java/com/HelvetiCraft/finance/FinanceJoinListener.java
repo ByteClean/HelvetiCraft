@@ -15,14 +15,10 @@ public class FinanceJoinListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         java.util.UUID id = e.getPlayer().getUniqueId();
-        // If no account exists yet (first join), seed starter money of 250.00 (25000 cents)
+
+        // Create account in dummy backend if missing
         if (!financeManager.hasAccount(id)) {
             financeManager.ensureAccount(id);
-            financeManager.setMain(id, 25000L);
-            financeManager.save();
-            return;
         }
-        // Ensure account exists in cache for returning players as well
-        financeManager.ensureAccount(id);
     }
 }

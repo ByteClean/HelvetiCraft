@@ -1,152 +1,100 @@
 package com.HelvetiCraft.finance;
 
+import com.HelvetiCraft.requests.FinanceRequests;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 
-import java.io.File;
-import java.io.IOException;
 import java.text.NumberFormat;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
 
 public class FinanceManager {
 
-    // We store currency as "cents" (long) to avoid floating point errors
-    // 100 = 1.00 in-game currency
     private final Plugin plugin;
-    private final File dataFile;
-    private final FileConfiguration data;
-    private final Map<UUID, Account> cache = new ConcurrentHashMap<>();
-
-    public static class Account {
-        public long main;     // in cents
-        public long savings;  // in cents
-        Account(long main, long savings) { this.main = main; this.savings = savings; }
-    }
 
     public FinanceManager(Plugin plugin) {
         this.plugin = plugin;
-        File dir = new File(plugin.getDataFolder(), "data");
-        if (!dir.exists()) dir.mkdirs();
-        this.dataFile = new File(dir, "finance.yml");
-        this.data = YamlConfiguration.loadConfiguration(dataFile);
-        loadAll();
     }
 
-    private void loadAll() {
-        if (!data.isConfigurationSection("players")) return;
-        for (String key : data.getConfigurationSection("players").getKeys(false)) {
-            try {
-                UUID id = UUID.fromString(key);
-                long main = data.getLong("players." + key + ".main", 0L);
-                long savings = data.getLong("players." + key + ".savings", 0L);
-                cache.put(id, new Account(main, savings));
-            } catch (IllegalArgumentException ignored) {}
-        }
-    }
-
-    public synchronized void save() {
-        for (Map.Entry<UUID, Account> e : cache.entrySet()) {
-            String base = "players." + e.getKey();
-            data.set(base + ".main", e.getValue().main);
-            data.set(base + ".savings", e.getValue().savings);
-        }
-        try {
-            data.save(dataFile);
-        } catch (IOException ex) {
-            plugin.getLogger().warning("Failed to save finance.yml: " + ex.getMessage());
-        }
-    }
+    // --- Core Methods (redirected to FinanceRequests) ---
 
     public void ensureAccount(UUID id) {
-        cache.computeIfAbsent(id, k -> new Account(0L, 0L));
+        if (!FinanceRequests.hasAccount(id)) {
+            FinanceRequests.createAccount(id, 25000L); // default starting balance
+        }
     }
 
-    /**
-     * Returns true if the player already has a stored account (in data file or cache).
-     * This helps distinguish first-time joins from returning players.
-     */
     public boolean hasAccount(UUID id) {
-        // Check persisted data first
-        if (data.isSet("players." + id.toString())) return true;
-        // Then check in-memory cache
-        return cache.containsKey(id);
+        return FinanceRequests.hasAccount(id);
     }
+
+    public long getMain(UUID id) {
+        return FinanceRequests.getMain(id);
+    }
+
+    public long getSavings(UUID id) {
+        return FinanceRequests.getSavings(id);
+    }
+
+    public void setMain(UUID id, long cents) {
+        FinanceRequests.setMain(id, cents);
+    }
+
+    public void setSavings(UUID id, long cents) {
+        FinanceRequests.setSavings(id, cents);
+    }
+
+    public boolean transferMain(UUID from, UUID to, long cents) {
+        return FinanceRequests.transferMain(from, to, cents);
+    }
+
+    public long getTotalNetWorthCents() {
+        return FinanceRequests.getTotalNetWorthCents();
+    }
+
+    public Set<UUID> getKnownPlayers() {
+        return FinanceRequests.getKnownPlayers();
+    }
+
+    // --- Account Movement Helpers (used by /save command) ---
 
     public boolean moveMainToSavings(UUID id, long cents) {
-        if (cents <= 0) return false;
-        Account acc = getAccount(id);
-        if (acc.main < cents) return false;
-        acc.main -= cents;
-        acc.savings += cents;
+        long main = getMain(id);
+        if (main < cents) return false;
+        setMain(id, main - cents);
+        setSavings(id, getSavings(id) + cents);
         return true;
     }
 
     public boolean moveSavingsToMain(UUID id, long cents) {
-        if (cents <= 0) return false;
-        Account acc = getAccount(id);
-        if (acc.savings < cents) return false;
-        acc.savings -= cents;
-        acc.main += cents;
+        long savings = getSavings(id);
+        if (savings < cents) return false;
+        setSavings(id, savings - cents);
+        setMain(id, getMain(id) + cents);
         return true;
     }
 
-    public Account getAccount(UUID id) {
-        ensureAccount(id);
-        return cache.get(id);
+    // --- Placeholder save (used by PayCommand, SellCommand, etc.) ---
+
+    /**
+     * Dummy save() for compatibility.
+     * Currently does nothing, since FinanceRequests stores data in memory.
+     * Later this can push all balances to the real backend.
+     */
+    public void save() {
+        System.out.println("[FinanceManager] Dummy save() called – no persistent storage yet.");
     }
 
-    public long getMain(UUID id) {
-        return getAccount(id).main;
-    }
-
-    public long getSavings(UUID id) {
-        return getAccount(id).savings;
-    }
-
-    public void setMain(UUID id, long cents) {
-        getAccount(id).main = Math.max(0, cents);
-    }
-
-    public void setSavings(UUID id, long cents) {
-        getAccount(id).savings = Math.max(0, cents);
-    }
-
-    public boolean transferMain(UUID from, UUID to, long cents) {
-        if (cents <= 0) return false;
-        Account a = getAccount(from);
-        Account b = getAccount(to);
-        if (a.main < cents) return false;
-        a.main -= cents;
-        b.main += cents;
-        return true;
-    }
-
-    public Set<UUID> getKnownPlayers() {
-        return Collections.unmodifiableSet(cache.keySet());
-    }
-
-    public long getTotalNetWorthCents() {
-        long total = 0L;
-        for (Account acc : cache.values()) {
-            total += acc.main + acc.savings;
-        }
-        return total;
-    }
+    // --- Utility Methods (unchanged) ---
 
     public static long parseAmountToCents(String input) throws IllegalArgumentException {
         String cleaned = input.replace(",", ".").trim();
-
-        // allow optional leading "-"
         if (!cleaned.matches("-?\\d+(\\.\\d{1,2})?"))
             throw new IllegalArgumentException("Invalid amount");
 
         boolean negative = cleaned.startsWith("-");
-        if (negative) {
-            cleaned = cleaned.substring(1); // strip "-" for parsing
-        }
+        if (negative) cleaned = cleaned.substring(1);
 
         int dot = cleaned.indexOf('.');
         long result;
@@ -155,13 +103,12 @@ public class FinanceManager {
         } else {
             String whole = cleaned.substring(0, dot);
             String frac = cleaned.substring(dot + 1);
-            if (frac.length() == 1) frac = frac + "0";
+            if (frac.length() == 1) frac += "0";
             if (frac.length() > 2) frac = frac.substring(0, 2);
             long wholePart = Long.parseLong(whole);
             long fracPart = Long.parseLong(frac);
             result = Math.addExact(Math.multiplyExact(wholePart, 100L), fracPart);
         }
-
         return negative ? -result : result;
     }
 
@@ -170,7 +117,8 @@ public class FinanceManager {
         long abs = Math.abs(cents);
         long whole = abs / 100;
         long frac = abs % 100;
-        String formatted = NumberFormat.getInstance(Locale.GERMANY).format(whole) + "," + (frac < 10 ? "0" : "") + frac;
+        String formatted = NumberFormat.getInstance(Locale.GERMANY)
+                .format(whole) + "," + (frac < 10 ? "0" : "") + frac;
         return (negative ? "-" : "") + formatted;
     }
 

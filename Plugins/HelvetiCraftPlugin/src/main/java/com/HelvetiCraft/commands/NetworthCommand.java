@@ -1,8 +1,6 @@
 package com.HelvetiCraft.commands;
 
 import com.HelvetiCraft.finance.FinanceManager;
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -26,21 +24,21 @@ public class NetworthCommand implements CommandExecutor {
             return true;
         }
 
-        // Gesamtkapital aller Spieler
-        long total = finance.getTotalNetWorthCents();
         sender.sendMessage("§6====== §bNet Worth §6======");
+
+        // Gesamtkapital aller Spieler (simulated backend aggregation)
+        long total = finance.getTotalNetWorthCents();
         sender.sendMessage("§7Gesamtkapital (alle Spieler, Konten): §a" + FinanceManager.formatCents(total));
         sender.sendMessage("§8(Hinweis: Item-Verkauf fließt später ein)");
 
-        // Alle Spieler + Networth einsammeln
+        // Simulated backend "leaderboard" (dummy data)
         Map<UUID, Long> worths = new HashMap<>();
         for (UUID id : finance.getKnownPlayers()) {
-            FinanceManager.Account acc = finance.getAccount(id);
-            long worth = acc.main + acc.savings;
+            long worth = finance.getMain(id) + finance.getSavings(id);
             worths.put(id, worth);
         }
 
-        // Sortieren nach Networth absteigend
+        // Sortiere nach Networth absteigend
         List<Map.Entry<UUID, Long>> sorted = worths.entrySet().stream()
                 .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
                 .collect(Collectors.toList());
@@ -54,7 +52,7 @@ public class NetworthCommand implements CommandExecutor {
             rank++;
         }
 
-        // Eigene Position falls nicht in Top 8
+        // Eigene Platzierung, falls nicht in Top 8
         if (sender instanceof Player) {
             Player p = (Player) sender;
             UUID id = p.getUniqueId();
