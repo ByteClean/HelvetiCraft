@@ -6,9 +6,11 @@ import discord
 import logging
 from discord.ext import commands
 import asyncio
+import platform
 
 # Windows fix for event loop
-asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+if platform.system() == "Windows":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 # Ensure repository root is on sys.path
 pkg_root = pathlib.Path(__file__).resolve().parent
