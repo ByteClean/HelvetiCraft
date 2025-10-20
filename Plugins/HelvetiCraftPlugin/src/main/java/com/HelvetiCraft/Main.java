@@ -23,8 +23,10 @@ public class Main extends JavaPlugin {
 
         // Initiative manager
         initiativeManager = new InitiativeManager(this);
+
+        // Register PlaceholderAPI expansion
         if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            new InitiativeExpansion(initiativeManager).register();
+            new InitiativeExpansion().register(); // <-- no args needed
             getLogger().info("InitiativeExpansion placeholders registered!");
         } else {
             getLogger().warning("PlaceholderAPI not found! Initiative placeholders will not work.");

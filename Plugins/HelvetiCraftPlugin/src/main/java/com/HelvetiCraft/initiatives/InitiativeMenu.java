@@ -1,5 +1,6 @@
 package com.HelvetiCraft.initiatives;
 
+import com.HelvetiCraft.requests.InitiativeRequests;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -12,8 +13,6 @@ import java.util.*;
 public class InitiativeMenu {
 
     private final InitiativeManager manager;
-
-    // Tracks selected initiative per player in "own initiatives" menu
     private final Map<UUID, String> selectedInitiatives = new HashMap<>();
 
     public InitiativeMenu(InitiativeManager manager) {
@@ -23,24 +22,23 @@ public class InitiativeMenu {
     // --- Main Volksinitiativen menu ---
     public void open(Player player, int page) {
         int initiativesPerPage = 18;
-        List<Initiative> initiativeList = new ArrayList<>(manager.getInitiatives().values());
+        List<Initiative> initiativeList = new ArrayList<>(InitiativeRequests.getAllInitiatives());
 
         int totalPages = (int) Math.ceil((double) initiativeList.size() / initiativesPerPage);
         if (totalPages == 0) totalPages = 1;
-        if (page >= totalPages) page = totalPages - 1;
-        if (page < 0) page = 0;
+        page = Math.max(0, Math.min(page, totalPages - 1));
 
         manager.getPlayerPages().put(player.getUniqueId(), page);
 
         Inventory inv = Bukkit.createInventory(null, 27,
                 "§6Aktive Volksinitiativen (Seite " + (page + 1) + "/" + totalPages + ")");
 
-        Set<String> votedSet = manager.getPlayerVotes()
-                .getOrDefault(player.getUniqueId(), new HashSet<>());
+        // Use InitiativeRequests to get votes
+        Set<String> votedSet = InitiativeRequests.getPlayerVotes(player.getUniqueId());
 
-        // Fill initiatives for current page
         int startIndex = page * initiativesPerPage;
         int endIndex = Math.min(startIndex + initiativesPerPage, initiativeList.size());
+
         for (int i = startIndex; i < endIndex; i++) {
             Initiative initiative = initiativeList.get(i);
             boolean voted = votedSet.contains(initiative.getTitle());
@@ -52,22 +50,19 @@ public class InitiativeMenu {
                 lore.add("§7Autor: " + initiative.getAuthor());
                 lore.add("§7Beschreibung: " + initiative.getDescription());
                 lore.add("§eStimmen: " + initiative.getVotes());
-                if (voted) lore.add("§aDu hast bereits abgestimmt!");
-                else lore.add("§7[Klicken zum Abstimmen]");
+                lore.add(voted ? "§aDu hast bereits abgestimmt!" : "§7[Klicken zum Abstimmen]");
                 meta.setLore(lore);
                 item.setItemMeta(meta);
             }
             inv.addItem(item);
         }
 
-        // Add control buttons (create + my initiatives)
         addControls(inv, page, totalPages);
-
         player.openInventory(inv);
     }
 
     private void addControls(Inventory inv, int page, int totalPages) {
-        // Create Volksinitiative
+        // Create Initiative button
         ItemStack createItem = new ItemStack(Material.EMERALD);
         ItemMeta createMeta = createItem.getItemMeta();
         if (createMeta != null) {
@@ -77,7 +72,7 @@ public class InitiativeMenu {
         }
         inv.setItem(18, createItem);
 
-        // My Volksinitiativen Button
+        // My Initiatives button
         ItemStack myInitiatives = new ItemStack(Material.BOOK);
         ItemMeta bookMeta = myInitiatives.getItemMeta();
         if (bookMeta != null) {
@@ -110,18 +105,16 @@ public class InitiativeMenu {
         }
     }
 
-    // --- Player’s own Volksinitiativen menu ---
+    // --- Player’s own initiatives menu ---
     public void openPlayerInitiatives(Player player, int page) {
         List<Initiative> ownList = new ArrayList<>();
-        for (Initiative i : manager.getInitiatives().values()) {
+        for (Initiative i : InitiativeRequests.getAllInitiatives()) {
             if (i.getAuthor().equals(player.getName())) ownList.add(i);
         }
 
         int initiativesPerPage = 18;
-        int totalPages = (int) Math.ceil((double) ownList.size() / initiativesPerPage);
-        if (totalPages == 0) totalPages = 1;
-        if (page >= totalPages) page = totalPages - 1;
-        if (page < 0) page = 0;
+        int totalPages = Math.max(1, (int) Math.ceil((double) ownList.size() / initiativesPerPage));
+        page = Math.max(0, Math.min(page, totalPages - 1));
 
         manager.getPlayerPages().put(player.getUniqueId(), page);
 
@@ -134,7 +127,7 @@ public class InitiativeMenu {
 
         for (int i = startIndex; i < endIndex; i++) {
             Initiative initiative = ownList.get(i);
-            Material mat = (initiative.getTitle().equals(selected)) ? Material.ENCHANTED_BOOK : Material.PAPER;
+            Material mat = initiative.getTitle().equals(selected) ? Material.ENCHANTED_BOOK : Material.PAPER;
             ItemStack item = new ItemStack(mat);
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
@@ -142,8 +135,7 @@ public class InitiativeMenu {
                 List<String> lore = new ArrayList<>();
                 lore.add("§7Beschreibung: " + initiative.getDescription());
                 lore.add("§eStimmen: " + initiative.getVotes());
-                if (initiative.getTitle().equals(selected)) lore.add("§aAusgewählt!");
-                else lore.add("§7[Klicken zum Auswählen]");
+                lore.add(initiative.getTitle().equals(selected) ? "§aAusgewählt!" : "§7[Klicken zum Auswählen]");
                 meta.setLore(lore);
                 item.setItemMeta(meta);
             }
