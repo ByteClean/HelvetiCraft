@@ -21,6 +21,10 @@ public class InitiativeRequests {
         createDummyInitiative("Verkehr", "ÖPNV ausbauen", "Charlie");
         createDummyInitiative("Digitalisierung", "Schnelles Internet für alle", "Diana");
         createDummyInitiative("Gesundheit", "Bessere Krankenhäuser", "Eve");
+        createDummyInitiative("Umweltschutz", "Wasserschutzprogramme stärken", "Frank");
+        createDummyInitiative("Soziale Gerechtigkeit", "Chancengleichheit für alle", "Gina");
+        createDummyInitiative("Energie", "Erneuerbare Energien fördern", "Hank");
+        createDummyInitiative("Kultur", "Kunst und Musik für Jugendliche", "Ivy");
     }
 
     private static void createDummyInitiative(String title, String desc, String author) {

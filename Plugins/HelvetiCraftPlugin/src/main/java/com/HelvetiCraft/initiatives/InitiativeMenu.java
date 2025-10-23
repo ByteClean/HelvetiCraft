@@ -103,7 +103,7 @@ public class InitiativeMenu {
 
     // ------------------- Phase 2 -------------------
     private void openPhase2(Player player, int page, List<Initiative> list) {
-        int initiativesPerPage = 9;
+        int initiativesPerPage = 7; // 7 columns available (1–7)
         int totalPages = Math.max(1, (int) Math.ceil((double) list.size() / initiativesPerPage));
         page = Math.max(0, Math.min(page, totalPages - 1));
         manager.getPlayerPages().put(player.getUniqueId(), page);
@@ -114,11 +114,15 @@ public class InitiativeMenu {
         int end = Math.min(start + initiativesPerPage, list.size());
         Map<String, Boolean> playerVotes = InitiativeRequests.getPlayerVotesPhase2(player.getUniqueId());
 
+        // Base column index 1–7 for initiatives
         for (int i = start; i < end; i++) {
             Initiative initiative = list.get(i);
-            int slot = i - start; // column position (0–8)
+            int colIndex = i - start + 1; // +1 to skip left arrow column (0)
+            int topSlot = colIndex;
+            int midSlot = colIndex + 9;
+            int botSlot = colIndex + 18;
 
-            // Top row: Initiative info
+            // --- Paper info (top row) ---
             ItemStack paper = new ItemStack(Material.PAPER);
             ItemMeta paperMeta = paper.getItemMeta();
             if (paperMeta != null) {
@@ -130,9 +134,9 @@ public class InitiativeMenu {
                 ));
                 paper.setItemMeta(paperMeta);
             }
-            inv.setItem(slot, paper);
+            inv.setItem(topSlot, paper);
 
-            // Middle row: vote "for"
+            // --- Green wool (middle row) ---
             ItemStack green = new ItemStack(Material.GREEN_WOOL);
             ItemMeta greenMeta = green.getItemMeta();
             if (greenMeta != null) {
@@ -142,13 +146,13 @@ public class InitiativeMenu {
                 }
                 greenMeta.setLore(Arrays.asList(
                         "§7Klicke, um für zu stimmen",
-                        "§8Initiative: " + initiative.getTitle() // <-- NEW
+                        "§8Initiative: " + initiative.getTitle()
                 ));
                 green.setItemMeta(greenMeta);
             }
-            inv.setItem(slot + 9, green);
+            inv.setItem(midSlot, green);
 
-            // Bottom row: vote "against"
+            // --- Red wool (bottom row) ---
             ItemStack red = new ItemStack(Material.RED_WOOL);
             ItemMeta redMeta = red.getItemMeta();
             if (redMeta != null) {
@@ -158,25 +162,34 @@ public class InitiativeMenu {
                 }
                 redMeta.setLore(Arrays.asList(
                         "§7Klicke, um dagegen zu stimmen",
-                        "§8Initiative: " + initiative.getTitle() // <-- NEW
+                        "§8Initiative: " + initiative.getTitle()
                 ));
                 red.setItemMeta(redMeta);
             }
-            inv.setItem(slot + 18, red);
+            inv.setItem(botSlot, red);
         }
 
-        // Pagination
+        // --- Pagination arrows ---
+        // Left (center row slot 9)
         if (page > 0) {
             ItemStack prev = new ItemStack(Material.ARROW);
-            ItemMeta meta = prev.getItemMeta();
-            if (meta != null) meta.setDisplayName("§eZurück");
-            inv.setItem(24, prev);
+            ItemMeta prevMeta = prev.getItemMeta();
+            if (prevMeta != null) {
+                prevMeta.setDisplayName("§eZurück");
+                prev.setItemMeta(prevMeta);
+            }
+            inv.setItem(9, prev);
         }
+
+        // Right (center row slot 17)
         if (page < totalPages - 1) {
             ItemStack next = new ItemStack(Material.ARROW);
-            ItemMeta meta = next.getItemMeta();
-            if (meta != null) meta.setDisplayName("§eWeiter");
-            inv.setItem(25, next);
+            ItemMeta nextMeta = next.getItemMeta();
+            if (nextMeta != null) {
+                nextMeta.setDisplayName("§eWeiter");
+                next.setItemMeta(nextMeta);
+            }
+            inv.setItem(17, next);
         }
 
         player.openInventory(inv);
