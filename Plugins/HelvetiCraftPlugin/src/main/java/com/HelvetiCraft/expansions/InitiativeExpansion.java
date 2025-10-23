@@ -1,7 +1,7 @@
 package com.HelvetiCraft.expansions;
 
-import com.HelvetiCraft.initiatives.Initiative;
 import com.HelvetiCraft.requests.InitiativeRequests;
+import com.HelvetiCraft.initiatives.Initiative;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
@@ -22,7 +22,7 @@ public class InitiativeExpansion extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getVersion() {
-        return "1.0";
+        return "1.1"; // Updated version
     }
 
     @Override
@@ -34,7 +34,12 @@ public class InitiativeExpansion extends PlaceholderExpansion {
     public String onRequest(OfflinePlayer player, @NotNull String params) {
         if (player == null) return "";
 
+        int phase = InitiativeRequests.getCurrentPhase();
+
         switch (params.toLowerCase()) {
+            case "phase":
+                return "Phase " + phase;
+
             case "initiatives": {
                 // Count initiatives authored by this player
                 long count = InitiativeRequests.getAllInitiatives().stream()
@@ -42,22 +47,30 @@ public class InitiativeExpansion extends PlaceholderExpansion {
                         .count();
                 return String.valueOf(count);
             }
-            case "phase": {
-                // Get the current phase – assuming InitiativeRequests tracks it
-                // Otherwise, you may need a separate PhaseManager or InitiativeManager instance
-                return "Phase " + InitiativeRequests.getCurrentPhase();
+
+            case "phase1_votes": {
+                if (phase != 1) return "0";
+                return String.valueOf(InitiativeRequests.getPlayerVotesPhase1(player.getUniqueId()).size());
             }
-            case "pastphases": {
-                return String.valueOf(InitiativeRequests.getPastPhases());
+
+            case "phase2_votes_for": {
+                if (phase != 2) return "0";
+                return String.valueOf(
+                        InitiativeRequests.getPlayerVotesPhase2(player.getUniqueId()).values().stream()
+                                .filter(v -> v)
+                                .count()
+                );
             }
-            case "timeleft": {
-                long now = System.currentTimeMillis();
-                long diff = InitiativeRequests.getPhaseEndTime() - now;
-                if (diff <= 0) return "Abgelaufen";
-                long minutes = diff / 60000;
-                long seconds = (diff / 1000) % 60;
-                return minutes + "m " + seconds + "s";
+
+            case "phase2_votes_against": {
+                if (phase != 2) return "0";
+                return String.valueOf(
+                        InitiativeRequests.getPlayerVotesPhase2(player.getUniqueId()).values().stream()
+                                .filter(v -> !v)
+                                .count()
+                );
             }
+
             default:
                 return null;
         }
