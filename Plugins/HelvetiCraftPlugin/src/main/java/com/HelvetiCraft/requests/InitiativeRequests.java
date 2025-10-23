@@ -12,7 +12,23 @@ public class InitiativeRequests {
     private static final Map<UUID, Map<String, Boolean>> playerVotesPhase2 = new ConcurrentHashMap<>();
     private static final Set<String> createdPhase1 = ConcurrentHashMap.newKeySet();
 
-    private static int currentPhase = 1; // 1 = support phase, 2 = for/against phase
+    private static int currentPhase = 2; // default to phase 1
+
+    static {
+        // --- Dummy initiatives ---
+        createDummyInitiative("Umweltschutz", "Initiative für saubere Luft", "Alice");
+        createDummyInitiative("Bildung", "Mehr Schulen und Lehrmittel", "Bob");
+        createDummyInitiative("Verkehr", "ÖPNV ausbauen", "Charlie");
+        createDummyInitiative("Digitalisierung", "Schnelles Internet für alle", "Diana");
+        createDummyInitiative("Gesundheit", "Bessere Krankenhäuser", "Eve");
+    }
+
+    private static void createDummyInitiative(String title, String desc, String author) {
+        Initiative i = new Initiative(title, desc, author);
+        i.setPhase(1); // always start in phase 1
+        initiatives.put(title, i);
+        createdPhase1.add(author);
+    }
 
     // --- CRUD ---
     public static Collection<Initiative> getAllInitiatives() {
@@ -26,6 +42,7 @@ public class InitiativeRequests {
     public static void createInitiative(Initiative initiative) {
         initiatives.put(initiative.getTitle(), initiative);
         createdPhase1.add(initiative.getAuthor());
+        initiative.setPhase(1); // new initiatives start in phase 1
     }
 
     public static void deleteInitiative(String title) {
@@ -57,7 +74,6 @@ public class InitiativeRequests {
         if (initiative.getAuthor().equalsIgnoreCase(playerId.toString())) return;
 
         Set<String> votedInitiatives = playerVotesPhase1.computeIfAbsent(playerId, k -> new HashSet<>());
-
         if (votedInitiatives.contains(title)) {
             votedInitiatives.remove(title);
             initiative.decrementVotes();
