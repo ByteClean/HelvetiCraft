@@ -3,9 +3,3 @@ DISCORD_URL: "https://discord.gg/q2mMrXad9h"
 WEBSITE_URL: "https://helveticraft.com"
 NEXT_UPDATE: "2025-10-01"
 PROJECT_STAGE: "Alpha / Early Development"
-
-
-initiatives:
-  phases:
-    duration-days: 3   # each phase lasts 3 Minecraft days
-    rounds: 5          # after 5 phases the winner is chosen
