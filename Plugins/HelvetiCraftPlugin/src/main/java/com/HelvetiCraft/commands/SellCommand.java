@@ -41,17 +41,19 @@ public class SellCommand implements CommandExecutor, TabCompleter {
         this.plugin = plugin;
         this.finance = finance;
 
-        // Cleanup task for expired offers
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                long now = System.currentTimeMillis();
-                for (List<Offer> list : pending.values()) {
-                    list.removeIf(o -> o.expiresAt < now);
-                }
-                pending.entrySet().removeIf(e -> e.getValue().isEmpty());
-            }
-        }.runTaskTimer(plugin, 20L, 20L * 10); // every 10 seconds
+        // Cleanup task for expired offers (Folia + Paper safe)
+        Bukkit.getGlobalRegionScheduler().runAtFixedRate(
+                plugin,
+                task -> {
+                    long now = System.currentTimeMillis();
+                    for (List<Offer> list : pending.values()) {
+                        list.removeIf(o -> o.expiresAt < now);
+                    }
+                    pending.entrySet().removeIf(e -> e.getValue().isEmpty());
+                },
+                20L,       // initial delay (1 second)
+                20L * 10   // repeat every 10 seconds
+        );
     }
 
     @Override

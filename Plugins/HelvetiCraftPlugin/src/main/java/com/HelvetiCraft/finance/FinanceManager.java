@@ -9,6 +9,8 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.bukkit.Bukkit.getLogger;
+
 public class FinanceManager {
 
     private final Plugin plugin;
@@ -83,7 +85,7 @@ public class FinanceManager {
      * Later this can push all balances to the real backend.
      */
     public void save() {
-        System.out.println("[FinanceManager] Dummy save() called – no persistent storage yet.");
+        getLogger().info("[FinanceManager] Dummy save() called – no persistent storage yet.");
     }
 
     // --- Utility Methods (unchanged) ---

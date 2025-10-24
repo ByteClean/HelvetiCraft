@@ -245,7 +245,7 @@ public class InitiativeManager implements Listener {
                     if (slot != AnvilGUI.Slot.OUTPUT) return Collections.emptyList();
                     String title = state.getText();
                     if (title == null || title.trim().isEmpty()) return List.of(AnvilGUI.ResponseAction.replaceInputText("§cTitel darf nicht leer sein!"));
-                    Bukkit.getScheduler().runTask(plugin, () -> askForDescription(player, title.trim()));
+                    com.HelvetiCraft.util.SafeScheduler.runSync(plugin, () -> askForDescription(player, title.trim()));
                     return List.of(AnvilGUI.ResponseAction.close());
                 })
                 .open(player);
@@ -263,7 +263,7 @@ public class InitiativeManager implements Listener {
                     if (desc == null || desc.trim().isEmpty()) return List.of(AnvilGUI.ResponseAction.replaceInputText("§cBeschreibung darf nicht leer sein!"));
                     InitiativeRequests.createInitiative(new Initiative(title, desc.trim(), player.getName()));
                     player.sendMessage("§aVolksinitiative erstellt: §b" + title);
-                    Bukkit.getScheduler().runTask(plugin, () -> openInitiativeMenu(player));
+                    player.getScheduler().run(plugin, task -> openInitiativeMenu(player), null);
                     return List.of(AnvilGUI.ResponseAction.close());
                 })
                 .open(player);
