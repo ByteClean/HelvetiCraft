@@ -4,6 +4,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static org.bukkit.Bukkit.getLogger;
+
 public class VerifyRequests {
 
     private static final Map<UUID, String> codes = new ConcurrentHashMap<>();
@@ -18,13 +20,13 @@ public class VerifyRequests {
         }
         String code = sb.toString();
         codes.put(playerUUID, code);
-        System.out.println("[VerifyRequests] Generated code " + code + " for " + playerUUID);
+        getLogger().info("[VerifyRequests] Generated code " + code + " for " + playerUUID);
         return code;
     }
 
     public static void markVerified(UUID playerUUID) {
         codes.remove(playerUUID);
-        System.out.println("[VerifyRequests] Player " + playerUUID + " marked as verified.");
+        getLogger().info("[VerifyRequests] Player " + playerUUID + " marked as verified.");
     }
 
     public static boolean verify(UUID playerUUID, String code) {
