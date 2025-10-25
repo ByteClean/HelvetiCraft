@@ -1,7 +1,30 @@
 import { Router } from "express";
 import pool from "../services/mysql.service.js";
-
+import { requireAuth } from "../middleware/auth.middleware.js";
 const r = Router();
+
+// alle Initiativen
+r.get("/", async (req, res, next) => {
+  const [rows] = await pool.query(
+    "SELECT i.id, i.title, i.description, i.status, u.username FROM initiatives i JOIN authme u ON u.id = i.author_id ORDER BY i.id DESC"
+  );
+  res.json(rows);
+});
+
+// neue Initiative (nur authentifiziert)
+r.post("/", requireAuth, async (req, res, next) => {
+  const { title, description } = req.body;
+  try {
+    const [r1] = await pool.query(
+      "INSERT INTO initiatives (author_id, title, description) VALUES (?, ?, ?)",
+      [req.user.sub, title, description]
+    );
+    res.status(201).json({ id: r1.insertId, title, description, status: "draft" });
+  } catch (err) {
+    next(err);
+  }
+});
+
 
 /**
  * Alle Initiativen
