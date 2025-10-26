@@ -31,6 +31,8 @@ services:
     volumes:
       - ./Discord_Bot:/app
     working_dir: /app
+    ports:
+      - "8081:8081"
     command: ["python", "bot.py"]
 
   minecraft-server:
