@@ -4,6 +4,9 @@ version: 1.2.1
 api-version: 1.21
 folia-supported: true
 depend: [Vault, PlaceholderAPI]
+softdepend: [GriefPrevention]
+
+load: STARTUP
 
 commands:
   initiative:
