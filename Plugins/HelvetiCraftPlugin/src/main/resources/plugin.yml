@@ -49,6 +49,18 @@ commands:
     description: Move money between your main account and savings account
     usage: /save <amount>
     permission: helveticraft.save
+  buyclaimblock:
+    description: Buy bonus claim blocks for GriefPrevention
+    usage: /buyclaimblock <Anzahl>
+    permission: helveticraft.claims.buy
+  sellclaimblock:
+    description: Sell bonus claim blocks back to the government
+    usage: /sellclaimblock <Anzahl>
+    permission: helveticraft.claims.sell
+  acb:
+    description: Adjust bonus claim blocks for a player (admin)
+    usage: /acb <Spieler> <Anzahl>
+    permission: helveticraft.claims.admin
 
 permissions:
   helveticraft.*:
@@ -90,3 +102,12 @@ permissions:
   helveticraft.save:
     description: Use /save to move money between main and savings
     default: true
+  helveticraft.claims.buy:
+    description: Buy claim blocks
+    default: true
+  helveticraft.claims.sell:
+    description: Sell claim blocks
+    default: true
+  helveticraft.claims.admin:
+    description: Administrative adjust of bonus claim blocks
+    default: op
