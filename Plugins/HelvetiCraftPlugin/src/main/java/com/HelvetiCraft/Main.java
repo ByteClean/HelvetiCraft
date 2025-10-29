@@ -5,6 +5,9 @@ import com.HelvetiCraft.expansions.FinanceExpansion;
 import com.HelvetiCraft.expansions.InitiativeExpansion;
 import com.HelvetiCraft.initiatives.InitiativeManager;
 import com.HelvetiCraft.finance.FinanceManager;
+import com.HelvetiCraft.Claims.ClaimManager;
+import com.HelvetiCraft.commands.BuyClaimBlockCommand;
+import com.HelvetiCraft.commands.SellClaimBlockCommand;
 import com.HelvetiCraft.finance.FinanceJoinListener;
 import com.HelvetiCraft.economy.VaultEconomyBridge;
 import org.bukkit.Bukkit;
@@ -52,6 +55,11 @@ public class Main extends JavaPlugin {
         getCommand("sellaccept").setExecutor(sell);
         getCommand("selldecline").setExecutor(sell);
         getCommand("save").setExecutor(new SaveCommand(financeManager));
+
+    // Claim block manager & commands
+    ClaimManager claimManager = new ClaimManager(this, financeManager);
+    getCommand("buyclaimblock").setExecutor(new BuyClaimBlockCommand(claimManager));
+    getCommand("sellclaimblock").setExecutor(new SellClaimBlockCommand(claimManager));
 
         // Listeners
         getServer().getPluginManager().registerEvents(initiativeManager, this);
