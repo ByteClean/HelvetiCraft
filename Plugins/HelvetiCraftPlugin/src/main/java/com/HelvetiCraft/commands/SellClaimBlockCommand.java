@@ -1,6 +1,7 @@
 package com.HelvetiCraft.commands;
 
 import com.HelvetiCraft.Claims.ClaimManager;
+import com.HelvetiCraft.requests.ClaimRequests;
 import com.HelvetiCraft.finance.FinanceManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -43,10 +44,14 @@ public class SellClaimBlockCommand implements CommandExecutor {
             return true;
         }
 
-        // Quick local check
-        int current = claimManager.getLocalBonusBlocks(p.getUniqueId());
-        if (current < amount) {
-            sender.sendMessage("§cDu hast nicht genügend Bonus-ClaimBlocks (lokaler Zähler: " + current + ").");
+        // Check remaining claims via PlaceholderAPI
+        int remaining = claimManager.getRemainingClaims(p.getUniqueId());
+        if (remaining < 0) {
+            sender.sendMessage("§cFehler beim Prüfen deiner verfügbaren ClaimBlocks.");
+            return true;
+        }
+        if (remaining < amount) {
+            sender.sendMessage("§cDu hast nicht genügend unbenutzte ClaimBlocks (verfügbar: " + remaining + ").");
             return true;
         }
 
@@ -56,7 +61,7 @@ public class SellClaimBlockCommand implements CommandExecutor {
             return true;
         }
 
-        long payout = amount * ClaimManager.SELL_PRICE_CENTS_PER_BLOCK;
+        long payout = Math.multiplyExact(amount, ClaimRequests.getSellPriceCents());
         sender.sendMessage("§aErfolgreich verkauft: §f" + amount + " §aClaimBlocks für §f" + FinanceManager.formatCents(payout));
         return true;
     }

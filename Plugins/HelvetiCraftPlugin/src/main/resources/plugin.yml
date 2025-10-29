@@ -57,10 +57,6 @@ commands:
     description: Sell bonus claim blocks back to the government
     usage: /sellclaimblock <Anzahl>
     permission: helveticraft.claims.sell
-  acb:
-    description: Adjust bonus claim blocks for a player (admin)
-    usage: /acb <Spieler> <Anzahl>
-    permission: helveticraft.claims.admin
 
 permissions:
   helveticraft.*:
@@ -108,6 +104,3 @@ permissions:
   helveticraft.claims.sell:
     description: Sell claim blocks
     default: true
-  helveticraft.claims.admin:
-    description: Administrative adjust of bonus claim blocks
-    default: op

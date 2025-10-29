@@ -1,6 +1,7 @@
 package com.HelvetiCraft.commands;
 
 import com.HelvetiCraft.Claims.ClaimManager;
+import com.HelvetiCraft.requests.ClaimRequests;
 import com.HelvetiCraft.finance.FinanceManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -49,7 +50,7 @@ public class BuyClaimBlockCommand implements CommandExecutor {
             return true;
         }
 
-        long cost = amount * ClaimManager.BUY_PRICE_CENTS_PER_BLOCK;
+        long cost = Math.multiplyExact(amount, ClaimRequests.getBuyPriceCents());
         sender.sendMessage("§aErfolgreich gekauft: §f" + amount + " §aClaimBlocks für §f" + FinanceManager.formatCents(cost));
         return true;
     }
