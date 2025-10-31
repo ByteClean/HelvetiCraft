@@ -136,9 +136,9 @@ class WebhookListener(commands.Cog):
     async def cog_load(self):
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
-        self.site = web.TCPSite(self.runner, "127.0.0.1", 8081)
+        self.site = web.TCPSite(self.runner, "0.0.0.0", 8081)
         await self.site.start()
-        print("✅ Webhook listener running on http://127.0.0.1:8081")
+        print("✅ Webhook listener running on http://0.0.0.0:8081")
 
     async def cog_unload(self):
         if self.runner:
