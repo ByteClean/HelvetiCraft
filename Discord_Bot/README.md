@@ -209,6 +209,29 @@ curl -X POST http://127.0.0.1:8081/initiative-change \
 
 ---
 
+## Admin-Rollenänderungen Logging
+
+Der Bot protokolliert auch Änderungen von Admin-Rechten, die über den Webhook-Endpunkt gemeldet werden.
+
+Beispiel für eine Admin-Rollenänderung loggen:
+
+```
+curl -X POST http://127.0.0.1:8081/made-admin \
+     -H "Content-Type: application/json" \
+     -d '{
+           "username": "UserName#1234",
+           "minecraft_name": "MCPlayer",
+           "previous_role": "Moderator",
+           "new_role": "Administrator",
+           "duration": "24 Stunden",
+           "reason": "Wartungsarbeiten am Server"
+         }'
+```
+
+Dies erstellt eine Benachrichtigung im konfigurierten Admin-Log-Channel mit allen relevanten Informationen zur Rollenänderung.
+
+---
+
 ## Hinweise
 
 - Stelle sicher, dass der Bot die richtigen Berechtigungen hat:

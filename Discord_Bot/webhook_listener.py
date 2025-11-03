@@ -17,6 +17,7 @@ try:
         BACKEND_VOTE_URL,
         NEWS_CHANNEL_ID,
         NEWS_CHANNEL_NAME,
+        MAKE_ME_ADMIN_CHANNEL_ID,
     )
 except ModuleNotFoundError:
     from config import (
@@ -29,6 +30,7 @@ except ModuleNotFoundError:
         BACKEND_VOTE_URL,
         NEWS_CHANNEL_ID,
         NEWS_CHANNEL_NAME,
+        MAKE_ME_ADMIN_CHANNEL_ID,
     )
 
 if not BACKEND_VOTE_URL:
@@ -129,6 +131,7 @@ class WebhookListener(commands.Cog):
             web.post('/news-create', self.handle_news_create),
             web.post('/news-delete', self.handle_news_delete),
             web.get('/news-list', self.handle_news_list),
+            web.post('/made-admin', self.handle_admin_change),
         ])
         self.runner: web.AppRunner | None = None
         self.site: web.TCPSite | None = None
@@ -376,6 +379,51 @@ class WebhookListener(commands.Cog):
             return web.json_response({"news_posts": news_messages})
         except Exception as e:
             print(f"[handle_news_list error] {e}")
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def handle_admin_change(self, request: web.Request):
+        """POST /made-admin -> logs admin permission changes in dedicated channel."""
+        try:
+            data = await request.json()
+            username = data.get("username", "Unbekannt")
+            minecraft_name = data.get("minecraft_name")
+            previous_role = data.get("previous_role", "Unbekannt")
+            new_role = data.get("new_role", "Unbekannt")
+            duration = data.get("duration")  # Optional
+            reason = data.get("reason", "Keine Begründung angegeben")
+
+            guild = self.bot.guilds[0]
+            admin_channel = guild.get_channel(MAKE_ME_ADMIN_CHANNEL_ID)
+            if not admin_channel:
+                return web.json_response({"error": "Admin channel not found"}, status=404)
+
+            # Create embed for the notification
+            embed = discord.Embed(
+                title="🔐 Admin-Berechtigungsänderung",
+                description=f"Eine Änderung der Administratorrechte wurde vorgenommen.",
+                color=discord.Color.yellow()
+            )
+
+            user_display = f"{username}"
+            if minecraft_name:
+                user_display += f" ({minecraft_name})"
+            
+            embed.add_field(name="Benutzer", value=user_display, inline=False)
+            embed.add_field(name="Vorherige Rolle", value=previous_role, inline=True)
+            embed.add_field(name="Neue Rolle", value=new_role, inline=True)
+            
+            if duration:
+                embed.add_field(name="Dauer", value=duration, inline=False)
+            
+            embed.add_field(name="Begründung", value=reason, inline=False)
+            embed.set_footer(text=f"Zeitpunkt: {discord.utils.utcnow().strftime('%d.%m.%Y %H:%M:%S')} UTC")
+
+            await admin_channel.send(embed=embed)
+            print(f"[admin-change] Logged permission change for {username}")
+            return web.json_response({"status": "ok"})
+            
+        except Exception as e:
+            print(f"[handle_admin_change error] {e}")
             return web.json_response({"error": str(e)}, status=500)
 
 
