@@ -53,3 +53,5 @@ REJECTED_CHANNEL_NAME = "❌-abgelehnte-initiativen"
 
 NEWS_CHANNEL_ID = os.getenv("NEWS_CHANNEL_ID")
 NEWS_CHANNEL_NAME = "ankündigungen"
+
+MAKE_ME_ADMIN_CHANNEL_ID = _int_env("MAKE_ME_ADMIN_CHANNEL_ID")
