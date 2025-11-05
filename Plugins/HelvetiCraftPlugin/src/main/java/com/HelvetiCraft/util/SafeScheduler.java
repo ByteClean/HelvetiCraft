@@ -13,37 +13,39 @@ public final class SafeScheduler {
 
     private static final boolean FOLIA_AVAILABLE;
     private static final Method GET_REGION_SCHEDULER;
-    private static final Method RS_RUN_AT_LOCATION; // reflection method placeholder
-    private static final Method RS_RUN_AT_LOCATION_DELAYED;
+    private static final Method GET_GLOBAL_REGION_SCHEDULER;
+    private static final Method RS_RUN_DELAYED;
 
     static {
         boolean folia = false;
         Method getRegionScheduler = null;
-        Method runAtLocation = null;
-        Method runAtLocationDelayed = null;
+        Method getGlobalRegionScheduler = null;
+        Method runDelayed = null;
 
         try {
-            // Detect Folia / Paper RegionScheduler
-            // we try to get org.bukkit.Server#getRegionScheduler()
-            getRegionScheduler = Bukkit.getServer().getClass().getMethod("getRegionScheduler");
-            Object rs = getRegionScheduler.invoke(Bukkit.getServer());
-            if (rs != null) {
-                // Attempt to find runAtLocation(Plugin, Location, Runnable)
-                // Actual Folia method names can differ between versions — reflection attempt:
-                for (Method m : rs.getClass().getMethods()) {
-                    if (m.getName().toLowerCase().contains("run") && m.getParameterCount() >= 3) {
-                        // common signature: runAtLocation(Plugin, Location, Runnable)
+            // Detect Folia
+            Class<?> serverClass = Bukkit.getServer().getClass();
+            if (serverClass.getName().contains("Folia")) {
+                getRegionScheduler = serverClass.getMethod("getRegionScheduler");
+                getGlobalRegionScheduler = serverClass.getMethod("getGlobalRegionScheduler");
+                Object grs = getGlobalRegionScheduler.invoke(Bukkit.getServer());
+                
+                // Find the delayed execution method
+                for (Method m : grs.getClass().getMethods()) {
+                    if (m.getName().equals("runDelayed")) {
                         Class<?>[] params = m.getParameterTypes();
-                        if (params.length >= 3 && params[0].getName().contains("Plugin") && params[1].getName().contains("Location")) {
-                            runAtLocation = m;
-                        }
-                        // also detect delayed variant with long param maybe at end
-                        if (params.length >= 4 && params[0].getName().contains("Plugin") && params[1].getName().contains("Location")) {
-                            runAtLocationDelayed = m;
+                        if (params.length == 3 
+                            && params[0].getName().contains("Plugin")
+                            && params[1].getName().contains("Runnable")
+                            && params[2] == long.class) {
+                            runDelayed = m;
+                            break;
                         }
                     }
                 }
-                folia = true;
+                if (runDelayed != null) {
+                    folia = true;
+                }
             }
         } catch (Throwable ignored) {
             folia = false;
@@ -51,8 +53,8 @@ public final class SafeScheduler {
 
         FOLIA_AVAILABLE = folia;
         GET_REGION_SCHEDULER = getRegionScheduler;
-        RS_RUN_AT_LOCATION = runAtLocation;
-        RS_RUN_AT_LOCATION_DELAYED = runAtLocationDelayed;
+        GET_GLOBAL_REGION_SCHEDULER = getGlobalRegionScheduler;
+        RS_RUN_DELAYED = runDelayed;
     }
 
     private SafeScheduler() {}
@@ -67,49 +69,54 @@ public final class SafeScheduler {
         return Bukkit.getScheduler().runTaskAsynchronously(plugin, task);
     }
 
-    // Run after delay ticks on main thread
+    // Run after delay ticks
     public static BukkitTask runLater(Plugin plugin, Runnable task, long delayTicks) {
+        if (FOLIA_AVAILABLE && GET_GLOBAL_REGION_SCHEDULER != null && RS_RUN_DELAYED != null) {
+            try {
+                Object scheduler = GET_GLOBAL_REGION_SCHEDULER.invoke(Bukkit.getServer());
+                RS_RUN_DELAYED.invoke(scheduler, plugin, task, delayTicks);
+                return null; // Folia doesn't return BukkitTask
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         return Bukkit.getScheduler().runTaskLater(plugin, task, delayTicks);
     }
 
-    // Run repeating on main thread
+    // Run repeating - Note: In Folia, you'd need to schedule the next run inside the task
     public static BukkitTask runRepeating(Plugin plugin, Runnable task, long initialDelay, long period) {
+        if (FOLIA_AVAILABLE) {
+            runLater(plugin, new Runnable() {
+                @Override
+                public void run() {
+                    task.run();
+                    runLater(plugin, this, period);
+                }
+            }, initialDelay);
+            return null;
+        }
         return Bukkit.getScheduler().runTaskTimer(plugin, task, initialDelay, period);
     }
 
     // Try to run at the location's region thread (Folia) if available; fallback to runSync
     public static void runAtLocation(Plugin plugin, org.bukkit.Location loc, Runnable task) {
-        if (FOLIA_AVAILABLE && GET_REGION_SCHEDULER != null && RS_RUN_AT_LOCATION != null) {
+        if (FOLIA_AVAILABLE && GET_REGION_SCHEDULER != null) {
             try {
                 Object regionScheduler = GET_REGION_SCHEDULER.invoke(Bukkit.getServer());
-                // The reflection call might require slightly different parameters across versions.
-                // Try common signature: (Plugin, Location, Runnable)
-                try {
-                    RS_RUN_AT_LOCATION.invoke(regionScheduler, plugin, loc, task);
-                    return;
-                } catch (IllegalArgumentException ignored) {
-                    // maybe different signature, try with long delay param 0
-                    if (RS_RUN_AT_LOCATION_DELAYED != null) {
-                        try {
-                            RS_RUN_AT_LOCATION_DELAYED.invoke(regionScheduler, plugin, loc, task, 0L);
-                            return;
-                        } catch (Throwable ignored2) {
-                        }
+                // Use global scheduler as fallback
+                if (GET_GLOBAL_REGION_SCHEDULER != null) {
+                    Object globalScheduler = GET_GLOBAL_REGION_SCHEDULER.invoke(Bukkit.getServer());
+                    if (RS_RUN_DELAYED != null) {
+                        RS_RUN_DELAYED.invoke(globalScheduler, plugin, task, 0L);
+                        return;
                     }
                 }
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                // fall through to fallback
-            } catch (Throwable ignored) {}
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
-        // fallback
+        // fallback to sync
         runSync(plugin, task);
-    }
-
-    // Helper: schedule repeating at location — same concept, omitted here for brevity
-    public static void runRepeatingAtLocation(Plugin plugin, org.bukkit.Location loc, Runnable task, long initialDelay, long period) {
-        // If Folia available, you'd want to call the region scheduler repeating method (reflection).
-        // For now fallback to runRepeating on main thread.
-        runRepeating(plugin, task, initialDelay, period);
     }
 
     public static boolean isFoliaAvailable() {

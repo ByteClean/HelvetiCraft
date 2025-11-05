@@ -57,6 +57,10 @@ commands:
     description: Sell bonus claim blocks back to the government
     usage: /sellclaimblock <Anzahl>
     permission: helveticraft.claims.sell
+  admin:
+    description: Temporarily upgrade/downgrade yourself to super-admin (admin-only)
+    usage: /admin <reason_for_upgrade>
+    permission: helveticraft.admin
 
 permissions:
   helveticraft.*:
@@ -104,3 +108,6 @@ permissions:
   helveticraft.claims.sell:
     description: Sell claim blocks
     default: true
+  helveticraft.admin:
+    description: Use /admin to upgrade to super-admin (requires being in LuckPerms 'admin' group)
+    default: false
