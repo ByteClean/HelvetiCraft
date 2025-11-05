@@ -10,7 +10,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
-import org.bukkit.scheduler.BukkitTask;
+
 
 import java.util.*;
 
@@ -22,7 +22,7 @@ public class AdminCommand implements CommandExecutor {
 
     private final Main plugin;
     private final Permission perms;
-    private final Map<UUID, BukkitTask> scheduledDowngrades = new HashMap<>();
+    private final Map<UUID, SafeScheduler.SafeTask> scheduledDowngrades = new HashMap<>();
     private final Map<UUID, Long> expiryTimes = new HashMap<>();
 
     public AdminCommand(Main plugin) {
@@ -53,7 +53,7 @@ public class AdminCommand implements CommandExecutor {
             // downgrade
             boolean removed = perms.playerRemoveGroup((String) null, name, "super-admin");
             boolean added = perms.playerAddGroup((String) null, name, "admin");
-            BukkitTask task = scheduledDowngrades.remove(uuid);
+            SafeScheduler.SafeTask task = scheduledDowngrades.remove(uuid);
             if (task != null) task.cancel();
             expiryTimes.remove(uuid);
             AdminRequests.logDowngrade(uuid, name, "manual_downgrade");
@@ -81,7 +81,7 @@ public class AdminCommand implements CommandExecutor {
         // schedule downgrade after 24 hours
         long expiresAt = System.currentTimeMillis() + 24L * 60L * 60L * 1000L;
 
-        BukkitTask task = SafeScheduler.runLater(plugin, () -> {
+        SafeScheduler.SafeTask task = SafeScheduler.runLater(plugin, () -> {
             // downgrade
             perms.playerRemoveGroup((String) null, name, "super-admin");
             perms.playerAddGroup((String) null, name, "admin");
