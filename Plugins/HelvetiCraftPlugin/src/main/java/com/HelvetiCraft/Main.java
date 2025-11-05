@@ -10,6 +10,7 @@ import com.HelvetiCraft.commands.BuyClaimBlockCommand;
 import com.HelvetiCraft.commands.SellClaimBlockCommand;
 import com.HelvetiCraft.finance.FinanceJoinListener;
 import com.HelvetiCraft.economy.VaultEconomyBridge;
+import com.HelvetiCraft.requests.AdminRequests;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -23,6 +24,9 @@ public class Main extends JavaPlugin {
     public void onEnable() {
         getLogger().info("HelvetiCraft Plugin has been enabled!");
         saveDefaultConfig();
+        
+        // Initialize admin requests logger
+        AdminRequests.init(this);
 
         // Initiative manager
         initiativeManager = new InitiativeManager(this);
@@ -36,6 +40,8 @@ public class Main extends JavaPlugin {
         getCommand("verify").setExecutor(new VerifyCommand(this));
         getCommand("status").setExecutor(new StatusCommand(this));
         getCommand("helveticraft").setExecutor(new HelveticraftCommand(this));
+    // Admin command (uses Vault/LuckPerms for group management)
+    getCommand("admin").setExecutor(new AdminCommand(this));
 
         // Finance manager
         financeManager = new FinanceManager(this);
