@@ -54,48 +54,20 @@ public class ConvertManager implements Listener {
         int slot = e.getRawSlot();
         ItemStack current = e.getCurrentItem();
 
-        // Block shift-clicks & double-clicks
-        if (e.isShiftClick() || e.getClick() == ClickType.DOUBLE_CLICK) {
+        // Handle Sell button click
+        if (slot == 26 && current != null && current.getType() == Material.GREEN_WOOL) {
             e.setCancelled(true);
+            processSale(p);
             return;
         }
 
-        // Click in the top GUI
-        if (slot < top.getSize()) {
-            // Block only if clicking the wool or taking items
-            if (slot == 26 || (current != null && current.getType() == Material.GREEN_WOOL)) {
-                e.setCancelled(true);
-                if (slot == 26) processSale(p);
-                return;
-            }
-
-            // Allow placing ores into empty slots
-            if (e.getCursor() != null && e.getCursor().getType() != Material.AIR) {
-                // Player is placing something — only allow convertible items
-                if (!isConvertible(e.getCursor().getType())) {
-                    e.setCancelled(true);
-                    p.sendMessage("§cNur Erze können hier platziert werden!");
-                    return;
-                }
-            }
-
-            // Prevent picking up items from GUI (so they don’t remove placed ores)
-            if (e.getAction() == InventoryAction.PICKUP_ALL ||
-                    e.getAction() == InventoryAction.PICKUP_HALF ||
-                    e.getAction() == InventoryAction.PICKUP_SOME ||
-                    e.getAction() == InventoryAction.PICKUP_ONE) {
-                e.setCancelled(true);
-            }
-
-            // Schedule lore update after click
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> menu.updateSellButton(p), 1L);
-            return;
+        // Prevent double-click item merging (optional)
+        if (e.getClick() == ClickType.DOUBLE_CLICK) {
+            e.setCancelled(true);
         }
 
-        // Click in player inventory (bottom)
-        if (slot >= top.getSize()) {
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> menu.updateSellButton(p), 1L);
-        }
+        // Always update sell button after any click
+        menu.updateSellButton(p);
     }
 
     @EventHandler
@@ -103,20 +75,9 @@ public class ConvertManager implements Listener {
         if (!(e.getWhoClicked() instanceof Player p)) return;
         if (!"§6§lErz → CHF Konvertierung".equals(e.getView().getTitle())) return;
 
-        Inventory top = e.getView().getTopInventory();
-        for (int slot : e.getRawSlots()) {
-            if (slot < top.getSize()) {
-                // Block non-ore drag into top
-                ItemStack cursor = e.getOldCursor();
-                if (cursor != null && !isConvertible(cursor.getType())) {
-                    e.setCancelled(true);
-                    p.sendMessage("§cNur Erze können hier platziert werden!");
-                    return;
-                }
-            }
-        }
-
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> menu.updateSellButton(p), 1L);
+        // No cancelling at all — allow free drag/move
+        // Just update sell button after drag completes
+        menu.updateSellButton(p);
     }
 
     @EventHandler
