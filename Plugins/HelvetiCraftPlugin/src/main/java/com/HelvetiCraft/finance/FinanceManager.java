@@ -39,8 +39,8 @@ public class FinanceManager {
         return FinanceRequests.getSavings(id);
     }
 
-    public void setMain(UUID id, long cents) {
-        FinanceRequests.setMain(id, cents);
+    public void addToMain(UUID id, long cents) {
+        FinanceRequests.addToMain(id, cents);
     }
 
     public void setSavings(UUID id, long cents) {
@@ -64,7 +64,7 @@ public class FinanceManager {
     public boolean moveMainToSavings(UUID id, long cents) {
         long main = getMain(id);
         if (main < cents) return false;
-        setMain(id, main - cents);
+        addToMain(id, -cents);
         setSavings(id, getSavings(id) + cents);
         return true;
     }
@@ -73,7 +73,7 @@ public class FinanceManager {
         long savings = getSavings(id);
         if (savings < cents) return false;
         setSavings(id, savings - cents);
-        setMain(id, getMain(id) + cents);
+        addToMain(id, cents);
         return true;
     }
 

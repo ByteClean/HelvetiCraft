@@ -61,6 +61,9 @@ commands:
     description: Temporarily upgrade/downgrade yourself to super-admin (admin-only)
     usage: /admin <reason_for_upgrade>
     permission: helveticraft.admin
+  convert:
+    description: Convert ores in hand to money
+    permission: helveticraft.convert
 
 permissions:
   helveticraft.*:
@@ -75,6 +78,7 @@ permissions:
       helveticraft.pay: true
       helveticraft.sell: true
       helveticraft.save: true
+      helveticraft.convert: true
   helveticraft.initiative:
     description: Use the initiative command
     default: true
@@ -111,3 +115,6 @@ permissions:
   helveticraft.admin:
     description: Use /admin to upgrade to super-admin (requires being in LuckPerms 'admin' group)
     default: false
+  helveticraft.convert:
+    description: Use /convert to convert ores to money
+    default: true

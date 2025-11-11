@@ -14,6 +14,9 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.HelvetiCraft.requests.TaxRequests;
+import com.HelvetiCraft.Claims.ClaimManager;
+
 public class SellCommand implements CommandExecutor, TabCompleter {
 
     private final JavaPlugin plugin;
@@ -179,8 +182,13 @@ public class SellCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (finance.getMain(buyer.getUniqueId()) < o.priceCents) {
-            buyer.sendMessage("§cUnzureichender Kontostand.");
+        // Calculate tax for 1-zu-1 sale
+        double taxRate = TaxRequests.getVerkaufsSteuer1zu1() / 100.0;
+        long taxCents = (long) (o.priceCents * taxRate);
+        long totalCost = o.priceCents + taxCents;
+
+        if (finance.getMain(buyer.getUniqueId()) < totalCost) {
+            buyer.sendMessage("§cUnzureichender Kontostand (inkl. Steuer).");
             seller.sendMessage("§cKäufer hat nicht genug Geld.");
             return true;
         }
@@ -198,8 +206,10 @@ public class SellCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        boolean paid = finance.transferMain(buyer.getUniqueId(), seller.getUniqueId(), o.priceCents);
-        if (!paid) {
+        // Perform transfers: buyer -> seller (net), buyer -> government (tax)
+        boolean paidNet = finance.transferMain(buyer.getUniqueId(), seller.getUniqueId(), o.priceCents);
+        boolean paidTax = finance.transferMain(buyer.getUniqueId(), ClaimManager.GOVERNMENT_UUID, taxCents);
+        if (!paidNet || !paidTax) {
             buyer.sendMessage("§cZahlung fehlgeschlagen.");
             seller.sendMessage("§cZahlung fehlgeschlagen.");
             return true;
@@ -210,8 +220,10 @@ public class SellCommand implements CommandExecutor, TabCompleter {
         buyer.getInventory().addItem(o.item);
 
         String priceStr = FinanceManager.formatCents(o.priceCents);
-        buyer.sendMessage("§aGekauft: §f" + o.item.getAmount() + "x " + prettify(o.item.getType()) + " §afür §f" + priceStr + " §avon §f" + seller.getName());
-        seller.sendMessage("§aVerkauft: §f" + o.item.getAmount() + "x " + prettify(o.item.getType()) + " §aan §f" + buyer.getName() + " §afür §f" + priceStr);
+        String taxStr = FinanceManager.formatCents(taxCents);
+        String totalStr = FinanceManager.formatCents(totalCost);
+        buyer.sendMessage("§aGekauft: §f" + o.item.getAmount() + "x " + prettify(o.item.getType()) + " §afür §f" + priceStr + " §a+ §f" + taxStr + " §aSteuer = §f" + totalStr + " §avon §f" + seller.getName());
+        seller.sendMessage("§aVerkauft: §f" + o.item.getAmount() + "x " + prettify(o.item.getType()) + " §aan §f" + buyer.getName() + " §afür §f" + priceStr + " §a(nach Steuer)");
 
         finance.save();
         return true;

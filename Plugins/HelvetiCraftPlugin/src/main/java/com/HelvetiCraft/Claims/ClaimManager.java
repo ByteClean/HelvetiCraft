@@ -235,16 +235,28 @@ public class ClaimManager {
      * Returns -1 if the value cannot be determined.
      */
     public int getRemainingClaims(UUID player) {
+        return getClaimsFromPAPI(player, "%griefprevention_remainingclaims%");
+    }
+
+    /**
+     * Query used claim blocks for the player using PlaceholderAPI.
+     * Returns -1 if the value cannot be determined.
+     */
+    public int getUsedClaims(UUID player) {
+        return getClaimsFromPAPI(player, "%griefprevention_claimsused%");
+    }
+
+    private int getClaimsFromPAPI(UUID player, String placeholder) {
         try {
             if (!Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-                plugin.getLogger().info("PlaceholderAPI not present — cannot query remaining claims.");
+                plugin.getLogger().info("PlaceholderAPI not present — cannot query claims.");
                 return -1;
             }
 
             Class<?> papi = Class.forName("me.clip.placeholderapi.PlaceholderAPI");
             Method setPlaceholders = papi.getMethod("setPlaceholders", OfflinePlayer.class, String.class);
             OfflinePlayer op = Bukkit.getOfflinePlayer(player);
-            Object res = setPlaceholders.invoke(null, op, "%griefprevention_remainingclaims%");
+            Object res = setPlaceholders.invoke(null, op, placeholder);
             if (res == null) return -1;
 
             String s = res.toString().trim();
@@ -253,7 +265,7 @@ public class ClaimManager {
             try {
                 return Integer.parseInt(s);
             } catch (NumberFormatException nfe) {
-                plugin.getLogger().info("Placeholder %griefprevention_remainingclaims% returned non-integer: '" + s + "'");
+                plugin.getLogger().info("Placeholder " + placeholder + " returned non-integer: '" + s + "'");
                 return -1;
             }
 
