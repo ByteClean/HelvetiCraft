@@ -3,6 +3,7 @@ package com.HelvetiCraft.convert;
 import com.HelvetiCraft.Main;
 import com.HelvetiCraft.finance.FinanceManager;
 import com.HelvetiCraft.requests.TaxRequests;
+import com.HelvetiCraft.util.SafeScheduler;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -50,24 +51,21 @@ public class ConvertManager implements Listener {
         UUID uuid = p.getUniqueId();
         if (!openMenus.contains(uuid)) return;
 
-        Inventory top = e.getView().getTopInventory();
         int slot = e.getRawSlot();
         ItemStack current = e.getCurrentItem();
 
-        // Handle Sell button click
         if (slot == 26 && current != null && current.getType() == Material.GREEN_WOOL) {
             e.setCancelled(true);
             processSale(p);
             return;
         }
 
-        // Prevent double-click item merging (optional)
         if (e.getClick() == ClickType.DOUBLE_CLICK) {
             e.setCancelled(true);
         }
 
-        // Always update sell button after any click
-        menu.updateSellButton(p);
+        // Folia-safe: update sell button 1 tick later
+        SafeScheduler.runLater(plugin, () -> menu.updateSellButton(p), 1L);
     }
 
     @EventHandler
@@ -75,9 +73,8 @@ public class ConvertManager implements Listener {
         if (!(e.getWhoClicked() instanceof Player p)) return;
         if (!"§6§lErz → CHF Konvertierung".equals(e.getView().getTitle())) return;
 
-        // No cancelling at all — allow free drag/move
-        // Just update sell button after drag completes
-        menu.updateSellButton(p);
+        // Folia-safe: update sell button 1 tick later
+        SafeScheduler.runLater(plugin, () -> menu.updateSellButton(p), 1L);
     }
 
     @EventHandler
