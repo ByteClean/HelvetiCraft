@@ -63,6 +63,7 @@ commands:
     permission: helveticraft.admin
   convert:
     description: Convert ores in hand to money
+    usage: /convert
     permission: helveticraft.convert
 
 permissions:

@@ -1,0 +1,211 @@
+package com.HelvetiCraft.convert;
+
+import com.HelvetiCraft.Main;
+import com.HelvetiCraft.finance.FinanceManager;
+import com.HelvetiCraft.requests.TaxRequests;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.*;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+
+import java.util.*;
+
+public class ConvertManager implements Listener {
+
+    private final Main plugin;
+    private final FinanceManager finance;
+    private final ConvertMenu menu;
+    private final Set<UUID> openMenus = new HashSet<>();
+
+    public ConvertManager(Main plugin, FinanceManager finance) {
+        this.plugin = plugin;
+        this.finance = finance;
+        this.menu = new ConvertMenu(this, finance);
+        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+    }
+
+    public void openConvertMenu(Player player) {
+        UUID uuid = player.getUniqueId();
+        if (openMenus.contains(uuid)) {
+            player.sendMessage("§cDu hast bereits ein Konvertierungsfenster offen.");
+            return;
+        }
+        menu.open(player);
+        openMenus.add(uuid);
+    }
+
+    private void unregisterPlayer(UUID uuid) {
+        openMenus.remove(uuid);
+    }
+
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent e) {
+        if (!(e.getWhoClicked() instanceof Player p)) return;
+        if (e.getView() == null) return;
+        if (!"§6§lErz → CHF Konvertierung".equals(e.getView().getTitle())) return;
+
+        UUID uuid = p.getUniqueId();
+        if (!openMenus.contains(uuid)) return;
+
+        Inventory top = e.getView().getTopInventory();
+        int slot = e.getRawSlot();
+        ItemStack current = e.getCurrentItem();
+
+        // Block shift-clicks & double-clicks
+        if (e.isShiftClick() || e.getClick() == ClickType.DOUBLE_CLICK) {
+            e.setCancelled(true);
+            return;
+        }
+
+        // Click in the top GUI
+        if (slot < top.getSize()) {
+            // Block only if clicking the wool or taking items
+            if (slot == 26 || (current != null && current.getType() == Material.GREEN_WOOL)) {
+                e.setCancelled(true);
+                if (slot == 26) processSale(p);
+                return;
+            }
+
+            // Allow placing ores into empty slots
+            if (e.getCursor() != null && e.getCursor().getType() != Material.AIR) {
+                // Player is placing something — only allow convertible items
+                if (!isConvertible(e.getCursor().getType())) {
+                    e.setCancelled(true);
+                    p.sendMessage("§cNur Erze können hier platziert werden!");
+                    return;
+                }
+            }
+
+            // Prevent picking up items from GUI (so they don’t remove placed ores)
+            if (e.getAction() == InventoryAction.PICKUP_ALL ||
+                    e.getAction() == InventoryAction.PICKUP_HALF ||
+                    e.getAction() == InventoryAction.PICKUP_SOME ||
+                    e.getAction() == InventoryAction.PICKUP_ONE) {
+                e.setCancelled(true);
+            }
+
+            // Schedule lore update after click
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> menu.updateSellButton(p), 1L);
+            return;
+        }
+
+        // Click in player inventory (bottom)
+        if (slot >= top.getSize()) {
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> menu.updateSellButton(p), 1L);
+        }
+    }
+
+    @EventHandler
+    public void onInventoryDrag(InventoryDragEvent e) {
+        if (!(e.getWhoClicked() instanceof Player p)) return;
+        if (!"§6§lErz → CHF Konvertierung".equals(e.getView().getTitle())) return;
+
+        Inventory top = e.getView().getTopInventory();
+        for (int slot : e.getRawSlots()) {
+            if (slot < top.getSize()) {
+                // Block non-ore drag into top
+                ItemStack cursor = e.getOldCursor();
+                if (cursor != null && !isConvertible(cursor.getType())) {
+                    e.setCancelled(true);
+                    p.sendMessage("§cNur Erze können hier platziert werden!");
+                    return;
+                }
+            }
+        }
+
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> menu.updateSellButton(p), 1L);
+    }
+
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent e) {
+        Player p = (Player) e.getPlayer();
+        UUID uuid = p.getUniqueId();
+
+        if (!"§6§lErz → CHF Konvertierung".equals(e.getView().getTitle())) return;
+        if (!openMenus.contains(uuid)) return;
+
+        Inventory top = e.getView().getTopInventory();
+        returnItems(p, top);
+        unregisterPlayer(uuid);
+    }
+
+    private void processSale(Player p) {
+        Inventory inv = p.getOpenInventory().getTopInventory();
+        List<ItemStack> toRemove = new ArrayList<>();
+        long total = 0;
+
+        for (ItemStack item : inv.getContents()) {
+            if (item == null || item.getType() == Material.GREEN_WOOL || !isConvertible(item.getType())) continue;
+            long rate = getRate(item.getType());
+            total += rate * item.getAmount();
+            toRemove.add(item);
+        }
+
+        if (total == 0) {
+            p.sendMessage("§cKeine konvertierbaren Erze im Fenster.");
+            return;
+        }
+
+        long tax = TaxRequests.getOreConvertTax();
+        long finalAmount = total - tax;
+
+        if (finalAmount < 0) {
+            p.sendMessage("§cDer Gesamtwert ist zu niedrig – die Gebühr übersteigt den Erlös.");
+            return;
+        }
+
+        for (ItemStack item : toRemove) inv.removeItem(item);
+
+        finance.addToMain(p.getUniqueId(), finalAmount);
+
+        p.sendMessage("§a§lKonvertierung erfolgreich!");
+        p.sendMessage("§7Erlös: §a" + FinanceManager.formatCents(total) + " CHF");
+        p.sendMessage("§7− Gebühr: §c" + FinanceManager.formatCents(tax) + " CHF");
+        p.sendMessage("§7= §6§l" + FinanceManager.formatCents(finalAmount) + " CHF §7gutgeschrieben.");
+
+        menu.updateSellButton(p);
+    }
+
+    private void returnItems(Player p, Inventory inv) {
+        for (ItemStack item : inv.getContents()) {
+            if (item == null || item.getType() == Material.GREEN_WOOL) continue;
+            HashMap<Integer, ItemStack> leftover = p.getInventory().addItem(item.clone());
+            leftover.values().forEach(drop -> p.getWorld().dropItemNaturally(p.getLocation(), drop));
+        }
+    }
+
+    public boolean isConvertible(Material m) {
+        return switch (m) {
+            case COAL, COAL_ORE, DEEPSLATE_COAL_ORE,
+                 RAW_IRON, IRON_INGOT, IRON_ORE, DEEPSLATE_IRON_ORE,
+                 RAW_COPPER, COPPER_INGOT, COPPER_ORE, DEEPSLATE_COPPER_ORE,
+                 RAW_GOLD, GOLD_INGOT, GOLD_ORE, DEEPSLATE_GOLD_ORE, NETHER_GOLD_ORE,
+                 REDSTONE, REDSTONE_ORE, DEEPSLATE_REDSTONE_ORE,
+                 LAPIS_LAZULI, LAPIS_ORE, DEEPSLATE_LAPIS_ORE,
+                 DIAMOND, DIAMOND_ORE, DEEPSLATE_DIAMOND_ORE,
+                 EMERALD, EMERALD_ORE, DEEPSLATE_EMERALD_ORE,
+                 QUARTZ, NETHER_QUARTZ_ORE,
+                 ANCIENT_DEBRIS, NETHERITE_SCRAP -> true;
+            default -> false;
+        };
+    }
+
+    public long getRate(Material m) {
+        return switch (m) {
+            case COAL, COAL_ORE, DEEPSLATE_COAL_ORE -> TaxRequests.COAL_ORE_CONVERSION;
+            case RAW_IRON, IRON_INGOT, IRON_ORE, DEEPSLATE_IRON_ORE -> TaxRequests.IRON_ORE_CONVERSION;
+            case RAW_COPPER, COPPER_INGOT, COPPER_ORE, DEEPSLATE_COPPER_ORE -> TaxRequests.COPPER_ORE_CONVERSION;
+            case RAW_GOLD, GOLD_INGOT, GOLD_ORE, DEEPSLATE_GOLD_ORE, NETHER_GOLD_ORE -> TaxRequests.GOLD_ORE_CONVERSION;
+            case REDSTONE, REDSTONE_ORE, DEEPSLATE_REDSTONE_ORE -> TaxRequests.REDSTONE_ORE_CONVERSION;
+            case LAPIS_LAZULI, LAPIS_ORE, DEEPSLATE_LAPIS_ORE -> TaxRequests.LAPIS_ORE_CONVERSION;
+            case DIAMOND, DIAMOND_ORE, DEEPSLATE_DIAMOND_ORE -> TaxRequests.DIAMOND_ORE_CONVERSION;
+            case EMERALD, EMERALD_ORE, DEEPSLATE_EMERALD_ORE -> TaxRequests.EMERALD_ORE_CONVERSION;
+            case QUARTZ, NETHER_QUARTZ_ORE -> TaxRequests.QUARTZ_ORE_CONVERSION;
+            case ANCIENT_DEBRIS, NETHERITE_SCRAP -> TaxRequests.ANCIENT_DEBRIS_CONVERSION;
+            default -> 0;
+        };
+    }
+}

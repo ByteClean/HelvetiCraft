@@ -1,6 +1,7 @@
 package com.HelvetiCraft;
 
 import com.HelvetiCraft.commands.*;
+import com.HelvetiCraft.convert.ConvertManager;
 import com.HelvetiCraft.expansions.FinanceExpansion;
 import com.HelvetiCraft.expansions.InitiativeExpansion;
 import com.HelvetiCraft.initiatives.InitiativeManager;
@@ -65,7 +66,10 @@ public class Main extends JavaPlugin {
         getCommand("sellaccept").setExecutor(sell);
         getCommand("selldecline").setExecutor(sell);
         getCommand("save").setExecutor(new SaveCommand(financeManager));
-        getCommand("convert").setExecutor(new ConvertCommand(financeManager));
+
+        // Convert Command
+        ConvertManager convertManager = new ConvertManager(this, financeManager);
+        getCommand("convert").setExecutor(new ConvertCommand(convertManager));
 
         // Claim block manager & commands
         claimManager = new ClaimManager(this, financeManager);

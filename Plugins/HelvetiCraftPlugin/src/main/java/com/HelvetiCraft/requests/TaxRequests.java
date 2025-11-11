@@ -31,6 +31,7 @@ public class TaxRequests {
             {25000000, 1.0}
     };
 
+    public static long ORE_CONVERT_TAX = 500; // 5.00 CHF pro Transaktion
     // Ore conversion rates in cents per ore item
     public static long COAL_ORE_CONVERSION = 50;
     public static long IRON_ORE_CONVERSION = 100;
@@ -105,6 +106,15 @@ public class TaxRequests {
     public static void setMWST(double rate) {
         MWST = Math.max(0, rate);
         getLogger().info("[TaxRequests] Set MWST to " + rate + "%");
+    }
+
+    public static long getOreConvertTax() {
+        return ORE_CONVERT_TAX;
+    }
+
+    public static void setOreConvertTax(long tax) {
+        ORE_CONVERT_TAX = Math.max(0, tax);
+        getLogger().info("[TaxRequests] ORE_CONVERT_TAX auf " + tax + " Cents gesetzt.");
     }
 
     // Similar setters for others...
