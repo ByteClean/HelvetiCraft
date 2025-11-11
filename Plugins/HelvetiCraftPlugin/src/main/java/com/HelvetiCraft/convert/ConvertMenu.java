@@ -55,19 +55,18 @@ public class ConvertMenu {
 
         List<String> lore = new ArrayList<>();
         lore.add("§7Klicke, um alle Erze zu verkaufen");
+
+        long tax = TaxRequests.getOreConvertTax();
+        long finalTotal = total - tax;
         if (total > 0) {
             lore.add("§7Erlös: §a" + FinanceManager.formatCents(total) + " CHF");
-            lore.add("§7Gebühr: §c" + FinanceManager.formatCents(TaxRequests.getOreConvertTax()) + " CHF");
-            long net = total - TaxRequests.getOreConvertTax();
-            if (net >= 0) {
-                lore.add("§7= §6" + FinanceManager.formatCents(net) + " CHF");
-            } else {
-                lore.add("§cNicht genug für Gebühr!");
-            }
+            lore.add("§7Gebühr: §c" + FinanceManager.formatCents(tax) + " CHF");
+            lore.add("§7= §6" + FinanceManager.formatCents(finalTotal) + " CHF §7gutgeschrieben");
         } else {
             lore.add("§7Lege Erze in die Truhe");
-            lore.add("§7Gebühr: §c" + FinanceManager.formatCents(TaxRequests.getOreConvertTax()) + " CHF");
+            lore.add("§7Gebühr: §c" + FinanceManager.formatCents(tax) + " CHF");
         }
+
         meta.setLore(lore);
         sell.setItemMeta(meta);
     }

@@ -111,21 +111,22 @@ public class ConvertManager implements Listener {
         }
 
         long tax = TaxRequests.getOreConvertTax();
-        long finalAmount = total - tax;
+        long finalTotal = total - tax;
+        UUID govUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
-        if (finalAmount < 0) {
-            p.sendMessage("§cDer Gesamtwert ist zu niedrig – die Gebühr übersteigt den Erlös.");
-            return;
-        }
-
+        // Remove ores from GUI
         for (ItemStack item : toRemove) inv.removeItem(item);
 
-        finance.addToMain(p.getUniqueId(), finalAmount);
+        // Give player full total
+        finance.addToMain(p.getUniqueId(), finalTotal);
+
+        // Give tax to government account
+        finance.addToMain(govUUID, tax);
 
         p.sendMessage("§a§lKonvertierung erfolgreich!");
         p.sendMessage("§7Erlös: §a" + FinanceManager.formatCents(total) + " CHF");
-        p.sendMessage("§7− Gebühr: §c" + FinanceManager.formatCents(tax) + " CHF");
-        p.sendMessage("§7= §6§l" + FinanceManager.formatCents(finalAmount) + " CHF §7gutgeschrieben.");
+        p.sendMessage("§7Gebühr: §c" + FinanceManager.formatCents(tax) + " CHF");
+        p.sendMessage("§7= §6§l" + FinanceManager.formatCents(finalTotal) + " CHF §7gutgeschrieben.");
 
         menu.updateSellButton(p);
     }
