@@ -1,19 +1,15 @@
 package com.HelvetiCraft;
 
+import com.HelvetiCraft.Claims.*;
 import com.HelvetiCraft.commands.*;
 import com.HelvetiCraft.convert.ConvertManager;
 import com.HelvetiCraft.expansions.FinanceExpansion;
 import com.HelvetiCraft.expansions.InitiativeExpansion;
 import com.HelvetiCraft.initiatives.InitiativeManager;
 import com.HelvetiCraft.finance.FinanceManager;
-import com.HelvetiCraft.Claims.ClaimManager;
-import com.HelvetiCraft.commands.BuyClaimBlockCommand;
-import com.HelvetiCraft.commands.SellClaimBlockCommand;
 import com.HelvetiCraft.finance.FinanceJoinListener;
 import com.HelvetiCraft.economy.VaultEconomyBridge;
-import com.HelvetiCraft.requests.AdminRequests;
-import com.HelvetiCraft.requests.FinanceRequests;
-import com.HelvetiCraft.requests.TaxRequests;
+import com.HelvetiCraft.requests.*;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -28,59 +24,62 @@ public class Main extends JavaPlugin {
     private InitiativeManager initiativeManager;
     private FinanceManager financeManager;
     private ClaimManager claimManager;
+    private LandTaxManager landTaxManager;
 
     @Override
     public void onEnable() {
         getLogger().info("HelvetiCraft Plugin has been enabled!");
         saveDefaultConfig();
 
-        // Initialize admin requests logger
+        // === Initialization ===
         AdminRequests.init(this);
 
-        // Initiative manager
         initiativeManager = new InitiativeManager(this);
-
-        // Register InitiativeExpansion unconditionally
-        new InitiativeExpansion().register();
-        getLogger().info("InitiativeExpansion placeholders registered!");
-
-        // Register commands
-        getCommand("initiative").setExecutor(new InitiativeCommand(initiativeManager));
-        getCommand("verify").setExecutor(new VerifyCommand(this));
-        getCommand("status").setExecutor(new StatusCommand(this));
-        getCommand("helveticraft").setExecutor(new HelveticraftCommand(this));
-        // Admin command (uses Vault/LuckPerms for group management)
-        getCommand("admin").setExecutor(new AdminCommand(this));
-
-        // Finance manager
         financeManager = new FinanceManager(this);
-        new FinanceExpansion(financeManager).register();
-        getLogger().info("FinanceExpansion placeholders registered!");
-
-        // Finance commands
-        getCommand("finance").setExecutor(new FinanceCommand(financeManager));
-        getCommand("networth").setExecutor(new NetworthCommand(financeManager));
-        getCommand("pay").setExecutor(new PayCommand(financeManager));
-        SellCommand sell = new SellCommand(this, financeManager);
-        getCommand("sell").setExecutor(sell);
-        getCommand("sellaccept").setExecutor(sell);
-        getCommand("selldecline").setExecutor(sell);
-        getCommand("save").setExecutor(new SaveCommand(financeManager));
-
-        // Convert Command
-        ConvertManager convertManager = new ConvertManager(this, financeManager);
-        getCommand("convert").setExecutor(new ConvertCommand(convertManager));
-
-        // Claim block manager & commands
         claimManager = new ClaimManager(this, financeManager);
-        getCommand("buyclaimblock").setExecutor(new BuyClaimBlockCommand(claimManager));
-        getCommand("sellclaimblock").setExecutor(new SellClaimBlockCommand(claimManager));
+        landTaxManager = new LandTaxManager(this, financeManager);
 
-        // Listeners
+        // === Placeholder Expansions ===
+        new InitiativeExpansion().register();
+        new FinanceExpansion(financeManager).register();
+        getLogger().info("Placeholders registered!");
+
+        // === Commands ===
+        registerCommand("initiative", new InitiativeCommand(initiativeManager));
+        registerCommand("verify", new VerifyCommand(this));
+        registerCommand("status", new StatusCommand(this));
+        registerCommand("helveticraft", new HelveticraftCommand(this));
+        registerCommand("admin", new AdminCommand(this));
+        registerCommand("finance", new FinanceCommand(financeManager));
+        registerCommand("networth", new NetworthCommand(financeManager));
+        registerCommand("pay", new PayCommand(financeManager));
+
+        SellCommand sell = new SellCommand(this, financeManager);
+        registerCommand("sell", sell);
+        registerCommand("sellaccept", sell);
+        registerCommand("selldecline", sell);
+        registerCommand("save", new SaveCommand(financeManager));
+
+        ConvertManager convertManager = new ConvertManager(this, financeManager);
+        registerCommand("convert", new ConvertCommand(convertManager));
+
+        // === Claim block trading ===
+        registerCommand("buyclaimblock", new BuyClaimBlockCommand(claimManager));
+        registerCommand("sellclaimblock", new SellClaimBlockCommand(claimManager));
+
+        // === Land Tax Command ===
+        if (getCommand("landtax") != null) {
+            getCommand("landtax").setExecutor(new LandTaxCommand(landTaxManager));
+            getLogger().info("Command /landtax registered successfully.");
+        } else {
+            getLogger().warning("Command 'landtax' could not be found! Check plugin.yml.");
+        }
+
+        // === Event Listeners ===
         getServer().getPluginManager().registerEvents(initiativeManager, this);
         getServer().getPluginManager().registerEvents(new FinanceJoinListener(financeManager), this);
 
-        // Vault economy bridge
+        // === Vault Economy Bridge ===
         if (Bukkit.getPluginManager().isPluginEnabled("Vault")) {
             Bukkit.getServicesManager().register(
                     net.milkbowl.vault.economy.Economy.class,
@@ -93,19 +92,22 @@ public class Main extends JavaPlugin {
             getLogger().warning("Vault not found! Economy plugins like ChestShop will not work.");
         }
 
-        // Schedule periodic taxes (async for long periods)
-        // 3 days for vermoegens and land
-        long threeDaysSeconds = 3L * 24 * 3600;
+        // === Periodic Taxes (Every 3 Days) ===
+        long threeDays = 3L * 24 * 3600;
         Bukkit.getAsyncScheduler().runAtFixedRate(this, task -> {
-            runVermoegensSteuerCollection();
-            runLandSteuerCollection();
-        }, threeDaysSeconds, threeDaysSeconds, TimeUnit.SECONDS); // Start after 3 days, repeat every 3 days
+            try {
+                getLogger().info("[HelvetiCraft] Running periodic tax collection...");
+                runVermoegensSteuerCollection();
+                runEinkommenSteuerCollection();
+                landTaxManager.collectLandTax();
+                getLogger().info("[HelvetiCraft] Periodic tax cycle completed.");
+            } catch (Exception e) {
+                getLogger().severe("[HelvetiCraft] Error during periodic tax task: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }, threeDays, threeDays, TimeUnit.SECONDS);
 
-        // 7 days for einkommen
-        long sevenDaysSeconds = 7L * 24 * 3600;
-        Bukkit.getAsyncScheduler().runAtFixedRate(this, task -> {
-            runEinkommenSteuerCollection();
-        }, sevenDaysSeconds, sevenDaysSeconds, TimeUnit.SECONDS);
+        getLogger().info("[HelvetiCraft] Periodic tax calculation enabled (every 3 days).");
     }
 
     @Override
@@ -113,20 +115,21 @@ public class Main extends JavaPlugin {
         getLogger().info("HelvetiCraft Plugin has been disabled!");
     }
 
-    public InitiativeManager getInitiativeManager() {
-        return initiativeManager;
+    private void registerCommand(String name, org.bukkit.command.CommandExecutor executor) {
+        if (getCommand(name) != null) {
+            getCommand(name).setExecutor(executor);
+        } else {
+            getLogger().warning("Command '" + name + "' could not be found!");
+        }
     }
 
-    public FinanceManager getFinanceManager() {
-        return financeManager;
-    }
-
+    // === Tax System ===
     private void runVermoegensSteuerCollection() {
-        long activeThreshold = System.currentTimeMillis() - 10L * 24 * 3600 * 1000; // 10 days ago
+        long activeThreshold = System.currentTimeMillis() - 10L * 24 * 3600 * 1000;
         for (UUID id : financeManager.getKnownPlayers()) {
             if (id.equals(ClaimManager.GOVERNMENT_UUID)) continue;
             OfflinePlayer p = Bukkit.getOfflinePlayer(id);
-            if (p.getLastLogin() < activeThreshold) continue; // Not active
+            if (p.getLastLogin() < activeThreshold) continue;
 
             long wealth = financeManager.getMain(id) + financeManager.getSavings(id);
             long tax = TaxRequests.calculateVermoegensSteuer(wealth);
@@ -136,11 +139,9 @@ public class Main extends JavaPlugin {
                 financeManager.addToMain(id, -tax);
                 financeManager.addToMain(ClaimManager.GOVERNMENT_UUID, tax);
                 Player online = p.getPlayer();
-                if (online != null) {
+                if (online != null)
                     online.sendMessage("§cVermögenssteuer abgezogen: §f" + FinanceManager.formatCents(tax));
-                }
             } else {
-                // Handle insufficient funds, e.g., set to debt or notify admin
                 getLogger().warning("Player " + p.getName() + " has insufficient funds for Vermögenssteuer: " + tax);
             }
         }
@@ -162,39 +163,11 @@ public class Main extends JavaPlugin {
                 financeManager.addToMain(id, -tax);
                 financeManager.addToMain(ClaimManager.GOVERNMENT_UUID, tax);
                 Player online = p.getPlayer();
-                if (online != null) {
+                if (online != null)
                     online.sendMessage("§cEinkommensteuer abgezogen: §f" + FinanceManager.formatCents(tax));
-                }
                 FinanceRequests.resetPeriodIncome(id);
             } else {
-                // Handle insufficient, perhaps carry over
                 getLogger().warning("Player " + p.getName() + " has insufficient funds for Einkommensteuer: " + tax);
-            }
-        }
-    }
-
-    private void runLandSteuerCollection() {
-        long activeThreshold = System.currentTimeMillis() - 10L * 24 * 3600 * 1000; // 10 days ago
-        for (UUID id : financeManager.getKnownPlayers()) {
-            if (id.equals(ClaimManager.GOVERNMENT_UUID)) continue;
-            OfflinePlayer p = Bukkit.getOfflinePlayer(id);
-            if (p.getLastLogin() < activeThreshold) continue; // Not active
-
-            int blocks = claimManager.getUsedClaims(id);
-            if (blocks <= 0) continue;
-
-            long tax = (long) (blocks * TaxRequests.getLandSteuerBasisPerBlock());
-            if (tax <= 0) continue;
-
-            if (financeManager.getMain(id) >= tax) {
-                financeManager.addToMain(id, -tax);
-                financeManager.addToMain(ClaimManager.GOVERNMENT_UUID, tax);
-                Player online = p.getPlayer();
-                if (online != null) {
-                    online.sendMessage("§cLandsteuer abgezogen: §f" + FinanceManager.formatCents(tax) + " (§7" + blocks + " Blöcke§c)");
-                }
-            } else {
-                getLogger().warning("Player " + p.getName() + " has insufficient funds for Landsteuer: " + tax);
             }
         }
     }

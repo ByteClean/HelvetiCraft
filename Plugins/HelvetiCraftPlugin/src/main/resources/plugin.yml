@@ -3,8 +3,7 @@ main: com.HelvetiCraft.Main
 version: 1.2.1
 api-version: 1.21
 folia-supported: true
-depend: [Vault, PlaceholderAPI]
-softdepend: [GriefPrevention]
+depend: [Vault, PlaceholderAPI, GriefPrevention]
 
 load: STARTUP
 
@@ -57,6 +56,10 @@ commands:
     description: Sell bonus claim blocks back to the government
     usage: /sellclaimblock <Anzahl>
     permission: helveticraft.claims.sell
+  landtax:
+    description: Shows your current land tax
+    usage: /landtax
+    permission: helveticraft.claims.landtax
   admin:
     description: Temporarily upgrade/downgrade yourself to super-admin (admin-only)
     usage: /admin <reason_for_upgrade>
@@ -80,6 +83,7 @@ permissions:
       helveticraft.sell: true
       helveticraft.save: true
       helveticraft.convert: true
+      helveticraft.claims.landtax: true
   helveticraft.initiative:
     description: Use the initiative command
     default: true
@@ -112,6 +116,9 @@ permissions:
     default: true
   helveticraft.claims.sell:
     description: Sell claim blocks
+    default: true
+  helveticraft.claims.landtax:
+    description: Use /landtax to check your land tax
     default: true
   helveticraft.admin:
     description: Use /admin to upgrade to super-admin (requires being in LuckPerms 'admin' group)

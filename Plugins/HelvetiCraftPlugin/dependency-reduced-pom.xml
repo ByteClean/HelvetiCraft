@@ -74,6 +74,12 @@
       <version>1.7</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>com.github.TechFortress</groupId>
+      <artifactId>GriefPrevention</artifactId>
+      <version>master-17.0.0-g885c0ee-54</version>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
   <properties>
     <java.version>21</java.version>
