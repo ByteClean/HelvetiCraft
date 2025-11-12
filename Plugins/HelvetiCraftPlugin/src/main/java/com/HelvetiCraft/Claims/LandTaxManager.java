@@ -1,10 +1,12 @@
 package com.HelvetiCraft.Claims;
 
 import com.HelvetiCraft.finance.FinanceManager;
+import com.HelvetiCraft.requests.TaxRequests;
 import me.ryanhamshire.GriefPrevention.Claim;
 import me.ryanhamshire.GriefPrevention.GriefPrevention;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.*;
@@ -25,7 +27,6 @@ public class LandTaxManager {
     public void collectLandTax() {
         log.info("[LandTax] Starte Berechnung der Landsteuer...");
 
-        // === KORREKT für FOLIA: Asynchroner Task ===
         Bukkit.getAsyncScheduler().runNow(plugin, task -> {
             try {
                 GriefPrevention gp = GriefPrevention.instance;
@@ -51,18 +52,21 @@ public class LandTaxManager {
                     double totalTax = 0;
                     int totalBlocks = 0;
 
+                    // Basiswert in Promille (‰) — also z. B. 0.001 = 0.1 % des Blockwerts
+                    double baseRatePromille = TaxRequests.getLandSteuerBasisPerBlock();
+
                     for (Claim claim : playerClaims) {
-                        double baseValue = 1.0; // CHF pro Block
                         double locationFactor = getLocationFactor(claim);
                         double developmentFactor = getDevelopmentFactor(claim);
                         int blocks = claim.getArea();
 
-                        double claimTax = baseValue * blocks * locationFactor * developmentFactor;
+                        // Promille umrechnen (Basiswert * Blöcke / 1000)
+                        double claimTax = (baseRatePromille / 1000.0) * blocks * locationFactor * developmentFactor;
                         totalTax += claimTax;
                         totalBlocks += blocks;
 
                         log.info(String.format(
-                                "[LandTax] Claim %s | Blöcke: %d | LageFaktor: %.2f | EntwicklungsFaktor: %.2f | Steuer: %.2f CHF",
+                                "[LandTax] Claim %s | Blöcke: %d | LageFaktor: %.2f | EntwicklungsFaktor: %.2f | Steuer: %.4f CHF",
                                 claim.getID().toString(), blocks, locationFactor, developmentFactor, claimTax
                         ));
                     }
@@ -71,14 +75,44 @@ public class LandTaxManager {
                     String playerName = (player != null && player.getName() != null) ? player.getName() : ownerId.toString();
 
                     log.info(String.format(
-                            "[LandTax] Gesamtsteuer für %s (%s): %.2f CHF (%d Blöcke über %d Claims)",
+                            "[LandTax] Gesamtsteuer für %s (%s): %.4f CHF (%d Blöcke über %d Claims)",
                             playerName, ownerId, totalTax, totalBlocks, playerClaims.size()
                     ));
 
-                    // Optional: Später Abzug implementieren
+                    financeManager.ensureAccount(ownerId);
+                    long taxInCents = Math.round(totalTax * 100);
+                    long currentBalance = financeManager.getMain(ownerId);
+
+                    boolean success = false;
+                    if (currentBalance >= taxInCents) {
+                        financeManager.addToMain(ownerId, -taxInCents);
+                        success = true;
+                        log.info(String.format(
+                                "[LandTax] Von %s wurde %.4f CHF erfolgreich abgebucht. Neuer Kontostand: %.2f CHF",
+                                playerName, totalTax, (currentBalance - taxInCents) / 100.0
+                        ));
+                    } else {
+                        log.warning(String.format(
+                                "[LandTax] %s konnte nicht genug zahlen (%.4f CHF erforderlich, %.2f CHF verfügbar). Kein Abzug vorgenommen.",
+                                playerName, totalTax, currentBalance / 100.0
+                        ));
+                    }
+
+                    Player onlinePlayer = Bukkit.getPlayer(ownerId);
+                    if (onlinePlayer != null && onlinePlayer.isOnline()) {
+                        if (success) {
+                            onlinePlayer.sendMessage("§a💰 Deine Landsteuer in Höhe von §e" +
+                                    String.format("%.4f", totalTax) + " CHF §awurde erfolgreich abgebucht.");
+                        } else {
+                            onlinePlayer.sendMessage("§c⚠ Deine Landsteuer beträgt §e" +
+                                    String.format("%.4f", totalTax) + " CHF§c, aber du hast nur §e" +
+                                    String.format("%.2f", currentBalance / 100.0) + " CHF§c auf deinem Konto!");
+                            onlinePlayer.sendMessage("§7Bitte zahle deine Landsteuer bald, um Strafen zu vermeiden.");
+                        }
+                    }
                 }
 
-                log.info("[LandTax] Berechnung abgeschlossen.");
+                log.info("[LandTax] Berechnung und Abbuchung abgeschlossen.");
 
             } catch (Exception e) {
                 log.severe("[LandTax] Fehler im Async-Task: " + e.getMessage());
@@ -93,7 +127,7 @@ public class LandTaxManager {
             int x = claim.getLesserBoundaryCorner().getBlockX();
             int z = claim.getLesserBoundaryCorner().getBlockZ();
             if (Math.abs(x) < 500 && Math.abs(z) < 500) {
-                factor = 2.0; // Zentrum nahe Spawn
+                factor = 2.0;
             }
             log.info("[LandTax] Lagefaktor für Claim " + claim.getID() + ": " + factor);
         } catch (Exception e) {
