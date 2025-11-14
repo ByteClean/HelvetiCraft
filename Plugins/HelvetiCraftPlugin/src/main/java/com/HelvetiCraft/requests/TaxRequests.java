@@ -44,6 +44,8 @@ public class TaxRequests {
     public static long QUARTZ_ORE_CONVERSION = 120;
     public static long ANCIENT_DEBRIS_CONVERSION = 2000; // For netherite
 
+    public static int LAND_STEUER_INTERVAL_DAYS = 3;
+
     // Getters for tax rates
     public static double getMWST() {
         return MWST;
@@ -115,6 +117,15 @@ public class TaxRequests {
     public static void setOreConvertTax(long tax) {
         ORE_CONVERT_TAX = Math.max(0, tax);
         getLogger().info("[TaxRequests] ORE_CONVERT_TAX auf " + tax + " Cents gesetzt.");
+    }
+
+    public static int getLandSteuerIntervalDays() {
+        return Math.max(1, LAND_STEUER_INTERVAL_DAYS);
+    }
+
+    public static void setLandSteuerIntervalDays(int days) {
+        LAND_STEUER_INTERVAL_DAYS = Math.max(1, days);
+        getLogger().info("[TaxRequests] Landsteuer-Intervall gesetzt auf " + days + " Tage.");
     }
 
     // Similar setters for others...

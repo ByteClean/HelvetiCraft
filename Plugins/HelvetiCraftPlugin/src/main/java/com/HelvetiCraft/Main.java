@@ -26,6 +26,9 @@ public class Main extends JavaPlugin {
     private ClaimManager claimManager;
     private LandTaxManager landTaxManager;
 
+    int intervalDays = TaxRequests.getLandSteuerIntervalDays();
+    long intervalSeconds = intervalDays * 24L * 3600L;
+
     @Override
     public void onEnable() {
         getLogger().info("HelvetiCraft Plugin has been enabled!");
@@ -93,7 +96,8 @@ public class Main extends JavaPlugin {
         }
 
         // === Periodic Taxes (Every 3 Days) ===
-        long threeDays = 3L * 24 * 3600;
+        getLogger().info("[HelvetiCraft] Landsteuer-Intervall: " + intervalDays + " Tage (" + intervalSeconds + " Sekunden)");
+
         Bukkit.getAsyncScheduler().runAtFixedRate(this, task -> {
             try {
                 getLogger().info("[HelvetiCraft] Running periodic tax collection...");
@@ -105,9 +109,7 @@ public class Main extends JavaPlugin {
                 getLogger().severe("[HelvetiCraft] Error during periodic tax task: " + e.getMessage());
                 e.printStackTrace();
             }
-        }, threeDays, threeDays, TimeUnit.SECONDS);
-
-        getLogger().info("[HelvetiCraft] Periodic tax calculation enabled (every 3 days).");
+        }, intervalSeconds, intervalSeconds, TimeUnit.SECONDS);
     }
 
     @Override

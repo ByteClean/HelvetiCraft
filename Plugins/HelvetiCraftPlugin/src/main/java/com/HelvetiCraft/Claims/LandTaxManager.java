@@ -123,18 +123,45 @@ public class LandTaxManager {
 
     private double getLocationFactor(Claim claim) {
         double factor = 1.0;
+
         try {
+            // --- Positionsdaten ---
             int x = claim.getLesserBoundaryCorner().getBlockX();
             int z = claim.getLesserBoundaryCorner().getBlockZ();
-            if (Math.abs(x) < 500 && Math.abs(z) < 500) {
-                factor = 2.0;
-            }
+            log.info("[LandTax] Claim-Position: X=" + x + " Z=" + z);
+
+            // --- WorldBorder-Größe holen ---
+            double borderDiameter = claim.getLesserBoundaryCorner().getWorld().getWorldBorder().getSize();
+            double borderRadius = borderDiameter / 2.0;
+
+            log.info("[LandTax] WorldBorder: Durchmesser=" + borderDiameter + " | Radius=" + borderRadius);
+
+            // --- Distanz vom Spawn berechnen ---
+            int spawnX = claim.getLesserBoundaryCorner().getWorld().getSpawnLocation().getBlockX();
+            int spawnZ = claim.getLesserBoundaryCorner().getWorld().getSpawnLocation().getBlockZ();
+
+            double dx = x - spawnX;
+            double dz = z - spawnZ;
+
+            double distanceFromSpawn = Math.sqrt(dx * dx + dz * dz);
+            log.info("[LandTax] Distanz vom Spawn: " + distanceFromSpawn);
+
+            // --- Distanz clamped (falls Border kleiner/größer) ---
+            double normalized = Math.min(distanceFromSpawn / borderRadius, 1.0);
+
+            // --- Faktor zwischen 1.0 (Rand) und 2.0 (Spawn) ---
+            factor = 2.0 - normalized;  // distance=0 → 2.0, distance=radius → 1.0
+            factor = Math.max(1.0, Math.min(2.0, factor)); // Sicherheit
+
             log.info("[LandTax] Lagefaktor für Claim " + claim.getID() + ": " + factor);
+
         } catch (Exception e) {
             log.warning("[LandTax] Fehler bei Lagefaktor: " + e.getMessage());
         }
+
         return factor;
     }
+
 
     private double getDevelopmentFactor(Claim claim) {
         double factor = 1.0;
