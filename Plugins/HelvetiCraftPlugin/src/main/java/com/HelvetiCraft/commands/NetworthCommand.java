@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 public class NetworthCommand implements CommandExecutor {
 
     private final FinanceManager finance;
+    private static final UUID GOVERNMENT_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
+    private static final String GOVERNMENT_NAME = "§6§lStaatsfonds";
 
     public NetworthCommand(FinanceManager finance) {
         this.finance = finance;
@@ -24,27 +26,43 @@ public class NetworthCommand implements CommandExecutor {
             return true;
         }
 
-        sender.sendMessage("§6====== §bNet Worth §6======");
+        sender.sendMessage("§6§l═════ §b§lNet Worth §6§l═════");
 
-        // Gesamtkapital aller Spieler (simulated backend aggregation)
-        long total = finance.getTotalNetWorthCents();
-        sender.sendMessage("§7Gesamtkapital (alle Spieler, Konten): §a" + FinanceManager.formatCents(total));
-        sender.sendMessage("§8(Hinweis: Item-Verkauf fließt später ein)");
+        // 1. Gesamtkapital aller PRIVATEN Spieler (exkl. Staatsfonds)
+        long totalPrivate = finance.getTotalNetWorthCents(); // Annahme: diese Methode schließt Staatsfonds aus
+        sender.sendMessage("§7Gesamtkapital (alle Bürger): §a" + FinanceManager.formatCents(totalPrivate));
 
-        // Simulated backend "leaderboard" (dummy data)
-        Map<UUID, Long> worths = new HashMap<>();
-        for (UUID id : finance.getKnownPlayers()) {
-            long worth = finance.getMain(id) + finance.getSavings(id);
-            worths.put(id, worth);
+        // 2. Staatsfonds separat anzeigen (auch wenn Konto nicht existiert → 0 anzeigen)
+        long governmentBalance = finance.getMain(GOVERNMENT_UUID);
+        if (governmentBalance == 0 && !finance.hasAccount(GOVERNMENT_UUID)) {
+            finance.ensureAccount(GOVERNMENT_UUID); // Optional: erzwinge Konto
+            governmentBalance = 0;
         }
 
-        // Sortiere nach Networth absteigend
-        List<Map.Entry<UUID, Long>> sorted = worths.entrySet().stream()
+        sender.sendMessage("§7Staatsfonds: " + GOVERNMENT_NAME + " §7- §a" + FinanceManager.formatCents(governmentBalance));
+
+        // 3. Gesamtvermögen inkl. Staat
+        long totalWithState = totalPrivate + governmentBalance;
+        sender.sendMessage("§8Gesamtvermögen im Umlauf: §e" + FinanceManager.formatCents(totalWithState));
+
+        sender.sendMessage(""); // Leerzeile
+        sender.sendMessage("§6§l-- §e§lTop 8 Bürger §6§l--");
+
+        // Alle Spieler außer Staatsfonds sammeln
+        Map<UUID, Long> playerWorths = new HashMap<>();
+        for (UUID id : finance.getKnownPlayers()) {
+            if (id.equals(GOVERNMENT_UUID)) continue; // Staat ausschließen
+
+            long worth = finance.getMain(id) + finance.getSavings(id);
+            playerWorths.put(id, worth);
+        }
+
+        // Sortiert absteigend
+        List<Map.Entry<UUID, Long>> sorted = playerWorths.entrySet().stream()
                 .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
                 .collect(Collectors.toList());
 
         // Top 8 anzeigen
-        sender.sendMessage("§6-- §eTop 8 Spieler §6--");
         int rank = 1;
         for (Map.Entry<UUID, Long> entry : sorted.stream().limit(8).collect(Collectors.toList())) {
             String name = finance.getPlayerNameOrUuid(entry.getKey());
@@ -52,27 +70,30 @@ public class NetworthCommand implements CommandExecutor {
             rank++;
         }
 
-        // Eigene Platzierung, falls nicht in Top 8
-        if (sender instanceof Player) {
-            Player p = (Player) sender;
-            UUID id = p.getUniqueId();
+        // Eigene Platzierung (nur wenn Spieler)
+        if (sender instanceof Player player) {
+            UUID playerId = player.getUniqueId();
+            if (playerId.equals(GOVERNMENT_UUID)) return true; // Sollte nie passieren
+
+            long playerWorth = finance.getMain(playerId) + finance.getSavings(playerId);
             int playerRank = -1;
-            long playerWorth = 0L;
 
             for (int i = 0; i < sorted.size(); i++) {
-                if (sorted.get(i).getKey().equals(id)) {
+                if (sorted.get(i).getKey().equals(playerId)) {
                     playerRank = i + 1;
-                    playerWorth = sorted.get(i).getValue();
                     break;
                 }
             }
 
-            if (playerRank > 8) {
-                sender.sendMessage("§6-- §eDeine Platzierung §6--");
-                sender.sendMessage("§e#" + playerRank + " §b" + p.getName() + " §7- §a" + FinanceManager.formatCents(playerWorth));
+            if (playerRank > 8 || playerRank == -1) {
+                sender.sendMessage(""); // Leerzeile
+                sender.sendMessage("§6§l-- §e§lDeine Platzierung §6§l--");
+                sender.sendMessage("§e#" + (playerRank == -1 ? "?" : playerRank) + " §b" + player.getName() +
+                        " §7- §a" + FinanceManager.formatCents(playerWorth));
             }
         }
 
+        sender.sendMessage("§6§m                              ");
         return true;
     }
 }
