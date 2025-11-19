@@ -10,6 +10,7 @@ import com.HelvetiCraft.finance.FinanceManager;
 import com.HelvetiCraft.finance.FinanceJoinListener;
 import com.HelvetiCraft.economy.VaultEconomyBridge;
 import com.HelvetiCraft.requests.*;
+import com.HelvetiCraft.shop.ShopTaxListener;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -46,6 +47,10 @@ public class Main extends JavaPlugin {
         new InitiativeExpansion().register();
         new FinanceExpansion(financeManager).register();
         getLogger().info("Placeholders registered!");
+
+        ShopTaxListener listener = new ShopTaxListener(financeManager);
+        getServer().getPluginManager().registerEvents(listener, this);
+        getLogger().info("Shop tax listener registered for ChestShop!");
 
         // === Commands ===
         registerCommand("initiative", new InitiativeCommand(initiativeManager));

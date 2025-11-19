@@ -25,10 +25,10 @@
             <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
 
-        <!-- CodeMC Snapshots -->
+        <!-- CodeMC (Snapshots + Releases) -->
         <repository>
-            <id>codemc-snapshots</id>
-            <url>https://repo.codemc.io/repository/maven-snapshots/</url>
+            <id>codemc</id>
+            <url>https://repo.codemc.io/repository/maven-public/</url>
         </repository>
 
         <!-- PlaceholderAPI -->
@@ -37,10 +37,16 @@
             <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
         </repository>
 
-        <!-- JitPack (für GriefPrevention) -->
+        <!-- JitPack (für GriefPrevention + ChestShop Dev) -->
         <repository>
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
+        </repository>
+
+        <!-- ChestShop (stabil, über Minebench) -->
+        <repository>
+            <id>chestshop-repo</id>
+            <url>https://repo.minebench.de/</url>
         </repository>
     </repositories>
 
@@ -84,13 +90,31 @@
         </dependency>
 
         <!-- GriefPrevention (über JitPack) -->
-        <!-- https://mvnrepository.com/artifact/com.github.TechFortress/GriefPrevention -->
         <dependency>
             <groupId>com.github.TechFortress</groupId>
             <artifactId>GriefPrevention</artifactId>
             <version>master-17.0.0-g885c0ee-54</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- ChestShop 3.x (stabil: 3.12.2 über Minebench Repo) -->
+        <dependency>
+            <groupId>com.acrobot.chestshop</groupId>
+            <artifactId>chestshop</artifactId>
+            <version>3.12.2</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ALTERNATIVE: ChestShop Dev-Build (3.12.3-SNAPSHOT über JitPack, für 1.21.8+ Fixes) -->
+        <!-- Uncomment die nächste Dependency und comment die obige aus, wenn du den neuesten Dev-Build brauchst -->
+        <!--
+        <dependency>
+            <groupId>com.github.ChestShop-authors</groupId>
+            <artifactId>ChestShop-3</artifactId>
+            <version>3.12.3-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        -->
     </dependencies>
 
     <build>
