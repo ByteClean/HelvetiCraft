@@ -49,7 +49,7 @@ r.get("/:id", async (req, res, next) => {
  * Neue Initiative (Website / Minecraft / Discord)
  * POST /initiatives
  */
-r.post("/", identifySource, async (req, res, next) => {
+r.post("/create", identifySource, async (req, res, next) => {
   const { title, description } = req.body;
   const { id: author_id, username, source } = req.user;
 
