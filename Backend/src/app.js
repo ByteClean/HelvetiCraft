@@ -5,7 +5,7 @@ import morgan from "morgan";
 
 import authRoutes from "./routes/auth.routes.js";
 import initiativesRoutes from "./routes/initiatives.routes.js";
-import financesRoutes from "./routes/finances.routes.js";
+//import financesRoutes from "./routes/finances.routes.js";
 //import statusRoutes from "./routes/status.routes.js";
 //import docsRoutes from "./routes/docs.routes.js";
 
@@ -17,9 +17,9 @@ app.use(morgan("dev"));
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 
-app.use("/auth", authRoutes);
+app.use("/auth", authRoutes); // /login 
 app.use("/initiatives", initiativesRoutes); // /all /own /accepted /new /edit /del /vote/:id
-app.use("/", financesRoutes);    // /  /taxes /pay/... /sell /networth...
+//app.use("/", financesRoutes);    // /  /taxes /pay/... /sell /networth...
 //app.use("/", statusRoutes);      // /mc-web /project /helveticraft
 //app.use("/", docsRoutes);        // /news /news/current /blogs /blogs/current /guides ...
 

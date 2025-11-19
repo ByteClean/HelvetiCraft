@@ -4,12 +4,30 @@ import pool from "../services/mysql.service.js";
 const JWT_SECRET = process.env.JWT_SECRET || "devsecret";
 const BOT_API_KEY = process.env.BOT_API_KEY || "supersecretbotkey";
 
+// 🔸 Für reine JWT-geschützte Routen (Website / Minecraft)
+export function requireAuth(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith("Bearer "))
+    return res.status(401).json({ error: "missing_token" });
+
+  const token = auth.slice(7);
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    req.user = payload; // { sub, username }
+    next();
+  } catch (err) {
+    res.status(401).json({ error: "invalid_token" });
+  }
+}
+
+// 🔹 Für gemischte Quellen (JWT oder Discord Bot)
 export async function identifySource(req, res, next) {
   const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: "missing_authorization_header" });
+  if (!authHeader)
+    return res.status(401).json({ error: "missing_authorization_header" });
 
   try {
-    // 🟢 1. Minecraft / Website via JWT
+    // 🟢 JWT (Minecraft / Website)
     if (authHeader.startsWith("Bearer ")) {
       const token = authHeader.slice(7);
       const payload = jwt.verify(token, JWT_SECRET);
@@ -17,7 +35,7 @@ export async function identifySource(req, res, next) {
       return next();
     }
 
-    // 🟣 2. Discord Bot Token
+    // 🟣 Discord Bot
     if (authHeader.startsWith("Bot ")) {
       const botKey = authHeader.slice(4).trim();
       if (botKey !== BOT_API_KEY)
@@ -39,7 +57,7 @@ export async function identifySource(req, res, next) {
       return next();
     }
 
-    // 🟥 3. Sonst ungültig
+    // ❌ Unbekannter Typ
     res.status(401).json({ error: "unsupported_auth_type" });
   } catch (err) {
     console.error(err);
