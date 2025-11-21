@@ -68,6 +68,10 @@ commands:
     description: Convert ores in hand to money
     usage: /convert
     permission: helveticraft.convert
+  taxtest:
+    description: Manually trigger all periodic taxes (super-admin only)
+    usage: /taxtest
+    permission: helveticraft.taxtest
 
 permissions:
   helveticraft.*:
@@ -126,3 +130,6 @@ permissions:
   helveticraft.convert:
     description: Use /convert to convert ores to money
     default: true
+  helveticraft.taxtest:
+    description: Use /taxtest to manually trigger periodic taxes (super-admin only)
+    default: false

@@ -11,6 +11,8 @@ import com.HelvetiCraft.finance.FinanceJoinListener;
 import com.HelvetiCraft.economy.VaultEconomyBridge;
 import com.HelvetiCraft.requests.*;
 import com.HelvetiCraft.shop.ShopTaxListener;
+import com.HelvetiCraft.taxes.LandTaxManager;
+import com.HelvetiCraft.taxes.VermoegensSteuerManager;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -26,6 +28,7 @@ public class Main extends JavaPlugin {
     private FinanceManager financeManager;
     private ClaimManager claimManager;
     private LandTaxManager landTaxManager;
+    private VermoegensSteuerManager vermoegensSteuerManager;
 
     int intervalDays = TaxRequests.getLandSteuerIntervalDays();
     long intervalSeconds = intervalDays * 24L * 3600L;
@@ -42,6 +45,7 @@ public class Main extends JavaPlugin {
         financeManager = new FinanceManager(this);
         claimManager = new ClaimManager(this, financeManager);
         landTaxManager = new LandTaxManager(this, financeManager);
+        vermoegensSteuerManager = new VermoegensSteuerManager(this, financeManager);
 
         // === Placeholder Expansions ===
         new InitiativeExpansion().register();
@@ -70,6 +74,9 @@ public class Main extends JavaPlugin {
 
         ConvertManager convertManager = new ConvertManager(this, financeManager);
         registerCommand("convert", new ConvertCommand(convertManager));
+        
+        // === Tax Test Command ===
+        registerCommand("taxtest", new TaxTestCommand(landTaxManager, vermoegensSteuerManager));
 
         // === Claim block trading ===
         registerCommand("buyclaimblock", new BuyClaimBlockCommand(claimManager));
@@ -106,7 +113,7 @@ public class Main extends JavaPlugin {
         Bukkit.getAsyncScheduler().runAtFixedRate(this, task -> {
             try {
                 getLogger().info("[HelvetiCraft] Running periodic tax collection...");
-                runVermoegensSteuerCollection();
+                vermoegensSteuerManager.collectVermoegensSteuer();
                 runEinkommenSteuerCollection();
                 landTaxManager.collectLandTax();
                 getLogger().info("[HelvetiCraft] Periodic tax cycle completed.");
@@ -131,29 +138,6 @@ public class Main extends JavaPlugin {
     }
 
     // === Tax System ===
-    private void runVermoegensSteuerCollection() {
-        long activeThreshold = System.currentTimeMillis() - 10L * 24 * 3600 * 1000;
-        for (UUID id : financeManager.getKnownPlayers()) {
-            if (id.equals(ClaimManager.GOVERNMENT_UUID)) continue;
-            OfflinePlayer p = Bukkit.getOfflinePlayer(id);
-            if (p.getLastLogin() < activeThreshold) continue;
-
-            long wealth = financeManager.getMain(id) + financeManager.getSavings(id);
-            long tax = TaxRequests.calculateVermoegensSteuer(wealth);
-            if (tax <= 0) continue;
-
-            if (financeManager.getMain(id) >= tax) {
-                financeManager.addToMain(id, -tax);
-                financeManager.addToMain(ClaimManager.GOVERNMENT_UUID, tax);
-                Player online = p.getPlayer();
-                if (online != null)
-                    online.sendMessage("§cVermögenssteuer abgezogen: §f" + FinanceManager.formatCents(tax));
-            } else {
-                getLogger().warning("Player " + p.getName() + " has insufficient funds for Vermögenssteuer: " + tax);
-            }
-        }
-    }
-
     private void runEinkommenSteuerCollection() {
         for (UUID id : financeManager.getKnownPlayers()) {
             if (id.equals(ClaimManager.GOVERNMENT_UUID)) continue;

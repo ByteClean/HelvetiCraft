@@ -1,4 +1,4 @@
-package com.HelvetiCraft.Claims;
+package com.HelvetiCraft.taxes;
 
 import com.HelvetiCraft.finance.FinanceManager;
 import com.HelvetiCraft.requests.TaxRequests;
