@@ -1,73 +1,100 @@
 package com.HelvetiCraft;
 
+import com.HelvetiCraft.Claims.*;
 import com.HelvetiCraft.commands.*;
+import com.HelvetiCraft.convert.ConvertManager;
 import com.HelvetiCraft.expansions.FinanceExpansion;
 import com.HelvetiCraft.expansions.InitiativeExpansion;
 import com.HelvetiCraft.initiatives.InitiativeManager;
 import com.HelvetiCraft.finance.FinanceManager;
-import com.HelvetiCraft.Claims.ClaimManager;
-import com.HelvetiCraft.commands.BuyClaimBlockCommand;
-import com.HelvetiCraft.commands.SellClaimBlockCommand;
 import com.HelvetiCraft.finance.FinanceJoinListener;
 import com.HelvetiCraft.economy.VaultEconomyBridge;
-import com.HelvetiCraft.requests.AdminRequests;
+import com.HelvetiCraft.requests.*;
+import com.HelvetiCraft.shop.ShopTaxListener;
+import com.HelvetiCraft.taxes.LandTaxManager;
+import com.HelvetiCraft.taxes.VermoegensSteuerManager;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 public class Main extends JavaPlugin {
 
     private InitiativeManager initiativeManager;
     private FinanceManager financeManager;
+    private ClaimManager claimManager;
+    private LandTaxManager landTaxManager;
+    private VermoegensSteuerManager vermoegensSteuerManager;
+
+    int intervalDays = TaxRequests.getLandSteuerIntervalDays();
+    long intervalSeconds = intervalDays * 24L * 3600L;
 
     @Override
     public void onEnable() {
         getLogger().info("HelvetiCraft Plugin has been enabled!");
         saveDefaultConfig();
-        
-        // Initialize admin requests logger
+
+        // === Initialization ===
         AdminRequests.init(this);
 
-        // Initiative manager
         initiativeManager = new InitiativeManager(this);
-
-        // Register InitiativeExpansion unconditionally
-        new InitiativeExpansion().register();
-        getLogger().info("InitiativeExpansion placeholders registered!");
-
-        // Register commands
-        getCommand("initiative").setExecutor(new InitiativeCommand(initiativeManager));
-        getCommand("verify").setExecutor(new VerifyCommand(this));
-        getCommand("status").setExecutor(new StatusCommand(this));
-        getCommand("helveticraft").setExecutor(new HelveticraftCommand(this));
-    // Admin command (uses Vault/LuckPerms for group management)
-    getCommand("admin").setExecutor(new AdminCommand(this));
-
-        // Finance manager
         financeManager = new FinanceManager(this);
+        claimManager = new ClaimManager(this, financeManager);
+        landTaxManager = new LandTaxManager(this, financeManager);
+        vermoegensSteuerManager = new VermoegensSteuerManager(this, financeManager);
+
+        // === Placeholder Expansions ===
+        new InitiativeExpansion().register();
         new FinanceExpansion(financeManager).register();
-        getLogger().info("FinanceExpansion placeholders registered!");
+        getLogger().info("Placeholders registered!");
 
-        // Finance commands
-        getCommand("finance").setExecutor(new FinanceCommand(financeManager));
-        getCommand("networth").setExecutor(new NetworthCommand(financeManager));
-        getCommand("pay").setExecutor(new PayCommand(financeManager));
+        ShopTaxListener listener = new ShopTaxListener(financeManager);
+        getServer().getPluginManager().registerEvents(listener, this);
+        getLogger().info("Shop tax listener registered for ChestShop!");
+
+        // === Commands ===
+        registerCommand("initiative", new InitiativeCommand(initiativeManager));
+        registerCommand("verify", new VerifyCommand(this));
+        registerCommand("status", new StatusCommand(this));
+        registerCommand("helveticraft", new HelveticraftCommand(this));
+        registerCommand("admin", new AdminCommand(this));
+        registerCommand("finance", new FinanceCommand(financeManager));
+        registerCommand("networth", new NetworthCommand(financeManager));
+        registerCommand("pay", new PayCommand(financeManager));
+
         SellCommand sell = new SellCommand(this, financeManager);
-        getCommand("sell").setExecutor(sell);
-        getCommand("sellaccept").setExecutor(sell);
-        getCommand("selldecline").setExecutor(sell);
-        getCommand("save").setExecutor(new SaveCommand(financeManager));
+        registerCommand("sell", sell);
+        registerCommand("sellaccept", sell);
+        registerCommand("selldecline", sell);
+        registerCommand("save", new SaveCommand(financeManager));
 
-    // Claim block manager & commands
-    ClaimManager claimManager = new ClaimManager(this, financeManager);
-    getCommand("buyclaimblock").setExecutor(new BuyClaimBlockCommand(claimManager));
-    getCommand("sellclaimblock").setExecutor(new SellClaimBlockCommand(claimManager));
+        ConvertManager convertManager = new ConvertManager(this, financeManager);
+        registerCommand("convert", new ConvertCommand(convertManager));
+        
+        // === Tax Test Command ===
+        registerCommand("taxtest", new TaxTestCommand(landTaxManager, vermoegensSteuerManager));
 
-        // Listeners
+        // === Claim block trading ===
+        registerCommand("buyclaimblock", new BuyClaimBlockCommand(claimManager));
+        registerCommand("sellclaimblock", new SellClaimBlockCommand(claimManager));
+
+        // === Land Tax Command ===
+        if (getCommand("landtax") != null) {
+            getCommand("landtax").setExecutor(new LandTaxCommand(landTaxManager));
+            getLogger().info("Command /landtax registered successfully.");
+        } else {
+            getLogger().warning("Command 'landtax' could not be found! Check plugin.yml.");
+        }
+
+        // === Event Listeners ===
         getServer().getPluginManager().registerEvents(initiativeManager, this);
         getServer().getPluginManager().registerEvents(new FinanceJoinListener(financeManager), this);
 
-        // Vault economy bridge
+        // === Vault Economy Bridge ===
         if (Bukkit.getPluginManager().isPluginEnabled("Vault")) {
             Bukkit.getServicesManager().register(
                     net.milkbowl.vault.economy.Economy.class,
@@ -79,6 +106,21 @@ public class Main extends JavaPlugin {
         } else {
             getLogger().warning("Vault not found! Economy plugins like ChestShop will not work.");
         }
+
+        // === Periodic Taxes (Every 3 Days) ===
+        getLogger().info("[HelvetiCraft] Landsteuer-Intervall: " + intervalDays + " Tage (" + intervalSeconds + " Sekunden)");
+
+        Bukkit.getAsyncScheduler().runAtFixedRate(this, task -> {
+            try {
+                getLogger().info("[HelvetiCraft] Running periodic tax collection...");
+                vermoegensSteuerManager.collectVermoegensSteuer();
+                landTaxManager.collectLandTax();
+                getLogger().info("[HelvetiCraft] Periodic tax cycle completed.");
+            } catch (Exception e) {
+                getLogger().severe("[HelvetiCraft] Error during periodic tax task: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }, intervalSeconds, intervalSeconds, TimeUnit.SECONDS);
     }
 
     @Override
@@ -86,11 +128,11 @@ public class Main extends JavaPlugin {
         getLogger().info("HelvetiCraft Plugin has been disabled!");
     }
 
-    public InitiativeManager getInitiativeManager() {
-        return initiativeManager;
-    }
-
-    public FinanceManager getFinanceManager() {
-        return financeManager;
+    private void registerCommand(String name, org.bukkit.command.CommandExecutor executor) {
+        if (getCommand(name) != null) {
+            getCommand(name).setExecutor(executor);
+        } else {
+            getLogger().warning("Command '" + name + "' could not be found!");
+        }
     }
 }

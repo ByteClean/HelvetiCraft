@@ -1,15 +1,17 @@
 package com.HelvetiCraft.commands;
 
 import com.HelvetiCraft.finance.FinanceManager;
+import com.HelvetiCraft.requests.TaxRequests;
 import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,7 +21,6 @@ public class SellCommand implements CommandExecutor, TabCompleter {
     private final JavaPlugin plugin;
     private final FinanceManager finance;
 
-    // Pending offers: buyerId -> list of offers
     private final Map<UUID, List<Offer>> pending = new ConcurrentHashMap<>();
 
     private static class Offer {
@@ -27,7 +28,7 @@ public class SellCommand implements CommandExecutor, TabCompleter {
         final UUID buyerId;
         final ItemStack item;
         final long priceCents;
-        final long expiresAt; // millis
+        final long expiresAt;
         Offer(UUID s, UUID b, ItemStack i, long price, long expiresAt) {
             this.sellerId = s;
             this.buyerId = b;
@@ -41,7 +42,6 @@ public class SellCommand implements CommandExecutor, TabCompleter {
         this.plugin = plugin;
         this.finance = finance;
 
-        // Cleanup task for expired offers (Folia + Paper safe)
         Bukkit.getGlobalRegionScheduler().runAtFixedRate(
                 plugin,
                 task -> {
@@ -51,8 +51,7 @@ public class SellCommand implements CommandExecutor, TabCompleter {
                     }
                     pending.entrySet().removeIf(e -> e.getValue().isEmpty());
                 },
-                20L,       // initial delay (1 second)
-                20L * 10   // repeat every 10 seconds
+                20L, 20L * 10
         );
     }
 
@@ -67,15 +66,12 @@ public class SellCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        switch (cmd.getName().toLowerCase()) {
-            case "sell":
-                return handleSell(player, args);
-            case "sellaccept":
-                return handleAccept(player, args);
-            case "selldecline":
-                return handleDecline(player, args);
-        }
-        return false;
+        return switch (cmd.getName().toLowerCase()) {
+            case "sell" -> handleSell(player, args);
+            case "sellaccept" -> handleAccept(player, args);
+            case "selldecline" -> handleDecline(player, args);
+            default -> false;
+        };
     }
 
     private boolean handleSell(Player seller, String[] args) {
@@ -89,17 +85,14 @@ public class SellCommand implements CommandExecutor, TabCompleter {
             seller.sendMessage("§cKäufer nicht gefunden oder offline.");
             return true;
         }
-        if (buyer.getUniqueId().equals(seller.getUniqueId())) {
+        if (buyer.equals(seller)) {
             seller.sendMessage("§cDu kannst nicht an dich selbst verkaufen.");
             return true;
         }
 
-        // Check if seller already has an active offer
-        boolean hasOffer = pending.values().stream()
+        if (pending.values().stream()
                 .flatMap(List::stream)
-                .anyMatch(o -> o.sellerId.equals(seller.getUniqueId()) && o.expiresAt > System.currentTimeMillis());
-
-        if (hasOffer) {
+                .anyMatch(o -> o.sellerId.equals(seller.getUniqueId()) && o.expiresAt > System.currentTimeMillis())) {
             seller.sendMessage("§cDu hast bereits ein aktives Angebot laufen.");
             return true;
         }
@@ -123,21 +116,44 @@ public class SellCommand implements CommandExecutor, TabCompleter {
         }
 
         ItemStack offered = inHand.clone();
-        long expiresAt = System.currentTimeMillis() + 120_000L; // 2 minutes
+        long expiresAt = System.currentTimeMillis() + 120_000L;
         Offer offer = new Offer(seller.getUniqueId(), buyer.getUniqueId(), offered, cents, expiresAt);
         pending.computeIfAbsent(buyer.getUniqueId(), k -> new ArrayList<>()).add(offer);
 
         String priceStr = FinanceManager.formatCents(cents);
-        seller.sendMessage("§aAngebot gesendet an §f" + buyer.getName() + " §afür §f" + priceStr + "§a. Läuft in 2 Minuten ab.");
+        seller.sendMessage("§aAngebot gesendet an §f" + buyer.getName() + " §afür §f" + priceStr + " CHF§a. Läuft in 2 Minuten ab.");
 
-        // Clickable message
-        TextComponent base = new TextComponent("§e" + seller.getName() + " bietet dir " + offered.getAmount() + "x "
-                + prettify(offered.getType()) + " für §a" + priceStr + "§e an. ");
-        TextComponent accept = new TextComponent("§a[Annehmen]");
+        // --- Käufer-Nachricht mit Steuerübersicht ---
+        double taxRate = TaxRequests.getVerkaufsSteuer1zu1() / 100.0;
+        long taxCents = (long) (cents * taxRate);
+        long totalCents = cents + taxCents;
+
+        String itemName = prettify(offered.getType());
+        String priceCHF = FinanceManager.formatCents(cents) + " CHF";
+        String taxCHF = FinanceManager.formatCents(taxCents) + " CHF";
+        String totalCHF = FinanceManager.formatCents(totalCents) + " CHF";
+
+        TextComponent msg = new TextComponent("§8§m          §r §6Verkaufsangebot §r §8§m          §r\n");
+        msg.addExtra("§e" + seller.getName() + " §7verkauft dir:\n");
+        msg.addExtra("§f " + offered.getAmount() + "× " + itemName + "\n\n");
+
+        msg.addExtra("§7Preis:     §a" + priceCHF + "\n");
+        msg.addExtra("§7+ Steuer:  §c" + taxCHF + " §8(26%)\n");
+        msg.addExtra("§7§l= Gesamt:  §6§l" + totalCHF + "\n\n");
+
+        TextComponent accept = new TextComponent("§a§l[✔ Akzeptieren]");
         accept.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/sellaccept " + seller.getName()));
-        TextComponent decline = new TextComponent(" §c[Ablehnen]");
-        decline.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/selldecline " + seller.getName()));
-        buyer.spigot().sendMessage(base, accept, decline);
+        accept.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("§aKaufen für " + totalCHF)));
+
+        TextComponent decline = new TextComponent("  §c§l[✖ Ablehnen]");
+        decline.setClickEvent(new ClickEvent  (ClickEvent.Action.RUN_COMMAND, "/selldecline " + seller.getName()));
+        decline.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("§cAngebot ablehnen")));
+
+        msg.addExtra(accept);
+        msg.addExtra(decline);
+        msg.addExtra("\n§8§m                                      §r");
+
+        buyer.spigot().sendMessage(msg);
 
         return true;
     }
@@ -149,24 +165,8 @@ public class SellCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        Offer o;
-        if (args.length >= 1) {
-            Player seller = Bukkit.getPlayerExact(args[0]);
-            if (seller == null) {
-                buyer.sendMessage("§cVerkäufer nicht gefunden.");
-                return true;
-            }
-            o = offers.stream().filter(of -> of.sellerId.equals(seller.getUniqueId())).findFirst().orElse(null);
-            if (o == null) {
-                buyer.sendMessage("§cKein Angebot von diesem Verkäufer gefunden.");
-                return true;
-            }
-            offers.remove(o);
-        } else {
-            o = offers.remove(0); // oldest
-        }
-
-        if (offers.isEmpty()) pending.remove(buyer.getUniqueId());
+        Offer o = extractOffer(buyer, offers, args);
+        if (o == null) return true;
 
         if (System.currentTimeMillis() > o.expiresAt) {
             buyer.sendMessage("§cAngebot ist abgelaufen.");
@@ -179,42 +179,76 @@ public class SellCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (finance.getMain(buyer.getUniqueId()) < o.priceCents) {
-            buyer.sendMessage("§cUnzureichender Kontostand.");
+        double taxRate = TaxRequests.getVerkaufsSteuer1zu1() / 100.0;
+        long taxCents = (long) (o.priceCents * taxRate);
+        long totalCost = o.priceCents + taxCents;
+
+        if (finance.getMain(buyer.getUniqueId()) < totalCost) {
+            buyer.sendMessage("§cUnzureichender Kontostand (benötigt: " + FinanceManager.formatCents(totalCost) + " CHF).");
             seller.sendMessage("§cKäufer hat nicht genug Geld.");
             return true;
         }
 
         if (buyer.getInventory().firstEmpty() == -1) {
             buyer.sendMessage("§cKein freier Inventarplatz.");
-            seller.sendMessage("§cKäufer hat keinen Inventarplatz.");
+            seller.sendMessage("§cKäufer hat keinen Platz im Inventar.");
             return true;
         }
 
         ItemStack current = seller.getInventory().getItemInMainHand();
-        if (current == null || current.getType() != o.item.getType() || current.getAmount() < o.item.getAmount() || !current.isSimilar(o.item)) {
+        if (current == null || !current.isSimilar(o.item) || current.getAmount() < o.item.getAmount()) {
             buyer.sendMessage("§cAngebot ungültig: Verkäufer hält den Gegenstand nicht mehr.");
-            seller.sendMessage("§cVerkauf fehlgeschlagen: Du hältst den angebotenen Gegenstand nicht mehr.");
+            seller.sendMessage("§cVerkauf fehlgeschlagen: Du hältst den Gegenstand nicht mehr.");
             return true;
         }
 
-        boolean paid = finance.transferMain(buyer.getUniqueId(), seller.getUniqueId(), o.priceCents);
-        if (!paid) {
+        // Zahlung
+        boolean paidNet = finance.transferMain(buyer.getUniqueId(), seller.getUniqueId(), o.priceCents);
+        boolean paidTax = finance.transferMain(buyer.getUniqueId(), com.HelvetiCraft.Claims.ClaimManager.GOVERNMENT_UUID, taxCents);
+        if (!paidNet || !paidTax) {
             buyer.sendMessage("§cZahlung fehlgeschlagen.");
-            seller.sendMessage("§cZahlung fehlgeschlagen.");
             return true;
         }
 
         current.setAmount(current.getAmount() - o.item.getAmount());
         seller.getInventory().setItemInMainHand(current.getAmount() <= 0 ? null : current);
-        buyer.getInventory().addItem(o.item);
+        buyer.getInventory().addItem(o.item.clone());
 
-        String priceStr = FinanceManager.formatCents(o.priceCents);
-        buyer.sendMessage("§aGekauft: §f" + o.item.getAmount() + "x " + prettify(o.item.getType()) + " §afür §f" + priceStr + " §avon §f" + seller.getName());
-        seller.sendMessage("§aVerkauft: §f" + o.item.getAmount() + "x " + prettify(o.item.getType()) + " §aan §f" + buyer.getName() + " §afür §f" + priceStr);
+        String priceStr = FinanceManager.formatCents(o.priceCents) + " CHF";
+        String taxStr = FinanceManager.formatCents(taxCents) + " CHF";
+        String totalStr = FinanceManager.formatCents(totalCost) + " CHF";
+
+        buyer.sendMessage("§a§lKauf erfolgreich! §f" + o.item.getAmount() + "× " + prettify(o.item.getType()) +
+                " §avon §f" + seller.getName() + " §afür §a" + priceStr + " §7+ §c" + taxStr + " §7= §6" + totalStr);
+
+        seller.sendMessage("§a§lVerkauf erfolgreich! §f" + o.item.getAmount() + "× " + prettify(o.item.getType()) +
+                " §aan §f" + buyer.getName() + " §afür §a" + priceStr + " CHF §7(nach Steuer)");
 
         finance.save();
         return true;
+    }
+
+    private Offer extractOffer(Player buyer, List<Offer> offers, String[] args) {
+        Offer o;
+        if (args.length >= 1) {
+            Player seller = Bukkit.getPlayerExact(args[0]);
+            if (seller == null) {
+                buyer.sendMessage("§cVerkäufer nicht gefunden.");
+                return null;
+            }
+            o = offers.stream()
+                    .filter(of -> of.sellerId.equals(seller.getUniqueId()))
+                    .findFirst().orElse(null);
+            if (o == null) {
+                buyer.sendMessage("§cKein Angebot von diesem Verkäufer.");
+                return null;
+            }
+            offers.remove(o);
+        } else {
+            o = offers.remove(0);
+        }
+        if (offers.isEmpty()) pending.remove(buyer.getUniqueId());
+        return o;
     }
 
     private boolean handleDecline(Player buyer, String[] args) {
@@ -224,30 +258,14 @@ public class SellCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        Offer o;
-        if (args.length >= 1) {
-            Player seller = Bukkit.getPlayerExact(args[0]);
-            if (seller == null) {
-                buyer.sendMessage("§cVerkäufer nicht gefunden.");
-                return true;
-            }
-            o = offers.stream().filter(of -> of.sellerId.equals(seller.getUniqueId())).findFirst().orElse(null);
-            if (o == null) {
-                buyer.sendMessage("§cKein Angebot von diesem Verkäufer gefunden.");
-                return true;
-            }
-            offers.remove(o);
-        } else {
-            o = offers.remove(0); // oldest
-        }
-
-        if (offers.isEmpty()) pending.remove(buyer.getUniqueId());
+        Offer o = extractOffer(buyer, offers, args);
+        if (o == null) return true;
 
         Player seller = Bukkit.getPlayer(o.sellerId);
         if (seller != null && seller.isOnline()) {
             seller.sendMessage("§e" + buyer.getName() + " §chat dein Angebot abgelehnt.");
         }
-        buyer.sendMessage("§eAngebot abgelehnt.");
+        buyer.sendMessage("§eAngebot von §f" + (seller != null ? seller.getName() : "Unbekannt") + " §eablehnt.");
         return true;
     }
 
@@ -259,13 +277,10 @@ public class SellCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         List<String> res = new ArrayList<>();
+        if (!(sender instanceof Player player)) return res;
 
-        if (!(sender instanceof Player)) return res;
-
-        Player player = (Player) sender;
-
-        switch (cmd.getName().toLowerCase()) {
-            case "sell":
+        return switch (cmd.getName().toLowerCase()) {
+            case "sell" -> {
                 if (args.length == 1) {
                     for (Player p : Bukkit.getOnlinePlayers()) {
                         if (!p.equals(player) && p.getName().toLowerCase().startsWith(args[0].toLowerCase())) {
@@ -273,9 +288,9 @@ public class SellCommand implements CommandExecutor, TabCompleter {
                         }
                     }
                 }
-                break;
-            case "sellaccept":
-            case "selldecline":
+                yield res;
+            }
+            case "sellaccept", "selldecline" -> {
                 if (args.length == 1) {
                     List<Offer> offers = pending.get(player.getUniqueId());
                     if (offers != null) {
@@ -287,9 +302,9 @@ public class SellCommand implements CommandExecutor, TabCompleter {
                         }
                     }
                 }
-                break;
-        }
-
-        return res;
+                yield res;
+            }
+            default -> res;
+        };
     }
 }

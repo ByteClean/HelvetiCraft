@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
 
@@ -18,22 +19,34 @@
     </properties>
 
     <repositories>
+        <!-- PaperMC API -->
         <repository>
             <id>papermc-repo</id>
             <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
+
+        <!-- CodeMC (Snapshots + Releases) -->
         <repository>
-            <id>codemc-snapshots</id>
-            <url>https://repo.codemc.io/repository/maven-snapshots/</url>
+            <id>codemc</id>
+            <url>https://repo.codemc.io/repository/maven-public/</url>
         </repository>
+
+        <!-- PlaceholderAPI -->
         <repository>
             <id>placeholderapi</id>
             <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
         </repository>
-        <!-- Vault API -->
+
+        <!-- JitPack (für GriefPrevention + ChestShop Dev) -->
         <repository>
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
+        </repository>
+
+        <!-- ChestShop (stabil, über Minebench) -->
+        <repository>
+            <id>chestshop-repo</id>
+            <url>https://repo.minebench.de/</url>
         </repository>
     </repositories>
 
@@ -64,7 +77,7 @@
         <dependency>
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
-            <version>2.11.5</version> <!-- check your installed version -->
+            <version>2.11.5</version>
             <scope>provided</scope>
         </dependency>
 
@@ -75,6 +88,33 @@
             <version>1.7</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- GriefPrevention (über JitPack) -->
+        <dependency>
+            <groupId>com.github.TechFortress</groupId>
+            <artifactId>GriefPrevention</artifactId>
+            <version>master-17.0.0-g885c0ee-54</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ChestShop 3.x (stabil: 3.12.2 über Minebench Repo) -->
+        <dependency>
+            <groupId>com.acrobot.chestshop</groupId>
+            <artifactId>chestshop</artifactId>
+            <version>3.12.2</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ALTERNATIVE: ChestShop Dev-Build (3.12.3-SNAPSHOT über JitPack, für 1.21.8+ Fixes) -->
+        <!-- Uncomment die nächste Dependency und comment die obige aus, wenn du den neuesten Dev-Build brauchst -->
+        <!--
+        <dependency>
+            <groupId>com.github.ChestShop-authors</groupId>
+            <artifactId>ChestShop-3</artifactId>
+            <version>3.12.3-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        -->
     </dependencies>
 
     <build>
@@ -114,5 +154,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

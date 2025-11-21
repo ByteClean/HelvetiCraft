@@ -98,7 +98,7 @@ public class VaultEconomyBridge implements Economy {
             return new EconomyResponse(amount, balance / 100.0,
                     EconomyResponse.ResponseType.FAILURE, "Insufficient funds");
         }
-        finance.setMain(id, balance - cents);
+        finance.addToMain(id, -cents);
         finance.save();
         return new EconomyResponse(amount, getBalance(player),
                 EconomyResponse.ResponseType.SUCCESS, "");
@@ -113,7 +113,7 @@ public class VaultEconomyBridge implements Economy {
     public EconomyResponse depositPlayer(OfflinePlayer player, double amount) {
         UUID id = player.getUniqueId();
         long cents = (long) Math.round(amount * 100);
-        finance.setMain(id, finance.getMain(id) + cents);
+        finance.addToMain(id, cents);
         finance.save();
         return new EconomyResponse(amount, getBalance(player),
                 EconomyResponse.ResponseType.SUCCESS, "");
