@@ -29,11 +29,12 @@ public class NetworthCommand implements CommandExecutor {
         sender.sendMessage("§6§l═════ §b§lNet Worth §6§l═════");
 
         // 1. Gesamtkapital aller PRIVATEN Spieler (exkl. Staatsfonds)
-        long totalPrivate = finance.getTotalNetWorthCents(); // Annahme: diese Methode schließt Staatsfonds aus
+        long governmentBalance = finance.getMain(GOVERNMENT_UUID);
+        long totalPrivate = finance.getTotalNetWorthCents() - governmentBalance; // Annahme: diese Methode schließt Staatsfonds aus
         sender.sendMessage("§7Gesamtkapital (alle Bürger): §a" + FinanceManager.formatCents(totalPrivate));
 
         // 2. Staatsfonds separat anzeigen (auch wenn Konto nicht existiert → 0 anzeigen)
-        long governmentBalance = finance.getMain(GOVERNMENT_UUID);
+
         if (governmentBalance == 0 && !finance.hasAccount(GOVERNMENT_UUID)) {
             finance.ensureAccount(GOVERNMENT_UUID); // Optional: erzwinge Konto
             governmentBalance = 0;

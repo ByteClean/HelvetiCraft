@@ -1,5 +1,6 @@
 package com.HelvetiCraft.taxes;
 
+import com.HelvetiCraft.Claims.ClaimManager;
 import com.HelvetiCraft.finance.FinanceManager;
 import com.HelvetiCraft.requests.TaxRequests;
 import me.ryanhamshire.GriefPrevention.Claim;
@@ -86,9 +87,10 @@ public class LandTaxManager {
                     boolean success = false;
                     if (currentBalance >= taxInCents) {
                         financeManager.addToMain(ownerId, -taxInCents);
+                        financeManager.addToMain(ClaimManager.GOVERNMENT_UUID, taxInCents);
                         success = true;
                         log.info(String.format(
-                                "[LandTax] Von %s wurde %.4f CHF erfolgreich abgebucht. Neuer Kontostand: %.2f CHF",
+                                "[LandTax] Von %s wurde %.4f CHF erfolgreich abgebucht und an die Regierung überwiesen. Neuer Kontostand: %.2f CHF",
                                 playerName, totalTax, (currentBalance - taxInCents) / 100.0
                         ));
                     } else {
