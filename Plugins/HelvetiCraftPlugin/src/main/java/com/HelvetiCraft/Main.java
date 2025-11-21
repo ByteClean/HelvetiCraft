@@ -114,7 +114,6 @@ public class Main extends JavaPlugin {
             try {
                 getLogger().info("[HelvetiCraft] Running periodic tax collection...");
                 vermoegensSteuerManager.collectVermoegensSteuer();
-                runEinkommenSteuerCollection();
                 landTaxManager.collectLandTax();
                 getLogger().info("[HelvetiCraft] Periodic tax cycle completed.");
             } catch (Exception e) {
@@ -134,32 +133,6 @@ public class Main extends JavaPlugin {
             getCommand(name).setExecutor(executor);
         } else {
             getLogger().warning("Command '" + name + "' could not be found!");
-        }
-    }
-
-    // === Tax System ===
-    private void runEinkommenSteuerCollection() {
-        for (UUID id : financeManager.getKnownPlayers()) {
-            if (id.equals(ClaimManager.GOVERNMENT_UUID)) continue;
-            OfflinePlayer p = Bukkit.getOfflinePlayer(id);
-
-            long income = FinanceRequests.getPeriodIncome(id);
-            long tax = TaxRequests.calculateEinkommenSteuer(income);
-            if (tax <= 0) {
-                FinanceRequests.resetPeriodIncome(id);
-                continue;
-            }
-
-            if (financeManager.getMain(id) >= tax) {
-                financeManager.addToMain(id, -tax);
-                financeManager.addToMain(ClaimManager.GOVERNMENT_UUID, tax);
-                Player online = p.getPlayer();
-                if (online != null)
-                    online.sendMessage("§cEinkommensteuer abgezogen: §f" + FinanceManager.formatCents(tax));
-                FinanceRequests.resetPeriodIncome(id);
-            } else {
-                getLogger().warning("Player " + p.getName() + " has insufficient funds for Einkommensteuer: " + tax);
-            }
         }
     }
 }
