@@ -2,6 +2,7 @@ package com.HelvetiCraft.shop;
 
 import com.Acrobot.ChestShop.Events.TransactionEvent;
 import com.HelvetiCraft.finance.FinanceManager;
+import com.HelvetiCraft.requests.TransactionLogRequests;
 import com.HelvetiCraft.util.FinanceTransactionLogger;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -56,6 +57,7 @@ public class ShopTaxListener implements Listener {
 
             UUID sellerUUID = owner.getUniqueId();
 
+            TransactionLogRequests.prepareRequest("Shop-Buy-Transaction", client.getUniqueId(), sellerUUID, grossCents);
             // STEUERN VOM VERKÄUFER ABZIEHEN
             FinanceTransactionLogger logger = new FinanceTransactionLogger(financeManager);
             logger.logTransaction("Shop-Tax", sellerUUID, ShopTaxManager.GOVERNMENT_UUID, totalTax);
@@ -81,6 +83,7 @@ public class ShopTaxListener implements Listener {
                 return;
             }
 
+            TransactionLogRequests.prepareRequest("Shop-Sell-Transaction", owner.getUniqueId(), sellerUUID, grossCents);
             // STEUERN VOM SPIELER (Verkäufer) ABZIEHEN
             FinanceTransactionLogger logger = new FinanceTransactionLogger(financeManager);
             logger.logTransaction("Shop-Tax", sellerUUID, ShopTaxManager.GOVERNMENT_UUID, totalTax);
