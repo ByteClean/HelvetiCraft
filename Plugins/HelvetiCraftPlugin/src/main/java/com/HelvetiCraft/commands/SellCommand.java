@@ -2,6 +2,7 @@ package com.HelvetiCraft.commands;
 
 import com.HelvetiCraft.finance.FinanceManager;
 import com.HelvetiCraft.requests.TaxRequests;
+import com.HelvetiCraft.util.FinanceTransactionLogger;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -203,8 +204,13 @@ public class SellCommand implements CommandExecutor, TabCompleter {
         }
 
         // Zahlung
-        boolean paidNet = finance.transferMain(buyer.getUniqueId(), seller.getUniqueId(), o.priceCents);
-        boolean paidTax = finance.transferMain(buyer.getUniqueId(), com.HelvetiCraft.Claims.ClaimManager.GOVERNMENT_UUID, taxCents);
+        FinanceTransactionLogger logger = new FinanceTransactionLogger(finance);
+        logger.logTransaction("1to1-sold", buyer.getUniqueId(), seller.getUniqueId(), o.priceCents);
+        boolean paidNet = true;
+        //boolean paidNet = finance.transferMain(buyer.getUniqueId(), seller.getUniqueId(), o.priceCents);
+        logger.logTransaction("1to1-tax", buyer.getUniqueId(), com.HelvetiCraft.Claims.ClaimManager.GOVERNMENT_UUID, taxCents);
+        boolean paidTax = true;
+        //boolean paidTax = finance.transferMain(buyer.getUniqueId(), com.HelvetiCraft.Claims.ClaimManager.GOVERNMENT_UUID, taxCents);
         if (!paidNet || !paidTax) {
             buyer.sendMessage("§cZahlung fehlgeschlagen.");
             return true;

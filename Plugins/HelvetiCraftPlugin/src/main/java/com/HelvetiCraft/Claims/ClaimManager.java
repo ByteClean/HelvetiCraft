@@ -2,6 +2,7 @@ package com.HelvetiCraft.Claims;
 
 import com.HelvetiCraft.finance.FinanceManager;
 import com.HelvetiCraft.requests.ClaimRequests;
+import com.HelvetiCraft.util.FinanceTransactionLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.plugin.Plugin;
@@ -57,7 +58,11 @@ public class ClaimManager {
 
         if (finance.getMain(player) < totalCost) return false;
 
-        boolean ok = finance.transferMain(player, GOVERNMENT_UUID, totalCost);
+        //boolean ok = finance.transferMain(player, GOVERNMENT_UUID, totalCost);
+        FinanceTransactionLogger logger = new FinanceTransactionLogger(finance);
+        logger.logTransaction("Land-Buy", player, GOVERNMENT_UUID, totalCost);
+
+        boolean ok = true;
         if (!ok) return false;
 
         // Apply change through GriefPrevention /acb command
@@ -85,7 +90,10 @@ public class ClaimManager {
         finance.ensureAccount(GOVERNMENT_UUID);
 
         // Move money from government -> player
-        boolean paid = finance.transferMain(GOVERNMENT_UUID, player, payout);
+        FinanceTransactionLogger logger = new FinanceTransactionLogger(finance);
+        logger.logTransaction("Land-Sell", GOVERNMENT_UUID, player, payout);
+        //boolean paid = finance.transferMain(GOVERNMENT_UUID, player, payout);
+        boolean paid = true;
         if (!paid) return false; // government might not have money in dummy backend
 
         // Apply change through GriefPrevention /acb command (negative amount to remove)
