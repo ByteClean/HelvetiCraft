@@ -3,6 +3,8 @@ package com.HelvetiCraft.taxes;
 import com.HelvetiCraft.Claims.ClaimManager;
 import com.HelvetiCraft.finance.FinanceManager;
 import com.HelvetiCraft.requests.TaxRequests;
+import com.HelvetiCraft.shop.ShopTaxManager;
+import com.HelvetiCraft.util.FinanceTransactionLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -59,8 +61,11 @@ public class VermoegensSteuerManager {
                     boolean success = false;
 
                     if (currentBalance >= tax) {
-                        financeManager.addToMain(id, -tax);
-                        financeManager.addToMain(ClaimManager.GOVERNMENT_UUID, tax);
+                        FinanceTransactionLogger logger = new FinanceTransactionLogger(financeManager);
+                        logger.logTransaction("Shop-Tax", id, ClaimManager.GOVERNMENT_UUID, tax);
+
+                        //financeManager.addToMain(id, -tax);
+                        //financeManager.addToMain(ClaimManager.GOVERNMENT_UUID, tax);
                         success = true;
                         processedPlayers++;
                         totalTaxCollected += tax;

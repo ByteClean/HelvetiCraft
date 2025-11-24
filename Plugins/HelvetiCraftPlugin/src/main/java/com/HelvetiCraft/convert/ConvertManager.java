@@ -3,6 +3,7 @@ package com.HelvetiCraft.convert;
 import com.HelvetiCraft.Main;
 import com.HelvetiCraft.finance.FinanceManager;
 import com.HelvetiCraft.requests.TaxRequests;
+import com.HelvetiCraft.util.FinanceTransactionLogger;
 import com.HelvetiCraft.util.SafeScheduler;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -115,10 +116,11 @@ public class ConvertManager implements Listener {
         for (ItemStack item : toRemove) inv.removeItem(item);
 
         // Give player full total
-        finance.addToMain(p.getUniqueId(), finalTotal);
+        FinanceTransactionLogger logger = new FinanceTransactionLogger(finance);
+        logger.logTransaction("conversion", null, p.getUniqueId(), finalTotal);
 
         // Give tax to government account
-        finance.addToMain(govUUID, tax);
+        logger.logTransaction("conversion-tax", null, govUUID, tax);
 
         p.sendMessage("§a§lKonvertierung erfolgreich!");
         p.sendMessage("§7Erlös: §a" + FinanceManager.formatCents(total) + " CHF");

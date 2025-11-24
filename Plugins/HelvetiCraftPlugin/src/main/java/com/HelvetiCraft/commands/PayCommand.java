@@ -1,6 +1,7 @@
 package com.HelvetiCraft.commands;
 
 import com.HelvetiCraft.finance.FinanceManager;
+import com.HelvetiCraft.util.FinanceTransactionLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.*;
@@ -58,7 +59,10 @@ public class PayCommand implements CommandExecutor, TabCompleter {
         UUID from = fromPlayer.getUniqueId();
         UUID to = toPlayer.getUniqueId();
 
-        boolean ok = finance.transferMain(from, to, cents);
+        FinanceTransactionLogger logger = new FinanceTransactionLogger(finance);
+        logger.logTransaction("Transfer", from, to, cents);
+        //boolean ok = finance.transferMain(from, to, cents);
+        boolean ok = true;
         if (!ok) {
             sender.sendMessage("§cUnzureichender Kontostand auf deinem Hauptkonto.");
             return true;

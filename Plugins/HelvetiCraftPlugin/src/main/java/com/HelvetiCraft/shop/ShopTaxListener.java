@@ -2,6 +2,8 @@ package com.HelvetiCraft.shop;
 
 import com.Acrobot.ChestShop.Events.TransactionEvent;
 import com.HelvetiCraft.finance.FinanceManager;
+import com.HelvetiCraft.requests.TransactionLogRequests;
+import com.HelvetiCraft.util.FinanceTransactionLogger;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -55,9 +57,13 @@ public class ShopTaxListener implements Listener {
 
             UUID sellerUUID = owner.getUniqueId();
 
+            TransactionLogRequests.prepareRequest("Shop-Buy-Transaction", client.getUniqueId(), sellerUUID, grossCents);
             // STEUERN VOM VERKÄUFER ABZIEHEN
-            financeManager.addToMain(sellerUUID, -totalTax);
-            financeManager.addToMain(ShopTaxManager.GOVERNMENT_UUID, totalTax);
+            FinanceTransactionLogger logger = new FinanceTransactionLogger(financeManager);
+            logger.logTransaction("Shop-Tax", sellerUUID, ShopTaxManager.GOVERNMENT_UUID, totalTax);
+
+            //financeManager.addToMain(sellerUUID, -totalTax);
+            //financeManager.addToMain(ShopTaxManager.GOVERNMENT_UUID, totalTax);
 
             chatFormatter.sendBuyMessage(client, ownerOnline, amount, itemName, grossCents, mwst, shopTax, net);
         }
@@ -77,9 +83,13 @@ public class ShopTaxListener implements Listener {
                 return;
             }
 
+            TransactionLogRequests.prepareRequest("Shop-Sell-Transaction", owner.getUniqueId(), sellerUUID, grossCents);
             // STEUERN VOM SPIELER (Verkäufer) ABZIEHEN
-            financeManager.addToMain(sellerUUID, -totalTax);
-            financeManager.addToMain(ShopTaxManager.GOVERNMENT_UUID, totalTax);
+            FinanceTransactionLogger logger = new FinanceTransactionLogger(financeManager);
+            logger.logTransaction("Shop-Tax", sellerUUID, ShopTaxManager.GOVERNMENT_UUID, totalTax);
+
+            //financeManager.addToMain(sellerUUID, -totalTax);
+            //financeManager.addToMain(ShopTaxManager.GOVERNMENT_UUID, totalTax);
 
             chatFormatter.sendSellMessage(client, ownerOnline, amount, itemName, grossCents, mwst, shopTax, net);
         }
