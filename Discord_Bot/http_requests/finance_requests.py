@@ -5,6 +5,6 @@ def get_finance_data_request(user_id: int):
     return {
         "user_id": user_id,
         "balance": 12345,
-        "income": 500,
-        "expenses": 120,
+        "savings": 500,
+        "total": 120,
     }
