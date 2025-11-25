@@ -129,7 +129,7 @@ async def setup(bot: commands.Bot):
         players = get_all_networths_request()
         embed = discord.Embed(title="Player Networth", color=discord.Color.green())
         for p in players:
-            embed.add_field(name=p["name"], value=f"{p['amount']:,} coins", inline=False)
+            embed.add_field(name=p["name"], value=f"{p['amount']:,} CHF", inline=False)
         embed.set_footer(text="Networth snapshot")
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
@@ -138,12 +138,12 @@ async def setup(bot: commands.Bot):
     async def finance(interaction: discord.Interaction):
         data = get_finance_data_request(interaction.user.id)
         embed = discord.Embed(
-            title=f"Finance for {interaction.user.display_name}",
+            title=f"Finanzen für {interaction.user.display_name}",
             color=discord.Color.blue(),
         )
-        embed.add_field(name="Balance", value=f"{data['balance']:,} coins", inline=True)
-        embed.add_field(name="Income / day", value=f"{data['income']:,}", inline=True)
-        embed.add_field(name="Expenses / day", value=f"{data['expenses']:,}", inline=True)
+        embed.add_field(name="Saldo", value=f"{data['balance']:,} CHF", inline=True)
+        embed.add_field(name="Ersparnisse", value=f"{data['savings']:,} CHF", inline=True)
+        embed.add_field(name="Total", value=f"{data['total']:,} CHF", inline=True)
         embed.set_footer(text="Data is placeholder — connect a data source to show real stats")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
