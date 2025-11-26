@@ -23,35 +23,41 @@ export async function verifyAuth(req, res, next) {
   try {
 
     // 🟢 1. Minecraft
-    if (origin === "minecraft") {
+    // 🟢 Minecraft mit Header "MINECRAFT_API_KEY"
+if (origin === "minecraft") {
 
-      if (!auth.startsWith("Minecraft ")) {
-        return res.status(403).json({ error: "invalid_auth_scheme_for_minecraft" });
-      }
+  const key = req.headers["minecraft_api_key"];
+  if (!key) {
+    return res.status(400).json({ error: "missing_minecraft_api_key_header" });
+  }
 
-      const key = auth.slice(10).trim();
-      if (key !== MINECRAFT_API_KEY) {
-        return res.status(403).json({ error: "invalid_minecraft_key" });
-      }
+  if (key !== MINECRAFT_API_KEY) {
+    return res.status(403).json({ error: "invalid_minecraft_key" });
+  }
 
-      const uuid = req.headers["x-uuid"];
-      if (!uuid) {
-        return res.status(400).json({ error: "missing_minecraft_uuid" });
-      }
+  const uuid = req.headers["x-uuid"];
+  if (!uuid) {
+    return res.status(400).json({ error: "missing_minecraft_uuid" });
+  }
 
-      const [rows] = await pool.query(
-        "SELECT id, username, discord_id FROM authme WHERE uuid = ?",
-        [uuid]
-      );
+  const [rows] = await pool.query(
+    "SELECT id, username, discord_id FROM authme WHERE uuid = ?",
+    [uuid]
+  );
 
-      if (rows.length === 0) {
-        return res.status(404).json({ error: "minecraft_user_not_found" });
-      }
+  if (rows.length === 0) {
+    return res.status(404).json({ error: "minecraft_user_not_found" });
+  }
 
-      req.user = rows[0];
-      req.source = "minecraft";
-      return next();
-    }
+  req.user = {
+    id: rows[0].id,
+    username: rows[0].username,
+    discord_id: rows[0].discord_id
+  };
+
+  req.source = "minecraft";
+  return next();
+}
 
 
     // 🟣 2. Discord Bot
