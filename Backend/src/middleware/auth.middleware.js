@@ -16,7 +16,7 @@ export async function verifyAuth(req, res, next) {
   }
 
   if (!auth) {
-    return res.status(401).json({ error: "missing_authorization_header" });
+    return res.status(403).json({ error: "missing_authorization_header" });
   }
 
 
