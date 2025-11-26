@@ -1,6 +1,6 @@
 import { Router } from "express";
 import pool from "../services/mysql.service.js";
-import { requireAuth, identifySource } from "../middleware/auth.middleware.js";
+import { verifyAuth } from "../middleware/auth.middleware.js";
 
 const r = Router();
 
@@ -49,7 +49,7 @@ r.get("/:id", async (req, res, next) => {
  * Neue Initiative (Website / Minecraft / Discord)
  * POST /initiatives
  */
-r.post("/create", identifySource, async (req, res, next) => {
+r.post("/create", verifyAuth, async (req, res, next) => {
   const { title, description } = req.body;
   const { id: author_id, username, source } = req.user;
 
@@ -80,7 +80,7 @@ r.post("/create", identifySource, async (req, res, next) => {
  * Initiative bearbeiten (nur eigene / authentifiziert)
  * PUT /initiatives/edit/:id
  */
-r.put("/edit/:id", requireAuth, async (req, res, next) => {
+r.put("/edit/:id", verifyAuth, async (req, res, next) => {
   const { title, description, status } = req.body;
   const userId = req.user.sub;
 
@@ -105,7 +105,7 @@ r.put("/edit/:id", requireAuth, async (req, res, next) => {
  * Initiative löschen (nur eigene / authentifiziert)
  * DELETE /initiatives/del/:id
  */
-r.delete("/del/:id", requireAuth, async (req, res, next) => {
+r.delete("/del/:id", verifyAuth, async (req, res, next) => {
   const userId = req.user.sub;
   try {
     const [check] = await pool.query("SELECT author_id FROM initiatives WHERE id=?", [req.params.id]);
