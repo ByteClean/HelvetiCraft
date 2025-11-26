@@ -51,7 +51,7 @@ r.get("/:id", async (req, res, next) => {
  */
 r.post("/create", verifyAuth, async (req, res, next) => {
   const { title, description } = req.body;
-  const { id: author_id, username, source } = req.user;
+  const { id: author_id, username } = req.user;
 
   try {
     const [result] = await pool.query(
@@ -66,7 +66,6 @@ r.post("/create", verifyAuth, async (req, res, next) => {
       title,
       description,
       status: "1",
-      created_via: source
     });
   } catch (err) {
     if (err.code === "ER_NO_REFERENCED_ROW_2") {
