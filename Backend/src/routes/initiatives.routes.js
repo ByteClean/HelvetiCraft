@@ -65,7 +65,7 @@ r.post("/create", verifyAuth, async (req, res, next) => {
       username,
       title,
       description,
-      status: "draft",
+      status: "1",
       created_via: source
     });
   } catch (err) {
