@@ -16,13 +16,34 @@ export async function verifyAuth(req, res, next) {
   try {
     /** 🟢 Minecraft → KEY, kein JWT */
     if (header.startsWith("Minecraft ")) {
-      const key = header.slice(10).trim();
-      if (key !== MINECRAFT_API_KEY) {
+    const key = header.slice(10).trim();
+    if (key !== MINECRAFT_API_KEY) {
         return res.status(403).json({ error: "invalid_minecraft_key" });
-      }
-      req.source = "minecraft";
-      return next();
     }
+
+    const uuid = req.headers["x-uuid"];
+    if (!uuid) {
+        return res.status(400).json({ error: "missing_minecraft_uuid" });
+    }
+
+    const [rows] = await pool.query(
+        "SELECT id, username, discord_id FROM authme WHERE uuid = ?",
+        [uuid]
+    );
+
+    if (rows.length === 0) {
+        return res.status(404).json({ error: "minecraft_user_not_found" });
+    }
+
+    req.user = {
+        id: rows[0].id,
+        username: rows[0].username,
+        discord_id: rows[0].discord_id
+    };
+    req.source = "minecraft";
+    return next();
+}
+
 
     /** 🟣 Discord → Bot KEY */
     if (header.startsWith("Bot ")) {
