@@ -9,7 +9,7 @@ const MINECRAFT_API_KEY = process.env.MINECRAFT_API_KEY;
 export async function verifyAuth(req, res, next) {
 
   const origin = req.headers["x-auth-from"];
-  const auth = req.headers.authorization;
+  const auth = req.headers["MINECRAFT_API_KEY"];
 
   if (!origin) {
     return res.status(400).json({ error: "missing_x-auth-from_header" });
