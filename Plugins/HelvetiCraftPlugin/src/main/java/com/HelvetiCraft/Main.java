@@ -38,6 +38,13 @@ public class Main extends JavaPlugin {
         getLogger().info("HelvetiCraft Plugin has been enabled!");
         saveDefaultConfig();
 
+        // Read from config.yml
+        String apiBase = getConfig().getString("initiatives_api_base");
+        String apiKey = getConfig().getString("minecraft_api_key");
+        getLogger().info("API Base: " + apiBase);
+
+        InitiativeRequests.init(apiBase, apiKey);
+
         // === Initialization ===
         AdminRequests.init(this);
 

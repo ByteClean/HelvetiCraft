@@ -8,6 +8,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 
+import java.util.UUID;
+
 public class StatusCommand implements CommandExecutor {
 
     private final Main plugin;
@@ -35,9 +37,10 @@ public class StatusCommand implements CommandExecutor {
         int max = Bukkit.getMaxPlayers();
         sender.sendMessage("§aServer Online: §e" + online + "/" + max);
 
-        // Fetch from InitiativeRequests instead of InitiativeManager
-        int totalInitiatives = InitiativeRequests.getAllInitiatives().size();
-        int totalVotes = InitiativeRequests.getAllInitiatives().stream()
+        UUID uuid = sender instanceof org.bukkit.entity.Player p ? p.getUniqueId() : null;
+
+        int totalInitiatives = InitiativeRequests.getAllInitiatives(uuid).size();
+        int totalVotes = InitiativeRequests.getAllInitiatives(uuid).stream()
                 .mapToInt(Initiative::getVotes)
                 .sum();
 
