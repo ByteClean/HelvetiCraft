@@ -22,8 +22,8 @@ public class InitiativeMenu {
     }
 
     public void open(Player player, int page) {
-        int phase = InitiativeRequests.getCurrentPhase();
-        List<Initiative> initiatives = new ArrayList<>(InitiativeRequests.getAllInitiatives());
+        int phase = InitiativeRequests.getCurrentPhase(player.getUniqueId());
+        List<Initiative> initiatives = new ArrayList<>(InitiativeRequests.getAllInitiatives(player.getUniqueId()));
 
         if (phase == 1) {
             openPhase1(player, page, initiatives);

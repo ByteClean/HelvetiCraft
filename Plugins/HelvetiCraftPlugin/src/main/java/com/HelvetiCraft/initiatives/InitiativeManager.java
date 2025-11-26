@@ -56,7 +56,7 @@ public class InitiativeManager implements Listener {
         if (raw < 0 || raw >= topSize) return;
 
         event.setCancelled(true);
-        int phase = InitiativeRequests.getCurrentPhase();
+        int phase = InitiativeRequests.getCurrentPhase(player.getUniqueId());
 
         // Main Initiative Menu
         if (title.startsWith("§6Volksinitiativen")) {
@@ -113,7 +113,7 @@ public class InitiativeManager implements Listener {
                     String selected = selectedInitiative.get(player.getUniqueId());
                     if (selected == null) player.sendMessage("§cBitte wähle zuerst eine Initiative aus!");
                     else {
-                        InitiativeRequests.deleteInitiative(selected);
+                        InitiativeRequests.deleteInitiative(selected, player.getUniqueId());
                         player.sendMessage("§cDeine Initiative wurde gelöscht: §b" + selected);
                         selectedInitiative.remove(player.getUniqueId());
                         openOwnInitiativesMenu(player);
@@ -155,7 +155,7 @@ public class InitiativeManager implements Listener {
 
             if (it.getType() == Material.PAPER || it.getType() == Material.ENCHANTED_BOOK) {
                 String t = stripColorPrefix(name);
-                Initiative in = InitiativeRequests.getInitiative(t);
+                Initiative in = InitiativeRequests.getInitiative(t, player.getUniqueId());
                 if (in == null) continue;
 
                 ItemStack newItem = selectedTitle != null && selectedTitle.equals(t)
@@ -205,7 +205,7 @@ public class InitiativeManager implements Listener {
         // Show all initiatives for the player regardless of phase
         selectedInitiative.remove(player.getUniqueId());
         List<Initiative> own = new ArrayList<>();
-        for (Initiative i : InitiativeRequests.getAllInitiatives()) {
+        for (Initiative i : InitiativeRequests.getAllInitiatives(player.getUniqueId())) {
             if (i.getAuthor().equalsIgnoreCase(player.getName()))
                 own.add(i);
         }
@@ -261,7 +261,7 @@ public class InitiativeManager implements Listener {
                     if (slot != AnvilGUI.Slot.OUTPUT) return Collections.emptyList();
                     String desc = state.getText();
                     if (desc == null || desc.trim().isEmpty()) return List.of(AnvilGUI.ResponseAction.replaceInputText("§cBeschreibung darf nicht leer sein!"));
-                    InitiativeRequests.createInitiative(new Initiative(title, desc.trim(), player.getName()));
+                    InitiativeRequests.createInitiative(new Initiative(title, desc.trim(), player.getName()), player.getUniqueId());
                     player.sendMessage("§aVolksinitiative erstellt: §b" + title);
                     player.getScheduler().run(plugin, task -> openInitiativeMenu(player), null);
                     return List.of(AnvilGUI.ResponseAction.close());

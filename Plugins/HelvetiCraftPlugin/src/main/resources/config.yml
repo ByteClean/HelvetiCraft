@@ -3,3 +3,6 @@ DISCORD_URL: "https://discord.gg/q2mMrXad9h"
 WEBSITE_URL: "https://helveticraft.com"
 NEXT_UPDATE: "2025-10-01"
 PROJECT_STAGE: "Alpha / Early Development"
+
+initiatives_api_base: "http://helveticraft-backend:3000"
+minecraft_api_key: <secret-key>

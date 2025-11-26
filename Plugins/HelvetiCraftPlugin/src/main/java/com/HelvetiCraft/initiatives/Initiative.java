@@ -1,6 +1,7 @@
 package com.HelvetiCraft.initiatives;
 
 public class Initiative {
+    private String id; // NEW FIELD
     private final String title;
     private String description;
     private final String author;
@@ -13,18 +14,34 @@ public class Initiative {
     private int votesFor;
     private int votesAgainst;
 
-    public Initiative(String title, String description, String author) {
+    private String createdAt;
+
+    public Initiative(String id, String title, String description, String author) {
+        this.id = id;
         this.title = title;
         this.description = description;
         this.author = author;
         this.phase = 1;
     }
 
+    // Constructor used for new initiatives before backend assigns ID
+    public Initiative(String title, String description, String author) {
+        this.title = title;
+        this.description = description;
+        this.author = author;
+        this.phase = 1;
+        this.id = null; // backend will assign
+    }
+
+    // --- ID getter/setter ---
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+
+    // --- other getters/setters ---
     public String getTitle() { return title; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
     public String getAuthor() { return author; }
-
     public int getPhase() { return phase; }
     public void setPhase(int phase) { this.phase = phase; }
 
@@ -38,4 +55,7 @@ public class Initiative {
     public void voteAgainst() { votesAgainst++; }
     public void decrementVoteFor() { if (votesFor > 0) votesFor--; }
     public void decrementVoteAgainst() { if (votesAgainst > 0) votesAgainst--; }
+
+    public String getCreatedAt() { return createdAt; }
+    public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 }

@@ -36,7 +36,7 @@ public class InitiativeExpansion extends PlaceholderExpansion {
     public String onRequest(OfflinePlayer player, @NotNull String params) {
             if (player == null) return "";
 
-            int phase = InitiativeRequests.getCurrentPhase();
+            int phase = InitiativeRequests.getCurrentPhase(player.getUniqueId());
             String param = params.toLowerCase();
 
             switch (param) {
@@ -47,7 +47,7 @@ public class InitiativeExpansion extends PlaceholderExpansion {
                     // Count initiatives authored by this player (author is stored as name)
                     String playerName = player.getName();
                     if (playerName == null) return "0";
-                    long count = InitiativeRequests.getAllInitiatives().stream()
+                    long count = InitiativeRequests.getAllInitiatives(player.getUniqueId()).stream()
                             .filter(i -> i.getAuthor().equalsIgnoreCase(playerName))
                             .count();
                     return String.valueOf(count);
