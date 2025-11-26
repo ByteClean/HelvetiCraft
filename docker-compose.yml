@@ -22,6 +22,36 @@ services:
       - ./Backend/.env
     # Use the image CMD (node src/server.js) so we don't run dev startup
 
+  discord-bot:
+    build: ./Discord_Bot
+    container_name: helveticraft-discord-bot
+    env_file:
+      - ./Discord_Bot/.env
+    restart: unless-stopped
+    volumes:
+      - ./Discord_Bot:/app
+    working_dir: /app
+    ports:
+      - "8081:8081"
+    command: ["python", "bot.py"]
+
+  minecraft-server:
+    image: eclipse-temurin:21-jdk
+    container_name: helveticraft-mc-server
+    restart: unless-stopped
+    volumes:
+      - mc_server:/app/server
+      - ./Plugins:/app/data/plugins
+    working_dir: /app/server
+    environment:
+      EULA: "TRUE"
+    ports:
+      - "25565:25565"      # Minecraft server port
+      - "24454:24454/udp"      # Voice chat port
+      - "8080:8080"        # Pl3xMap port
+    depends_on:
+      - mariadb
+    command: ["java", "-Xms2G", "-Xmx2G", "-jar", "server.jar", "--nogui"]
 
   mariadb:
     image: mariadb:11
