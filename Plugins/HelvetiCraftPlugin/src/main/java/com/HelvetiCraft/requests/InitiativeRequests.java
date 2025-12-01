@@ -40,7 +40,7 @@ public class InitiativeRequests {
                     .uri(URI.create(API_BASE + "/initiatives/all"))
                     .GET()
                     .header("x-auth-from", "minecraft")
-                    .header("MINECRAFT_API_KEY", API_KEY)
+                    .header("x-auth-key", API_KEY)
                     .header("x-uuid", playerId.toString())
                     .header("Content-Type", "application/json")
                     .build();
@@ -70,7 +70,7 @@ public class InitiativeRequests {
                     .uri(URI.create(API_BASE + "/initiatives/" + URLEncoder.encode(id, StandardCharsets.UTF_8)))
                     .GET()
                     .header("x-auth-from", "minecraft")
-                    .header("MINECRAFT_API_KEY", API_KEY)
+                    .header("x-auth-key", API_KEY)
                     .header("x-uuid", playerId.toString())
                     .header("Content-Type", "application/json")
                     .build();
@@ -107,7 +107,7 @@ public class InitiativeRequests {
                     .uri(URI.create(API_BASE + "/initiatives/create"))
                     .POST(HttpRequest.BodyPublishers.ofString(json))
                     .header("x-auth-from", "minecraft")
-                    .header("MINECRAFT_API_KEY", API_KEY)
+                    .header("x-auth-key", API_KEY)
                     .header("x-uuid", playerId.toString())
                     .header("Content-Type", "application/json")
                     .build();
@@ -131,7 +131,7 @@ public class InitiativeRequests {
                     .uri(URI.create(API_BASE + "/initiatives/del/" + initiativeId))
                     .DELETE()
                     .header("x-auth-from", "minecraft")
-                    .header("MINECRAFT_API_KEY", API_KEY)
+                    .header("x-auth-key", API_KEY)
                     .header("x-uuid", playerId.toString())
                     .header("Content-Type", "application/json")
                     .build();
@@ -158,7 +158,7 @@ public class InitiativeRequests {
                     .uri(URI.create(API_BASE + "/initiative/status"))
                     .GET()
                     .header("x-auth-from", "minecraft")
-                    .header("MINECRAFT_API_KEY", API_KEY)
+                    .header("x-auth-key", API_KEY)
                     .header("x-uuid", playerId.toString())
                     .header("Content-Type", "application/json")
                     .build();
@@ -236,7 +236,7 @@ public class InitiativeRequests {
                     .uri(URI.create(API_BASE + "/initiatives/vote/" + encoded))
                     .POST(HttpRequest.BodyPublishers.ofString(json))
                     .header("x-auth-from", "minecraft")
-                    .header("MINECRAFT_API_KEY", API_KEY)
+                    .header("x-auth-key", API_KEY)
                     .header("x-uuid", playerId.toString())
                     .header("Content-Type", "application/json")
                     .build();
@@ -290,7 +290,7 @@ public class InitiativeRequests {
                     .uri(URI.create(API_BASE + "/initiatives/vote/" + encoded))
                     .POST(HttpRequest.BodyPublishers.ofString(json))
                     .header("x-auth-from", "minecraft")
-                    .header("MINECRAFT_API_KEY", API_KEY)
+                    .header("x-auth-key", API_KEY)
                     .header("x-uuid", playerId.toString())
                     .header("Content-Type", "application/json")
                     .build();

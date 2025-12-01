@@ -71,6 +71,7 @@ public class QuizManager {
             if (message.equalsIgnoreCase(ans)) {
 
                 hasWinner = true;
+                ranking.remove(player.getName());
                 ranking.add(player.getName());
 
                 Bukkit.broadcastMessage(ChatColor.GREEN
@@ -95,31 +96,29 @@ public class QuizManager {
     private void updateRanks() {
         if (perms == null) return;
 
-        // Remove all quiz groups first
+        // Remove all quiz-related groups from all players
         for (Player p : Bukkit.getOnlinePlayers()) {
             for (String group : RANK_GROUPS) {
                 perms.playerRemoveGroup("world", p.getName(), group);
             }
         }
 
-        // Assign top 4
+        // Assign each player ONLY their correct rank
         for (int i = 0; i < ranking.size() && i < RANK_GROUPS.size(); i++) {
 
             String playerName = ranking.get(i);
-            String group = RANK_GROUPS.get(i);
+            String newGroup = RANK_GROUPS.get(i);
 
-            perms.playerAddGroup("world", playerName, group);
+            // Assign correct rank
+            perms.playerAddGroup("world", playerName, newGroup);
+            Bukkit.getLogger().info("[Quiz] Assigned group '" + newGroup + "' to player '" + playerName + "'");
 
             Player p = Bukkit.getPlayer(playerName);
             if (p != null && p.isOnline()) {
-                p.sendMessage(ChatColor.YELLOW + "Du hast den Rang "
-                        + ChatColor.AQUA + "[" + group + "] "
-                        + ChatColor.YELLOW + "erhalten!");
+                p.sendMessage(ChatColor.YELLOW + "Du hast jetzt den Rang "
+                        + ChatColor.AQUA + "[" + newGroup + "]"
+                        + ChatColor.YELLOW + "!");
             }
-
-            // Logging rank assignment
-            Bukkit.getLogger().info("[Quiz] Assigned group '" + group +
-                    "' to player '" + playerName + "'");
         }
     }
 }
