@@ -9,6 +9,7 @@ import com.HelvetiCraft.initiatives.InitiativeManager;
 import com.HelvetiCraft.finance.FinanceManager;
 import com.HelvetiCraft.finance.FinanceJoinListener;
 import com.HelvetiCraft.economy.VaultEconomyBridge;
+import com.HelvetiCraft.quiz.QuizManager;
 import com.HelvetiCraft.requests.*;
 import com.HelvetiCraft.shop.ShopTaxListener;
 import com.HelvetiCraft.taxes.LandTaxManager;
@@ -29,6 +30,8 @@ public class Main extends JavaPlugin {
     private ClaimManager claimManager;
     private LandTaxManager landTaxManager;
     private VermoegensSteuerManager vermoegensSteuerManager;
+
+    private QuizManager quizManager;
 
     int intervalDays = TaxRequests.getLandSteuerIntervalDays();
     long intervalSeconds = intervalDays * 24L * 3600L;
@@ -53,6 +56,11 @@ public class Main extends JavaPlugin {
         claimManager = new ClaimManager(this, financeManager);
         landTaxManager = new LandTaxManager(this, financeManager);
         vermoegensSteuerManager = new VermoegensSteuerManager(this, financeManager);
+
+        // === QUIZ SYSTEM ===
+        quizManager = new QuizManager(this);
+        quizManager.start();
+        getLogger().info("[Quiz] QuizManager started and first question asked.");
 
         // === Placeholder Expansions ===
         new InitiativeExpansion().register();
