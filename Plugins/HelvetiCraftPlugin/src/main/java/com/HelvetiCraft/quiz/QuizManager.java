@@ -2,6 +2,7 @@ package com.HelvetiCraft.quiz;
 
 import com.HelvetiCraft.Main;
 import com.HelvetiCraft.requests.QuizRequests;
+import com.HelvetiCraft.util.SafeScheduler;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -46,12 +47,7 @@ public class QuizManager {
         askNewQuestion();
 
         // Schedule every 10 minutes
-        Bukkit.getScheduler().runTaskTimer(
-                plugin,
-                this::askNewQuestion,
-                20L * 600,
-                20L * 600
-        );
+        SafeScheduler.runRepeating(plugin, this::askNewQuestion, 20L * 600, 20L * 600);
     }
 
     private void askNewQuestion() {
