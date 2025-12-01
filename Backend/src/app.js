@@ -8,6 +8,7 @@ import { detectOrigin } from "./middleware/detectOrigin.js";
 import authRoutes from "./routes/auth.routes.js";
 import initiativesRoutes from "./routes/initiatives.routes.js";
 import newsRoutes from "./routes/news.routes.js";
+import { verifyAuth } from "./middleware/auth.middleware.js";
 //import financesRoutes from "./routes/finances.routes.js";
 //import statusRoutes from "./routes/status.routes.js";
 //import docsRoutes from "./routes/docs.routes.js";
@@ -20,7 +21,7 @@ app.use(express.json());
 app.use(morgan("dev"));
 
 app.get("/health", (req, res) => res.json({ ok: true }));
-
+app.use(verifyAuth); // gilt für ALLE NACHFOLGENDEN Routen
 app.use("/auth", authRoutes); // /login 
 app.use("/initiatives", initiativesRoutes); // /all /own /accepted /new /edit /del /vote/:id
 app.use("/news", newsRoutes); // /  /:id  /create ...
