@@ -153,6 +153,7 @@ public class InitiativeRequests {
     // --- Phase Management (status endpoint) ---
 
     public static int getCurrentPhase(UUID playerId) {
+        /*
         try {
             HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(API_BASE + "/initiative/status"))
@@ -182,6 +183,8 @@ public class InitiativeRequests {
             Thread.currentThread().interrupt();
         }
         // fallback to phase 1 if unknown
+
+         */
         return 1;
     }
 
