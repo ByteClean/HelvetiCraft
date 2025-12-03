@@ -54,6 +54,17 @@ r.post("/create", verifyAuth, async (req, res, next) => {
   const { id: author_id, username } = req.user;
 
   try {
+    // Prüfen ob Titel bereits existiert
+    const [exists] = await pool.query(
+      "SELECT id FROM initiatives WHERE title = ? LIMIT 1",
+      [title]
+    );
+
+    if (exists.length > 0) {
+      return res.status(409).json({ error: "title_already_exists" });
+    }
+
+    // Insert durchführen
     const [result] = await pool.query(
       "INSERT INTO initiatives (author_id, title, description) VALUES (?, ?, ?)",
       [author_id, title, description]
@@ -67,13 +78,12 @@ r.post("/create", verifyAuth, async (req, res, next) => {
       description,
       status: "1",
     });
+
   } catch (err) {
-    if (err.code === "ER_NO_REFERENCED_ROW_2") {
-      return res.status(400).json({ error: "invalid_author_id" });
-    }
     next(err);
   }
 });
+
 
 /**
  * Initiative bearbeiten (nur eigene / authentifiziert)
