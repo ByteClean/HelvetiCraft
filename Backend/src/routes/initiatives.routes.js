@@ -105,18 +105,30 @@ r.put("/edit/:id", verifyAuth, async (req, res, next) => {
  * DELETE /initiatives/del/:id
  */
 r.delete("/del/:id", verifyAuth, async (req, res, next) => {
-  const userId = req.user.sub;
+  const userId = req.user.id;   // FIX
+
   try {
-    const [check] = await pool.query("SELECT author_id FROM initiatives WHERE id=?", [req.params.id]);
-    if (check.length === 0) return res.status(404).json({ error: "not_found" });
+    const [check] = await pool.query(
+      "SELECT author_id FROM initiatives WHERE id=?", 
+      [req.params.id]
+    );
+
+    if (check.length === 0)
+      return res.status(404).json({ error: "not_found" });
+
     if (check[0].author_id !== userId)
       return res.status(403).json({ error: "not_author" });
 
-    const [result] = await pool.query("DELETE FROM initiatives WHERE id=?", [req.params.id]);
+    await pool.query(
+      "DELETE FROM initiatives WHERE id=?", 
+      [req.params.id]
+    );
+
     res.json({ id: req.params.id, deleted: true });
   } catch (err) {
     next(err);
   }
 });
+
 
 export default r;
