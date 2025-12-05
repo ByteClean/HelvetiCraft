@@ -6,6 +6,7 @@ import { detectOrigin } from "./middleware/detectOrigin.js";
 
 
 import authRoutes from "./routes/auth.routes.js";
+import phasesRouter from "./routes/phases.routes.js";
 import initiativesRoutes from "./routes/initiatives.routes.js";
 import newsRoutes from "./routes/news.routes.js";
 import { verifyAuth } from "./middleware/auth.middleware.js";
