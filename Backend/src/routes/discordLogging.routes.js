@@ -3,13 +3,17 @@ import http from "http";
 
 const r = Router();
 
+DiscordBotIp = process.env.DISCORD_BOT_IP
+
+DiscordBotPort = process.env.DISCORD_BOT_PORT
+
 function postToDiscordBot(payload) {
 	return new Promise((resolve, reject) => {
 		const data = JSON.stringify(payload);
 
 		const options = {
-			hostname: "127.0.0.1",
-			port: 8081,
+			hostname: DiscordBotIp,
+			port: DiscordBotPort,
 			path: "/made-admin",
 			method: "POST",
 			headers: {
