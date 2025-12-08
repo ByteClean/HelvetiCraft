@@ -1,6 +1,8 @@
 package com.HelvetiCraft.requests;
 
 import com.HelvetiCraft.initiatives.Initiative;
+import com.HelvetiCraft.initiatives.PhaseFileManager;
+import com.HelvetiCraft.initiatives.PhaseSchedule;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -28,6 +30,8 @@ public class InitiativeRequests {
         if (apiBase != null && !apiBase.isEmpty()) API_BASE = apiBase.replaceAll("/+$", "");
         if (apiKey != null) API_KEY = apiKey;
     }
+
+    private static PhaseSchedule cachedSchedule = null;
 
     private static final Map<UUID, Set<String>> playerVotesPhase1 = new ConcurrentHashMap<>();
     private static final Map<UUID, Map<String, Boolean>> playerVotesPhase2 = new ConcurrentHashMap<>();
@@ -153,39 +157,40 @@ public class InitiativeRequests {
     // --- Phase Management (status endpoint) ---
 
     public static int getCurrentPhase(UUID playerId) {
-        /*
-        try {
-            HttpRequest req = HttpRequest.newBuilder()
-                    .uri(URI.create(API_BASE + "/initiative/status"))
-                    .GET()
-                    .header("x-auth-from", "minecraft")
-                    .header("x-auth-key", API_KEY)
-                    .header("x-uuid", playerId.toString())
-                    .header("Content-Type", "application/json")
-                    .build();
 
-            HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
-            if (res.statusCode() >= 200 && res.statusCode() < 300) {
-                // Expect the body to be a number or a small JSON like {"phase":2}
-                String body = res.body().trim();
-                try {
-                    return Integer.parseInt(body);
-                } catch (NumberFormatException nfe) {
-                    try {
-                        Map<?,?> map = GSON.fromJson(body, Map.class);
-                        Object p = map.get("phase");
-                        if (p instanceof Number) return ((Number) p).intValue();
-                        if (p instanceof String) return Integer.parseInt((String) p);
-                    } catch (Exception ignored) {}
-                }
+        // Load from cache or file
+        if (cachedSchedule == null) {
+            cachedSchedule = PhaseFileManager.loadPhaseSchedule();
+
+            if (cachedSchedule == null) {
+                cachedSchedule = fetchPhaseScheduleFromBackendDummy();
+                PhaseFileManager.savePhaseSchedule(cachedSchedule);
             }
-        } catch (IOException | InterruptedException e) {
-            Thread.currentThread().interrupt();
         }
-        // fallback to phase 1 if unknown
 
-         */
-        return 1;
+        // If the phase has reached "abschluss", refresh from backend
+        if (cachedSchedule.isExpired()) {
+            System.out.println("[HelvetiCraft] Phase expired → fetching new schedule.");
+            cachedSchedule = fetchPhaseScheduleFromBackendDummy();
+            PhaseFileManager.savePhaseSchedule(cachedSchedule);
+        }
+
+        // Always return fresh computed phase
+        return cachedSchedule.getCurrentPhase();
+    }
+
+
+    private static PhaseSchedule fetchPhaseScheduleFromBackendDummy() {
+        PhaseSchedule schedule = new PhaseSchedule();
+
+        Instant now = Instant.now();
+
+        schedule.setStart1(now);
+        schedule.setStart2(now.plusSeconds(4 * 86400));  // +4 days
+        schedule.setStart3(now.plusSeconds(8 * 86400));  // +8 days
+        schedule.setAbschluss(now.plusSeconds(12 * 86400)); // +12 days
+
+        return schedule;
     }
 
     public static boolean canCreateInitiative(UUID playerId, String playerName) {

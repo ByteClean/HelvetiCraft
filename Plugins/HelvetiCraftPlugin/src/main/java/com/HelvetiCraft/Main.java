@@ -9,6 +9,7 @@ import com.HelvetiCraft.initiatives.InitiativeManager;
 import com.HelvetiCraft.finance.FinanceManager;
 import com.HelvetiCraft.finance.FinanceJoinListener;
 import com.HelvetiCraft.economy.VaultEconomyBridge;
+import com.HelvetiCraft.initiatives.PhaseFileManager;
 import com.HelvetiCraft.quiz.QuizListener;
 import com.HelvetiCraft.quiz.QuizManager;
 import com.HelvetiCraft.requests.*;
@@ -48,6 +49,8 @@ public class Main extends JavaPlugin {
         getLogger().info("API Base: " + apiBase);
 
         InitiativeRequests.init(apiBase, apiKey);
+
+        PhaseFileManager.init(getDataFolder());
 
         // === Initialization ===
         AdminRequests.init(this);
