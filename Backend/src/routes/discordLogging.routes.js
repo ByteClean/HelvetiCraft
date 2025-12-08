@@ -48,7 +48,9 @@ function buildPayload({ playername, playerId, reason, expires, at, previous_role
 // Upgrade to admin (give admin rights)
 r.post("/upgrade-admin", async (req, res, next) => {
 	try {
-		const { playername, playerId, reason, expires, at } = req.body;
+		const { playername, playerId, reason, expires, at } = req.body || {};
+
+		if (!playername) console.warn("discord-logging: upgrade-admin called without playername in body");
 
 		const payload = buildPayload({
 			playername,
@@ -56,9 +58,9 @@ r.post("/upgrade-admin", async (req, res, next) => {
 			reason,
 			expires,
 			at,
-			previous_role: req.body.previous_role || "Player",
-			new_role: req.body.new_role || "Administrator",
-			username: req.body.username,
+			previous_role: (req.body && req.body.previous_role) || "Player",
+			new_role: (req.body && req.body.new_role) || "Administrator",
+			username: req.body && req.body.username,
 		});
 
 		const result = await postToDiscordBot(payload);
@@ -71,7 +73,9 @@ r.post("/upgrade-admin", async (req, res, next) => {
 // Downgrade from admin (remove admin rights)
 r.post("/downgrade-admin", async (req, res, next) => {
 	try {
-		const { playername, playerId, reason, expires, at } = req.body;
+		const { playername, playerId, reason, expires, at } = req.body || {};
+
+		if (!playername) console.warn("discord-logging: downgrade-admin called without playername in body");
 
 		const payload = buildPayload({
 			playername,
@@ -79,9 +83,9 @@ r.post("/downgrade-admin", async (req, res, next) => {
 			reason,
 			expires,
 			at,
-			previous_role: req.body.previous_role || "Administrator",
-			new_role: req.body.new_role || "Player",
-			username: req.body.username,
+			previous_role: (req.body && req.body.previous_role) || "Administrator",
+			new_role: (req.body && req.body.new_role) || "Player",
+			username: req.body && req.body.username,
 		});
 
 		const result = await postToDiscordBot(payload);

@@ -7,6 +7,8 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.bukkit.plugin.java.JavaPlugin;
 import java.util.logging.Logger;
 
@@ -20,6 +22,7 @@ public class AdminRequests {
     private static final DateTimeFormatter DF = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
     private static Logger logger;
     private static JavaPlugin pluginRef;
+    private static final ExecutorService executor = Executors.newCachedThreadPool();
 
     public static void init(JavaPlugin plugin) {
         logger = plugin.getLogger();
@@ -32,14 +35,14 @@ public class AdminRequests {
 
         if (pluginRef == null) return;
 
-        // perform network call asynchronously to avoid blocking main thread
-        pluginRef.getServer().getScheduler().runTaskAsynchronously(pluginRef, () -> {
-            try {
-                String base = pluginRef.getConfig().getString("initiatives_api_base", "http://127.0.0.1:3000");
-                String endpoint = base.replaceAll("/+$", "") + "/discord-logging/upgrade-admin";
+        // read config synchronously, then perform network call on executor to avoid Folia scheduler issues
+        final String base = pluginRef.getConfig().getString("initiatives_api_base", "http://127.0.0.1:3000");
+        final String endpoint = base.replaceAll("/+$", "") + "/discord-logging/upgrade-admin";
+        final String json = buildJsonPayload(playerId, playerName, reason, expires, "Player", "Administrator", null);
 
-                String json = buildJsonPayload(playerId, playerName, reason, expires, "Player", "Administrator", null);
-                sendPost(endpoint, json);
+        executor.submit(() -> {
+            try {
+                sendPost(endpoint, json, playerId);
             } catch (Exception e) {
                 logger.warning("[AdminRequests] Failed to send upgrade notification to backend: " + e.getMessage());
             }
@@ -52,15 +55,14 @@ public class AdminRequests {
 
         if (pluginRef == null) return;
 
-        pluginRef.getServer().getScheduler().runTaskAsynchronously(pluginRef, () -> {
-            try {
-                String base = pluginRef.getConfig().getString("initiatives_api_base", "http://127.0.0.1:3000");
-                String endpoint = base.replaceAll("/+$", "") + "/discord-logging/downgrade-admin";
+        final String base = pluginRef.getConfig().getString("initiatives_api_base", "http://127.0.0.1:3000");
+        final String endpoint = base.replaceAll("/+$", "") + "/discord-logging/downgrade-admin";
+        final String at = DF.format(Instant.now());
+        final String json = buildJsonPayload(playerId, playerName, reason, null, "Administrator", "Player", at);
 
-                // for downgrade we include the current time as "at" field
-                String at = DF.format(Instant.now());
-                String json = buildJsonPayload(playerId, playerName, reason, null, "Administrator", "Player", at);
-                sendPost(endpoint, json);
+        executor.submit(() -> {
+            try {
+                sendPost(endpoint, json, playerId);
             } catch (Exception e) {
                 logger.warning("[AdminRequests] Failed to send downgrade notification to backend: " + e.getMessage());
             }
@@ -70,34 +72,51 @@ public class AdminRequests {
     private static String buildJsonPayload(UUID playerId, String playerName, String reason, String expiresOrNull, String previousRole, String newRole, String atOrNull) {
         StringBuilder sb = new StringBuilder();
         sb.append('{');
+        // include fields backend expects: playername and playerId
+        sb.append("\"playername\":");
+        sb.append('"').append(escapeJson(playerName != null ? playerName : "Unknown")).append('"').append(',');
+        sb.append("\"playerId\":");
+        sb.append('"').append(playerId != null ? escapeJson(playerId.toString()) : "").append('"').append(',');
+
         sb.append("\"username\":");
         sb.append('"').append(playerName != null ? escapeJson(playerName + "#" + playerId.toString().substring(0, 4)) : "Unknown#0000").append('"').append(',');
+
         sb.append("\"minecraft_name\":");
         sb.append('"').append(escapeJson(playerName != null ? playerName : "Unknown")).append('"').append(',');
         sb.append("\"previous_role\":");
         sb.append('"').append(escapeJson(previousRole != null ? previousRole : "")).append('"').append(',');
         sb.append("\"new_role\":");
         sb.append('"').append(escapeJson(newRole != null ? newRole : "")).append('"').append(',');
+
+        // backend expects either `expires` or `at` fields; include whichever is provided
         if (expiresOrNull != null) {
-            sb.append("\"duration\":");
+            sb.append("\"expires\":");
             sb.append('"').append(escapeJson(expiresOrNull)).append('"').append(',');
         } else if (atOrNull != null) {
-            sb.append("\"duration\":");
+            sb.append("\"at\":");
             sb.append('"').append(escapeJson(atOrNull)).append('"').append(',');
-        } else {
-            sb.append("\"duration\":\"\"").append(',');
         }
+
         sb.append("\"reason\":");
         sb.append('"').append(escapeJson(reason != null ? reason : "")).append('"');
         sb.append('}');
         return sb.toString();
     }
 
-    private static void sendPost(String endpoint, String json) throws Exception {
+    private static void sendPost(String endpoint, String json, UUID playerId) throws Exception {
         URL url = new URL(endpoint);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("POST");
         conn.setRequestProperty("Content-Type", "application/json; utf-8");
+        // Add auth headers used elsewhere in the plugin/backend
+        try {
+            if (pluginRef != null) {
+                String apiKey = pluginRef.getConfig().getString("minecraft_api_key", "");
+                if (apiKey != null && !apiKey.isEmpty()) conn.setRequestProperty("x-auth-key", apiKey);
+            }
+        } catch (Exception ignored) {}
+        conn.setRequestProperty("x-auth-from", "minecraft");
+        if (playerId != null) conn.setRequestProperty("x-uuid", playerId.toString());
         conn.setDoOutput(true);
 
         byte[] out = json.getBytes("utf-8");
