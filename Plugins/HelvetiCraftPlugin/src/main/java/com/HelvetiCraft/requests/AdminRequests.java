@@ -3,6 +3,12 @@ package com.HelvetiCraft.requests;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import com.google.gson.Gson;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -23,6 +29,8 @@ public class AdminRequests {
     private static Logger logger;
     private static JavaPlugin pluginRef;
     private static final ExecutorService executor = Executors.newCachedThreadPool();
+    private static final Gson GSON = new Gson();
+    private static final HttpClient CLIENT = HttpClient.newBuilder().build();
 
     public static void init(JavaPlugin plugin) {
         logger = plugin.getLogger();
@@ -42,7 +50,18 @@ public class AdminRequests {
 
         executor.submit(() -> {
             try {
-                sendPost(endpoint, json, playerId);
+                // build payload map and send with HttpClient (consistent with InitiativeRequests)
+                var payload = new java.util.HashMap<String, Object>();
+                payload.put("playername", playerName != null ? playerName : "Unknown");
+                payload.put("playerId", playerId != null ? playerId.toString() : "");
+                payload.put("username", playerName != null ? playerName + "#" + (playerId != null ? playerId.toString().substring(0, 4) : "0000") : "Unknown#0000");
+                payload.put("minecraft_name", playerName != null ? playerName : "Unknown");
+                payload.put("previous_role", "Player");
+                payload.put("new_role", "Administrator");
+                payload.put("expires", expires);
+                payload.put("reason", reason != null ? reason : "");
+
+                sendPostWithHttpClient(endpoint, payload, playerId);
             } catch (Exception e) {
                 logger.warning("[AdminRequests] Failed to send upgrade notification to backend: " + e.getMessage());
             }
@@ -62,7 +81,17 @@ public class AdminRequests {
 
         executor.submit(() -> {
             try {
-                sendPost(endpoint, json, playerId);
+                var payload = new java.util.HashMap<String, Object>();
+                payload.put("playername", playerName != null ? playerName : "Unknown");
+                payload.put("playerId", playerId != null ? playerId.toString() : "");
+                payload.put("username", playerName != null ? playerName + "#" + (playerId != null ? playerId.toString().substring(0, 4) : "0000") : "Unknown#0000");
+                payload.put("minecraft_name", playerName != null ? playerName : "Unknown");
+                payload.put("previous_role", "Administrator");
+                payload.put("new_role", "Player");
+                payload.put("at", at);
+                payload.put("reason", reason != null ? reason : "");
+
+                sendPostWithHttpClient(endpoint, payload, playerId);
             } catch (Exception e) {
                 logger.warning("[AdminRequests] Failed to send downgrade notification to backend: " + e.getMessage());
             }
@@ -131,6 +160,36 @@ public class AdminRequests {
             logger.warning("[AdminRequests] Backend returned status " + status + " for endpoint " + endpoint);
         }
         conn.disconnect();
+    }
+
+    private static void sendPostWithHttpClient(String endpoint, java.util.Map<String, Object> payload, UUID playerId) {
+        try {
+            String json = GSON.toJson(payload);
+
+            HttpRequest.Builder builder = HttpRequest.newBuilder()
+                    .uri(URI.create(endpoint))
+                    .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                    .header("x-auth-from", "minecraft")
+                    .header("Content-Type", "application/json");
+
+            try {
+                if (pluginRef != null) {
+                    String apiKey = pluginRef.getConfig().getString("minecraft_api_key", "");
+                    if (apiKey != null && !apiKey.isEmpty()) builder.header("x-auth-key", apiKey);
+                }
+            } catch (Exception ignored) {}
+
+            if (playerId != null) builder.header("x-uuid", playerId.toString());
+
+            HttpRequest req = builder.build();
+            HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+            int status = res.statusCode();
+            if (status < 200 || status >= 300) {
+                logger.warning("[AdminRequests] Backend returned status " + status + " for endpoint " + endpoint + " body: " + res.body());
+            }
+        } catch (Exception e) {
+            logger.warning("[AdminRequests] sendPostWithHttpClient failed: " + e.getMessage());
+        }
     }
 
     private static String escapeJson(String s) {
