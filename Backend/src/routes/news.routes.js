@@ -28,7 +28,7 @@ r.post("/", async (req, res, next) => {
 
     const insertedId = result.insertId;
 
-    // Try to post to the Discord bot webhook so the announcement appears on Discord
+    let messageId = null;
     try {
       if (typeof fetch === "undefined") {
         // node <18: attempt dynamic import of node-fetch
@@ -45,7 +45,7 @@ r.post("/", async (req, res, next) => {
 
       if (resp.ok) {
         const j = await resp.json();
-        const messageId = j?.message_id ?? null;
+        messageId = j?.message_id ?? null;
         if (messageId) {
           await pool.query(
             "UPDATE news_posts SET discord_message_id = ? WHERE id = ?",
@@ -57,6 +57,7 @@ r.post("/", async (req, res, next) => {
       console.error("[news.routes] error posting to bot webhook:", err);
     }
 
+    // Always fetch the row after updating discord_message_id
     const [rows] = await pool.query(
       "SELECT * FROM news_posts WHERE id = ?",
       [insertedId]
