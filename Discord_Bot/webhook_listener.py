@@ -348,7 +348,7 @@ class WebhookListener(commands.Cog):
     
     
     async def handle_news_delete(self, request: web.Request):
-        """POST /news-delete -> deletes a news post by message_id."""
+        """POST /news-delete -> deletes a news post by message_id. If not found, tries prefix match ignoring last 4 digits."""
         try:
             data = await request.json()
             message_id_raw = data.get("message_id")
@@ -367,11 +367,22 @@ class WebhookListener(commands.Cog):
             if not news_channel:
                 return web.json_response({"error": "news channel not found"}, status=404)
 
+            # Try direct fetch first
+            msg = None
             try:
                 msg = await news_channel.fetch_message(message_id)
             except discord.NotFound:
-                print(f"[news-delete] message {message_id} not found in channel")
-                return web.json_response({"status": "not_found"}, status=404)
+                print(f"[news-delete] message {message_id} not found in channel, trying prefix match...")
+                # Try to find by prefix (ignore last 4 digits)
+                prefix = str(message_id)[:-4]
+                async for m in news_channel.history(limit=200):
+                    if str(m.id).startswith(prefix):
+                        msg = m
+                        print(f"[news-delete] Found message by prefix: {m.id}")
+                        break
+                if not msg:
+                    print(f"[news-delete] No message found with prefix {prefix}")
+                    return web.json_response({"status": "not_found"}, status=404)
             except discord.Forbidden:
                 print(f"[news-delete] missing permissions to fetch message {message_id}")
                 return web.json_response({"error": "forbidden to fetch message"}, status=403)
@@ -381,16 +392,16 @@ class WebhookListener(commands.Cog):
 
             try:
                 await msg.delete()
-                print(f"[news-delete] Deleted message {message_id}")
+                print(f"[news-delete] Deleted message {msg.id}")
                 return web.json_response({"status": "deleted"})
             except discord.NotFound:
-                print(f"[news-delete] message {message_id} already deleted")
+                print(f"[news-delete] message {msg.id} already deleted")
                 return web.json_response({"status": "not_found"}, status=404)
             except discord.Forbidden:
-                print(f"[news-delete] missing permissions to delete message {message_id}")
+                print(f"[news-delete] missing permissions to delete message {msg.id}")
                 return web.json_response({"error": "forbidden to delete message"}, status=403)
             except Exception as e:
-                print(f"[news-delete] error deleting message {message_id}: {e}")
+                print(f"[news-delete] error deleting message {msg.id}: {e}")
                 return web.json_response({"error": str(e)}, status=500)
         except Exception as e:
             print(f"[handle_news_delete error] {e}")
