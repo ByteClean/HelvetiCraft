@@ -173,16 +173,19 @@ r.delete("/:id", async (req, res, next) => {
 
     if (discordMessageId) {
       try {
+        // Log outgoing message_id and type
+        console.log(`[news.routes] Deleting Discord message_id:`, discordMessageId, `type:`, typeof discordMessageId);
         if (typeof fetch === "undefined") {
           const nf = await import("node-fetch");
           // @ts-ignore
           globalThis.fetch = nf.default;
         }
 
+        // Always send as stringified integer
         await fetch(`${BOT_BASE}/news-delete`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message_id: discordMessageId })
+          body: JSON.stringify({ message_id: String(discordMessageId) })
         });
       } catch (err) {
         console.error("[news.routes] error deleting message in bot webhook:", err);
