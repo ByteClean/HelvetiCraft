@@ -3,6 +3,10 @@ import pool from "../services/mysql.service.js";
 
 const r = Router();
 
+const BOT_IP = process.env.DISCORD_BOT_IP || "127.0.0.1";
+const BOT_PORT = process.env.DISCORD_BOT_PORT || "8081";
+const BOT_BASE = `http://${BOT_IP}:${BOT_PORT}`;
+
 /**
  * POST /news
  * Neue News erstellen
@@ -23,6 +27,35 @@ r.post("/", async (req, res, next) => {
     );
 
     const insertedId = result.insertId;
+
+    // Try to post to the Discord bot webhook so the announcement appears on Discord
+    try {
+      if (typeof fetch === "undefined") {
+        // node <18: attempt dynamic import of node-fetch
+        const nf = await import("node-fetch");
+        // @ts-ignore
+        globalThis.fetch = nf.default;
+      }
+
+      const resp = await fetch(`${BOT_BASE}/news-create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, content, author, image_url })
+      });
+
+      if (resp.ok) {
+        const j = await resp.json();
+        const messageId = j?.message_id ?? null;
+        if (messageId) {
+          await pool.query(
+            "UPDATE news_posts SET discord_message_id = ? WHERE id = ?",
+            [messageId, insertedId]
+          );
+        }
+      }
+    } catch (err) {
+      console.error("[news.routes] error posting to bot webhook:", err);
+    }
 
     const [rows] = await pool.query(
       "SELECT * FROM news_posts WHERE id = ?",
@@ -45,7 +78,7 @@ r.get("/", async (req, res, next) => {
     const offset = parseInt(req.query.offset, 10) || 0;
 
     const [rows] = await pool.query(
-      `SELECT id, title, author, image_url, created_at, updated_at
+      `SELECT id, title, content, author, image_url, discord_message_id, created_at, updated_at
        FROM news_posts
        ORDER BY created_at DESC
        LIMIT ? OFFSET ?`,
@@ -126,16 +159,46 @@ r.delete("/:id", async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
 
-    const [result] = await pool.query(
+    // Fetch the row to see if there's a discord_message_id to delete in Discord
+    const [rows] = await pool.query(
+      "SELECT discord_message_id FROM news_posts WHERE id = ?",
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "News nicht gefunden" });
+    }
+
+    const discordMessageId = rows[0].discord_message_id;
+
+    if (discordMessageId) {
+      try {
+        if (typeof fetch === "undefined") {
+          const nf = await import("node-fetch");
+          // @ts-ignore
+          globalThis.fetch = nf.default;
+        }
+
+        await fetch(`${BOT_BASE}/news-delete`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message_id: discordMessageId })
+        });
+      } catch (err) {
+        console.error("[news.routes] error deleting message in bot webhook:", err);
+      }
+    }
+
+    const [delRes] = await pool.query(
       "DELETE FROM news_posts WHERE id = ?",
       [id]
     );
 
-    if (result.affectedRows === 0) {
+    if (delRes.affectedRows === 0) {
       return res.status(404).json({ error: "News nicht gefunden" });
     }
 
-    return res.status(204).send(); // kein Content, nur Erfolg
+    return res.status(204).send();
   } catch (err) {
     next(err);
   }
