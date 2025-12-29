@@ -28,6 +28,7 @@ r.post("/", async (req, res, next) => {
 
     const insertedId = result.insertId;
 
+
     let messageId = null;
     try {
       if (typeof fetch === "undefined") {
@@ -46,12 +47,19 @@ r.post("/", async (req, res, next) => {
       if (resp.ok) {
         const j = await resp.json();
         messageId = j?.message_id ?? null;
-        if (messageId) {
+        console.log(`[news.routes] Bot returned messageId:`, messageId, `type:`, typeof messageId);
+        if (messageId && !isNaN(Number(messageId))) {
           await pool.query(
             "UPDATE news_posts SET discord_message_id = ? WHERE id = ?",
-            [messageId, insertedId]
+            [String(messageId), insertedId]
           );
+          console.log(`[news.routes] Saved discord_message_id to DB:`, messageId, `for news id:`, insertedId);
+        } else {
+          console.warn(`[news.routes] Bot did not return a valid messageId! Got:`, messageId);
         }
+      } else {
+        const errText = await resp.text();
+        console.error(`[news.routes] Bot webhook error:`, resp.status, errText);
       }
     } catch (err) {
       console.error("[news.routes] error posting to bot webhook:", err);
