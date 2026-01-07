@@ -7,6 +7,7 @@ import { detectOrigin } from "./middleware/detectOrigin.js";
 
 import authRoutes from "./routes/auth.routes.js";
 import phasesRouter from "./routes/phases.routes.js";
+import discordLoggingRoutes from "./routes/discordLogging.routes.js";
 import initiativesRoutes from "./routes/initiatives.routes.js";
 import newsRoutes from "./routes/news.routes.js";
 import { verifyAuth } from "./middleware/auth.middleware.js";
@@ -24,6 +25,7 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 app.use(detectOrigin); // gilt für ALLE Anfragen
 app.use(verifyAuth); // gilt für ALLE NACHFOLGENDEN Routen
 app.use("/phases", phasesRouter); // /current /advance
+app.use("/discord-logging", discordLoggingRoutes);
 app.use("/auth", authRoutes); // /login 
 app.use("/initiatives", initiativesRoutes); // /  /:id  /create ... /finalvote/...
 app.use("/news", newsRoutes); // /  /:id  /create ...

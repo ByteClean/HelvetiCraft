@@ -233,13 +233,12 @@ r.post("/vote/:id", verifyAuth, async (req, res, next) => {
     if (!rows[0].aktiv)
       return res.status(400).json({ error: "initiative_not_active" });
 
-    // Prüfen, ob Vote existiert
+    
     const [existing] = await pool.query(
       "SELECT id FROM votes WHERE initiative_id = ? AND user_id = ? LIMIT 1",
       [initiativeId, userId]
     );
 
-    // FALL 1: Vote existiert → entfernen
     if (existing.length > 0) {
       await pool.query(
         "DELETE FROM votes WHERE initiative_id = ? AND user_id = ?",

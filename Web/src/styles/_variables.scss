@@ -1,0 +1,24 @@
+// Pfade
+$ui: '/imgs/ui';
+$blocks: '/imgs/blocks';
+$items: '/imgs/items';
+
+// Texturen
+$bg-dirt: url('#{$blocks}/block-dirt.png');
+$grass-bar: url('#{$blocks}/grass-side.png');
+$panel: url('#{$ui}/panel.png');
+$panel-dark: url('#{$ui}/panel-dark.png');
+$button: url('#{$ui}/button.png');
+$button-hover: url('#{$ui}/button-border-hover.png');
+$button-active: url('#{$ui}/button-border-active.png');
+$slot: url('#{$ui}/slot.png');
+
+// Farben
+$primary: #3a8a2f;
+$accent: #b5882b;
+$text: #ffffff;
+$muted: #aaaaaa;
+
+// Layout
+$container-width: 1100px;
+$gutter: 1rem;

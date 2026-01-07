@@ -1,0 +1,21 @@
+@import '../../styles/_variables';
+@import '../../styles/_mixins';
+
+.site-footer {
+  margin-top: 2rem;
+  border-top: 8px solid #000;
+  padding-top: 0.5rem;
+
+  .footer-inner {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.6rem 0;
+    font-size: 12px;
+
+    a {
+      color: $text;
+      margin-left: 0.8rem;
+      text-decoration: none;
+    }
+  }
+}

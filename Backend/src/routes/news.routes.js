@@ -3,6 +3,10 @@ import pool from "../services/mysql.service.js";
 
 const r = Router();
 
+const BOT_IP = process.env.DISCORD_BOT_IP || "127.0.0.1";
+const BOT_PORT = process.env.DISCORD_BOT_PORT || "8081";
+const BOT_BASE = `http://${BOT_IP}:${BOT_PORT}`;
+
 /**
  * POST /news
  * Neue News erstellen
@@ -24,6 +28,44 @@ r.post("/", async (req, res, next) => {
 
     const insertedId = result.insertId;
 
+
+    let messageId = null;
+    try {
+      if (typeof fetch === "undefined") {
+        // node <18: attempt dynamic import of node-fetch
+        const nf = await import("node-fetch");
+        // @ts-ignore
+        globalThis.fetch = nf.default;
+      }
+
+      const resp = await fetch(`${BOT_BASE}/news-create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, content, author, image_url })
+      });
+
+      if (resp.ok) {
+        const j = await resp.json();
+        messageId = j?.message_id ?? null;
+        console.log(`[news.routes] Bot returned messageId:`, messageId, `type:`, typeof messageId);
+        if (messageId && !isNaN(Number(messageId))) {
+          await pool.query(
+            "UPDATE news_posts SET discord_message_id = ? WHERE id = ?",
+            [String(messageId), insertedId]
+          );
+          console.log(`[news.routes] Saved discord_message_id to DB:`, messageId, `for news id:`, insertedId);
+        } else {
+          console.warn(`[news.routes] Bot did not return a valid messageId! Got:`, messageId);
+        }
+      } else {
+        const errText = await resp.text();
+        console.error(`[news.routes] Bot webhook error:`, resp.status, errText);
+      }
+    } catch (err) {
+      console.error("[news.routes] error posting to bot webhook:", err);
+    }
+
+    // Always fetch the row after updating discord_message_id
     const [rows] = await pool.query(
       "SELECT * FROM news_posts WHERE id = ?",
       [insertedId]
@@ -45,7 +87,7 @@ r.get("/", async (req, res, next) => {
     const offset = parseInt(req.query.offset, 10) || 0;
 
     const [rows] = await pool.query(
-      `SELECT id, title, author, image_url, created_at, updated_at
+      `SELECT id, title, content, author, image_url, discord_message_id, created_at, updated_at
        FROM news_posts
        ORDER BY created_at DESC
        LIMIT ? OFFSET ?`,
@@ -126,16 +168,49 @@ r.delete("/:id", async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
 
-    const [result] = await pool.query(
+    // Fetch the row to see if there's a discord_message_id to delete in Discord
+    const [rows] = await pool.query(
+      "SELECT discord_message_id FROM news_posts WHERE id = ?",
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "News nicht gefunden" });
+    }
+
+    const discordMessageId = rows[0].discord_message_id;
+
+    if (discordMessageId) {
+      try {
+        // Log outgoing message_id and type
+        console.log(`[news.routes] Deleting Discord message_id:`, discordMessageId, `type:`, typeof discordMessageId);
+        if (typeof fetch === "undefined") {
+          const nf = await import("node-fetch");
+          // @ts-ignore
+          globalThis.fetch = nf.default;
+        }
+
+        // Always send as stringified integer
+        await fetch(`${BOT_BASE}/news-delete`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message_id: String(discordMessageId) })
+        });
+      } catch (err) {
+        console.error("[news.routes] error deleting message in bot webhook:", err);
+      }
+    }
+
+    const [delRes] = await pool.query(
       "DELETE FROM news_posts WHERE id = ?",
       [id]
     );
 
-    if (result.affectedRows === 0) {
+    if (delRes.affectedRows === 0) {
       return res.status(404).json({ error: "News nicht gefunden" });
     }
 
-    return res.status(204).send(); // kein Content, nur Erfolg
+    return res.status(204).send();
   } catch (err) {
     next(err);
   }
