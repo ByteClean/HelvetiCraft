@@ -92,7 +92,7 @@ Here's a blank template to get started: To avoid retyping too much info. Do a se
 
 ### Built With
 
-* [![Next][Next.js]][Next-url]
+* [![Node][Node.js]][Node-url]
 * [![React][React.js]][React-url]
 * [![Scss][Scss.js]][Scss-url]
 * [![JavaScript][JavaScript.js]][JavaScript-url]
@@ -232,8 +232,8 @@ Project Link: [https://github.com/ByteClean/HelvetiCraft](https://github.com/Byt
 [license-shield]: https://img.shields.io/github/license/ByteClean/HelvetiCraft.svg?style=for-the-badge
 [license-url]: https://github.com/ByteClean/HelvetiCraft/blob/master/LICENSE.txt
 [product-screenshot]: images/screenshot.png
-[Next.js]: https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
-[Next-url]: https://nextjs.org/
+[Node.js]: https://img.shields.io/badge/node.js-000000?style=for-the-badge&logo=nodedotjs&logoColor=green
+[Node-url]: https://nodejs.org/
 [React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
 [React-url]: https://reactjs.org/
 [Scss.js]: https://img.shields.io/badge/Sass-CC6699?style=for-the-badge&logo=sass&logoColor=white
