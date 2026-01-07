@@ -4,7 +4,7 @@ import pool from "../services/mysql.service.js";
 import bcrypt from "bcryptjs"; // AuthMe nutzt bcrypt-kompatible Hashes
 
 const r = Router();
-const JWT_SECRET = process.env.JWT_SECRET || "devsecret";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // 🟢 Login mit Benutzername + Passwort
 r.post("/login", async (req, res, next) => {
