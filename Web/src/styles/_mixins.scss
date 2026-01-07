@@ -1,0 +1,11 @@
+// src/styles/_mixins.scss
+@mixin container {
+  max-width: $container-width;
+  margin: 0 auto;
+  padding: 0 $gutter;
+}
+
+@mixin pixel-font {
+  font-family: 'Press Start 2P', monospace;
+  letter-spacing: 0.5px;
+}
