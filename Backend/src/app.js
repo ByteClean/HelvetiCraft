@@ -11,7 +11,7 @@ import discordLoggingRoutes from "./routes/discordLogging.routes.js";
 import initiativesRoutes from "./routes/initiatives.routes.js";
 import newsRoutes from "./routes/news.routes.js";
 import { verifyAuth } from "./middleware/auth.middleware.js";
-//import financesRoutes from "./routes/finances.routes.js";
+import financesRoutes from "./routes/finances.routes.js";
 //import statusRoutes from "./routes/status.routes.js";
 //import docsRoutes from "./routes/docs.routes.js";
 
