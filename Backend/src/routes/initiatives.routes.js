@@ -1,4 +1,3 @@
-// src/routes/initiatives.routes.js
 import { Router } from "express"; 
 import pool from "../services/mysql.service.js";
 import { verifyAuth } from "../middleware/auth.middleware.js";
@@ -6,10 +5,7 @@ import { getCurrentPhase } from "../utils/phases.util.js";
 
 const r = Router();
 
-/* -----------------------------------------------------------
- * GET /initiatives, /initiatives/all
- * Nur aktive Initiativen, dynamische Vote-Zaehler
- * ----------------------------------------------------------- */
+
 r.get(["/", "/all"], async (req, res, next) => {
   try {
     const [initiatives] = await pool.query(`
@@ -50,9 +46,6 @@ r.get(["/", "/all"], async (req, res, next) => {
   }
 });
 
-/* -----------------------------------------------------------
- * GET /initiatives/:id (nur aktive)
- * ----------------------------------------------------------- */
 r.get("/:id", async (req, res, next) => {
   try {
     const [rows] = await pool.query(
@@ -97,10 +90,7 @@ r.get("/:id", async (req, res, next) => {
   }
 });
 
-/* -----------------------------------------------------------
- * POST /initiatives/create
- * Nur in Phase 0 (normales Voting) erlaubt
- * ----------------------------------------------------------- */
+
 r.post("/create", verifyAuth, async (req, res, next) => {
   const { title, description } = req.body;
   const { id: author_id, username } = req.user;
@@ -141,10 +131,7 @@ r.post("/create", verifyAuth, async (req, res, next) => {
   }
 });
 
-/* -----------------------------------------------------------
- * PUT /initiatives/edit/:id
- * Nur eigene, nur aktiv, nur in Phase 0
- * ----------------------------------------------------------- */
+
 r.put("/edit/:id", verifyAuth, async (req, res, next) => {
   const { title, description } = req.body;
   const userId = req.user.id;
@@ -183,10 +170,7 @@ r.put("/edit/:id", verifyAuth, async (req, res, next) => {
   }
 });
 
-/* -----------------------------------------------------------
- * DELETE /initiatives/del/:id
- * Nur eigene, nur aktiv, nur in Phase 0
- * ----------------------------------------------------------- */
+
 r.delete("/del/:id", verifyAuth, async (req, res, next) => {
   const userId = req.user.id;
 
@@ -221,10 +205,7 @@ r.delete("/del/:id", verifyAuth, async (req, res, next) => {
   }
 });
 
-/* -----------------------------------------------------------
- * POST /initiatives/vote/:id
- * Normale Votes — nur in Phase 0, nur aktive Initiativen
- * ----------------------------------------------------------- */
+
 r.post("/vote/:id", verifyAuth, async (req, res, next) => {
   const initiativeId = Number(req.params.id);
   const userId = req.user.id;
@@ -271,6 +252,7 @@ r.post("/vote/:id", verifyAuth, async (req, res, next) => {
       });
     }
 
+    // FALL 2: Noch kein Vote → hinzufügen
     await pool.query(
       "INSERT INTO votes (initiative_id, user_id) VALUES (?, ?)",
       [initiativeId, userId]
@@ -286,10 +268,8 @@ r.post("/vote/:id", verifyAuth, async (req, res, next) => {
   }
 });
 
-/* -----------------------------------------------------------
- * GET /initiatives/:id/votes
- * Normale Votes
- * ----------------------------------------------------------- */
+
+
 r.get("/:id/votes", async (req, res, next) => {
   const initiativeId = Number(req.params.id);
 
@@ -322,9 +302,6 @@ r.get("/:id/votes", async (req, res, next) => {
   }
 });
 
-/* -----------------------------------------------------------
- * Leaderboard – nur aktive
- * ----------------------------------------------------------- */
 r.get("/leaderboard", async (req, res, next) => {
   try {
     const [initiatives] = await pool.query(`
@@ -369,10 +346,7 @@ r.get("/leaderboard", async (req, res, next) => {
   }
 });
 
-/* -----------------------------------------------------------
- * FINALVOTE – Phase 1 (nur Admin) und Phase 2 (alle)
- * JA/NEIN mit UPDATE
- * ----------------------------------------------------------- */
+
 r.post("/finalvote/:id", verifyAuth, async (req, res, next) => {
   const initiativeId = Number(req.params.id);
   const userId = req.user.id;
