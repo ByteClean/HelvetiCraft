@@ -252,20 +252,35 @@ r.post("/vote/:id", verifyAuth, async (req, res, next) => {
     if (!rows[0].aktiv)
       return res.status(400).json({ error: "initiative_not_active" });
 
+    
     const [existing] = await pool.query(
       "SELECT id FROM votes WHERE initiative_id = ? AND user_id = ? LIMIT 1",
       [initiativeId, userId]
     );
 
-    if (existing.length > 0)
-      return res.status(409).json({ error: "already_voted" });
+    if (existing.length > 0) {
+      await pool.query(
+        "DELETE FROM votes WHERE initiative_id = ? AND user_id = ?",
+        [initiativeId, userId]
+      );
+
+      return res.json({
+        id: initiativeId,
+        voted: false,
+        action: "removed",
+      });
+    }
 
     await pool.query(
       "INSERT INTO votes (initiative_id, user_id) VALUES (?, ?)",
       [initiativeId, userId]
     );
 
-    return res.json({ id: initiativeId, voted: true });
+    return res.json({
+      id: initiativeId,
+      voted: true,
+      action: "added",
+    });
   } catch (err) {
     next(err);
   }
