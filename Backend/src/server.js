@@ -4,7 +4,7 @@ import app from "./app.js";
 import { startPhaseScheduler } from "./jobs/phases.scheduler.js";
 
 startPhaseScheduler({
-  intervalMs: 12 * 60 * 60 * 1000, // 12 Stunden
+  intervalMs:  1000, // 12 Stunden
   daysForMinVotes: 10,
 });
 
