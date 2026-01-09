@@ -356,6 +356,7 @@ r.post("/finalvote/:id", async (req, res, next) => {
     initiativeId,
     userId,
     vote,
+    voteType: typeof vote,
   });
 
   if (!Number.isInteger(initiativeId) || initiativeId <= 0) {
@@ -363,23 +364,24 @@ r.post("/finalvote/:id", async (req, res, next) => {
     return res.status(400).json({ error: "invalid_initiative_id" });
   }
 
-  if (vote !== 0 && vote !== 1) {
-    console.warn("[FINALVOTE] invalid vote value", {
+  // ⬇️ NEU: true / false
+  if (typeof vote !== "boolean") {
+    console.warn("[FINALVOTE] invalid vote type", {
       userId,
       initiativeId,
       vote,
     });
-    return res.status(400).json({ error: "invalid_vote_must_be_0_or_1" });
+    return res
+      .status(400)
+      .json({ error: "invalid_vote_must_be_boolean" });
   }
 
-  const stimme = vote;
+  // true = ja (1), false = nein (0)
+  const stimme = vote ? 1 : 0;
 
   try {
     const phase = await getCurrentPhase();
-    console.log("[FINALVOTE] current phase", {
-      initiativeId,
-      phase,
-    });
+    console.log("[FINALVOTE] current phase", { initiativeId, phase });
 
     if (phase === 0 || phase === 3) {
       console.warn("[FINALVOTE] vote not allowed in phase", {
@@ -463,7 +465,7 @@ r.post("/finalvote/:id", async (req, res, next) => {
       id: initiativeId,
       final_voted: true,
       action,
-      vote: stimme,
+      vote, // true / false zurueck
     });
   } catch (err) {
     console.error("[FINALVOTE] error", {
@@ -474,6 +476,7 @@ r.post("/finalvote/:id", async (req, res, next) => {
     next(err);
   }
 });
+
 
 
 
