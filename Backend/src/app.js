@@ -21,13 +21,13 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
 
-app.get("/health", (req, res) => res.json({ ok: true }));app.use("/initiatives", initiativesRoutes); // /  /:id  /create ... /finalvote/...
+app.get("/health", (req, res) => res.json({ ok: true }));
 app.use(detectOrigin); // gilt für ALLE Anfragen
 app.use(verifyAuth); // gilt für ALLE NACHFOLGENDEN Routen
 app.use("/phases", phasesRouter); // /current /advance
 app.use("/discord-logging", discordLoggingRoutes);
 app.use("/auth", authRoutes); // /login 
-
+app.use("/initiatives", initiativesRoutes); // /  /:id  /create ... /finalvote/...
 app.use("/news", newsRoutes); // /  /:id  /create ...
 app.use("/finance", financesRoutes);    // /  /taxes /pay/... /sell /networth...
 //app.use("/", statusRoutes);      // /mc-web /project /helveticraft
