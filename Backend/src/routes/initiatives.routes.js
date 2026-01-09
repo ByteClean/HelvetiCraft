@@ -352,19 +352,41 @@ r.post("/finalvote/:id", async (req, res, next) => {
   const userId = req.user.id;
   const { vote } = req.body;
 
-  if (!Number.isInteger(initiativeId) || initiativeId <= 0)
+  console.log("[FINALVOTE] request", {
+    initiativeId,
+    userId,
+    vote,
+  });
+
+  if (!Number.isInteger(initiativeId) || initiativeId <= 0) {
+    console.warn("[FINALVOTE] invalid initiative id", { initiativeId });
     return res.status(400).json({ error: "invalid_initiative_id" });
+  }
 
-  // ⬇️ NEU: 0 / 1 statt "ja" / "nein"
-  if (vote !== 0 && vote !== 1)
+  if (vote !== 0 && vote !== 1) {
+    console.warn("[FINALVOTE] invalid vote value", {
+      userId,
+      initiativeId,
+      vote,
+    });
     return res.status(400).json({ error: "invalid_vote_must_be_0_or_1" });
+  }
 
-  const stimme = vote; // direkt verwenden
+  const stimme = vote;
 
   try {
     const phase = await getCurrentPhase();
+    console.log("[FINALVOTE] current phase", {
+      initiativeId,
+      phase,
+    });
 
     if (phase === 0 || phase === 3) {
+      console.warn("[FINALVOTE] vote not allowed in phase", {
+        userId,
+        initiativeId,
+        phase,
+      });
       return res.status(400).json({
         error: "finalvote_not_allowed_in_this_phase",
         phase,
@@ -372,6 +394,10 @@ r.post("/finalvote/:id", async (req, res, next) => {
     }
 
     if (phase === 1 && !req.user.isAdmin) {
+      console.warn("[FINALVOTE] non-admin tried finalvote in phase 1", {
+        userId,
+        initiativeId,
+      });
       return res.status(403).json({
         error: "only_admin_can_finalvote_in_phase_1",
       });
@@ -382,14 +408,18 @@ r.post("/finalvote/:id", async (req, res, next) => {
       [initiativeId]
     );
 
-    if (rows.length === 0)
+    if (rows.length === 0) {
+      console.warn("[FINALVOTE] initiative not found", { initiativeId });
       return res.status(404).json({ error: "initiative_not_found" });
+    }
 
-    if (!rows[0].aktiv)
+    if (!rows[0].aktiv) {
+      console.warn("[FINALVOTE] initiative not active", { initiativeId });
       return res.status(400).json({ error: "initiative_not_active" });
+    }
 
     const [existing] = await pool.query(
-      "SELECT id FROM final_votes WHERE initiative_id = ? AND user_id = ?",
+      "SELECT id, stimme FROM final_votes WHERE initiative_id = ? AND user_id = ?",
       [initiativeId, userId]
     );
 
@@ -401,25 +431,50 @@ r.post("/finalvote/:id", async (req, res, next) => {
         [initiativeId, userId, stimme]
       );
       action = "created";
+
+      console.log("[FINALVOTE] vote created", {
+        userId,
+        initiativeId,
+        stimme,
+      });
     } else {
       await pool.query(
         "UPDATE final_votes SET stimme = ? WHERE id = ?",
         [stimme, existing[0].id]
       );
       action = "updated";
+
+      console.log("[FINALVOTE] vote updated", {
+        userId,
+        initiativeId,
+        oldStimme: existing[0].stimme,
+        newStimme: stimme,
+      });
     }
 
-    res.json({
+    console.log("[FINALVOTE] success", {
+      userId,
+      initiativeId,
+      action,
+      stimme,
+    });
+
+    return res.json({
       id: initiativeId,
       final_voted: true,
       action,
       vote: stimme,
     });
   } catch (err) {
+    console.error("[FINALVOTE] error", {
+      initiativeId,
+      userId,
+      error: err.message,
+    });
     next(err);
   }
-  console.log(res.json);
 });
+
 
 
 export default r;
