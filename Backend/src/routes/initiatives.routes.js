@@ -418,6 +418,7 @@ r.post("/finalvote/:id", async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+  console.log(res.json);
 });
 
 
