@@ -6,6 +6,7 @@ import {
   getCurrentPhase,
   getMinVotes,
   advancePhaseAndEvaluate,
+  startPhases
 } from "../utils/phases.util.js";
 
 const r = Router();
@@ -51,6 +52,20 @@ r.post("/advance", verifyAuth, async (req, res, next) => {
   try {
     const result = await advancePhaseAndEvaluate(10);
     res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+
+r.post("/start", verifyAuth, async (req, res, next) => {
+  if (!req.user.isAdmin) {
+    return res.status(403).json({ error: "only_admin_can_start_phases" });
+  }
+
+  try {
+    const result = await startPhases();
+    return res.json(result);
   } catch (err) {
     next(err);
   }

@@ -185,3 +185,96 @@ export async function advancePhaseAndEvaluate(days = 10) {
     connection.release();
   }
 }
+
+export async function startPhases() {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Dauerwerte holen (und sperren)
+    const [[row]] = await connection.query(
+      `
+      SELECT id, duration_phase0, duration_phase1, duration_phase2
+      FROM phases
+      WHERE id = 1
+      FOR UPDATE
+      `
+    );
+
+    // Falls die Zeile noch nicht existiert: anlegen (mit Defaults)
+    if (!row) {
+      await connection.query(
+        `
+        INSERT INTO phases (id, phase, start_phase0, start_phase1, start_phase2, start_phase3, duration_phase0, duration_phase1, duration_phase2, aktiv)
+        VALUES (1, 0, NOW(), NULL, NULL, NULL, 4, 4, 4, 1)
+        `
+      );
+
+      // Danach nochmal lesen (damit duration-Werte sicher da sind)
+      const [[row2]] = await connection.query(
+        `
+        SELECT duration_phase0, duration_phase1, duration_phase2
+        FROM phases
+        WHERE id = 1
+        FOR UPDATE
+        `
+      );
+
+      // Startzeiten berechnen und updaten
+      await connection.query(
+        `
+        UPDATE phases
+        SET
+          phase = 0,
+          aktiv = 1,
+          start_phase0 = NOW(),
+          start_phase1 = DATE_ADD(NOW(), INTERVAL ? DAY),
+          start_phase2 = DATE_ADD(DATE_ADD(NOW(), INTERVAL ? DAY), INTERVAL ? DAY),
+          start_phase3 = DATE_ADD(DATE_ADD(DATE_ADD(NOW(), INTERVAL ? DAY), INTERVAL ? DAY), INTERVAL ? DAY)
+        WHERE id = 1
+        `,
+        [
+          row2.duration_phase0,
+          row2.duration_phase0, row2.duration_phase1,
+          row2.duration_phase0, row2.duration_phase1, row2.duration_phase2,
+        ]
+      );
+
+      await connection.commit();
+      return { ok: true, createdRow: true };
+    }
+
+    // Validierung der Durations (minimal)
+    const d0 = Number(row.duration_phase0);
+    const d1 = Number(row.duration_phase1);
+    const d2 = Number(row.duration_phase2);
+
+    if (![d0, d1, d2].every((n) => Number.isInteger(n) && n >= 0)) {
+      throw new Error("invalid_phase_durations");
+    }
+
+    // Startzeiten setzen (reset)
+    await connection.query(
+      `
+      UPDATE phases
+      SET
+        phase = 0,
+        aktiv = 1,
+        start_phase0 = NOW(),
+        start_phase1 = DATE_ADD(NOW(), INTERVAL ? DAY),
+        start_phase2 = DATE_ADD(DATE_ADD(NOW(), INTERVAL ? DAY), INTERVAL ? DAY),
+        start_phase3 = DATE_ADD(DATE_ADD(DATE_ADD(NOW(), INTERVAL ? DAY), INTERVAL ? DAY), INTERVAL ? DAY)
+      WHERE id = 1
+      `,
+      [d0, d0, d1, d0, d1, d2]
+    );
+
+    await connection.commit();
+    return { ok: true, createdRow: false };
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
+}
