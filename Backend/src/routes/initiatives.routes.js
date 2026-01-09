@@ -347,7 +347,7 @@ r.get("/leaderboard", async (req, res, next) => {
 });
 
 
-r.post("/finalvote/:id", verifyAuth, async (req, res, next) => {
+r.post("/finalvote/:id", async (req, res, next) => {
   const initiativeId = Number(req.params.id);
   const userId = req.user.id;
   const { vote } = req.body;
@@ -355,10 +355,11 @@ r.post("/finalvote/:id", verifyAuth, async (req, res, next) => {
   if (!Number.isInteger(initiativeId) || initiativeId <= 0)
     return res.status(400).json({ error: "invalid_initiative_id" });
 
-  if (!["ja", "nein"].includes(vote))
-    return res.status(400).json({ error: "invalid_vote_must_be_ja_or_nein" });
+  // ⬇️ NEU: 0 / 1 statt "ja" / "nein"
+  if (vote !== 0 && vote !== 1)
+    return res.status(400).json({ error: "invalid_vote_must_be_0_or_1" });
 
-  const stimme = vote === "ja" ? 1 : 0;
+  const stimme = vote; // direkt verwenden
 
   try {
     const phase = await getCurrentPhase();
@@ -408,10 +409,16 @@ r.post("/finalvote/:id", verifyAuth, async (req, res, next) => {
       action = "updated";
     }
 
-    res.json({ id: initiativeId, final_voted: true, action, vote });
+    res.json({
+      id: initiativeId,
+      final_voted: true,
+      action,
+      vote: stimme,
+    });
   } catch (err) {
     next(err);
   }
 });
+
 
 export default r;
