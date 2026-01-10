@@ -186,7 +186,6 @@ export async function advancePhaseAndEvaluate(days = 10) {
   }
 }
 
-import pool from "../services/mysql.service.js";
 
 export async function startPhases() {
   const connection = await pool.getConnection();
