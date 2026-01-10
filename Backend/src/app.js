@@ -21,10 +21,10 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
 
-app.get("/health", (req, res) => res.json({ ok: true }));
+app.get("/health", (req, res) => res.json({ ok: true }));app.use("/phases", phasesRouter); // /current /advance
 app.use(detectOrigin); // gilt für ALLE Anfragen
 app.use(verifyAuth); // gilt für ALLE NACHFOLGENDEN Routen
-app.use("/phases", phasesRouter); // /current /advance
+
 app.use("/discord-logging", discordLoggingRoutes);
 app.use("/auth", authRoutes); // /login 
 app.use("/initiatives", initiativesRoutes); // /  /:id  /create ... /finalvote/...
