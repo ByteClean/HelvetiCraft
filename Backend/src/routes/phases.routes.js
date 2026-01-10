@@ -57,7 +57,7 @@ r.get("/current", async (req, res, next) => {
  * POST /phases/advance
  * Admin-only: wechselt aktive Phase + bewertet Initiativen.
  */
-r.post("/advance", verifyAuth, async (req, res, next) => {
+r.post("/advance", async (req, res, next) => {
   if (!req.user.isAdmin) {
     return res.status(403).json({ error: "only_admin_can_advance_phase" });
   }
@@ -74,7 +74,7 @@ r.post("/advance", verifyAuth, async (req, res, next) => {
  * POST /phases/start
  * Admin-only: startet sofort eine neue Runde (deaktiviert alte, erstellt neue).
  */
-r.post("/start", verifyAuth, async (req, res, next) => {
+r.post("/start", async (req, res, next) => {
   if (!req.user.isAdmin) {
     return res.status(403).json({ error: "only_admin_can_start_phases" });
   }
