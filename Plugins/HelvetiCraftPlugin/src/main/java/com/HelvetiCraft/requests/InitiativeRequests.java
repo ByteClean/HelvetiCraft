@@ -35,10 +35,31 @@ public class InitiativeRequests {
 
     private static final Map<UUID, Set<String>> playerVotesPhase1 = new ConcurrentHashMap<>();
     private static final Map<UUID, Map<String, Boolean>> playerVotesPhase2 = new ConcurrentHashMap<>();
+    private static final Map<UUID, List<Initiative>> cachedInitiatives = new ConcurrentHashMap<>();
+
+    private static class VoteResponse {
+        int initiative_id;
+        int normal_votes;
+        int votes_for;     // Added
+        int votes_against; // Added
+        List<VoteEntry> votes;
+    }
+
+    private static class VoteEntry {
+        int vote_id;
+        String created_at;
+        int user_id;
+        String username;
+        boolean vote;
+    }
 
     // --- CRUD (now backed by HTTP) ---
 
     public static Collection<Initiative> getAllInitiatives(UUID playerId) {
+        if (cachedInitiatives.containsKey(playerId)) {
+            return cachedInitiatives.get(playerId);
+        }
+
         try {
             HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(API_BASE + "/initiatives/all"))
@@ -50,11 +71,18 @@ public class InitiativeRequests {
                     .build();
 
             HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+            System.out.println("[HelvetiCraft] GET /initiatives/all returned status: " + res.statusCode());
             if (res.statusCode() >= 200 && res.statusCode() < 300) {
+                System.out.println("[HelvetiCraft] Response: " + res.body());
                 Type listType = new TypeToken<List<Initiative>>() {}.getType();
                 List<Initiative> list = GSON.fromJson(res.body(), listType);
-                return list != null ? list : Collections.emptyList();
+                if (list != null) {
+                    cachedInitiatives.put(playerId, list);
+                    return list;
+                }
+                return Collections.emptyList();
             } else {
+                System.out.println("[HelvetiCraft] Error body: " + res.body());
                 // Non-2xx - return empty list
                 return Collections.emptyList();
             }
@@ -80,10 +108,12 @@ public class InitiativeRequests {
                     .build();
 
             HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+            System.out.println("[HelvetiCraft] GET /initiatives/" + id + " returned status: " + res.statusCode());
             if (res.statusCode() >= 200 && res.statusCode() < 300) {
+                System.out.println("[HelvetiCraft] Response: " + res.body());
                 return GSON.fromJson(res.body(), Initiative.class);
             } else {
-                System.out.println("[HelvetiCraft] GET /initiatives/" + id + " failed with status " + res.statusCode());
+                System.out.println("[HelvetiCraft] Error body: " + res.body());
                 return null;
             }
         } catch (IOException | InterruptedException e) {
@@ -116,8 +146,15 @@ public class InitiativeRequests {
                     .header("Content-Type", "application/json")
                     .build();
 
-            CLIENT.send(req, HttpResponse.BodyHandlers.discarding());
+            HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+            System.out.println("[HelvetiCraft] POST /initiatives/create returned status: " + res.statusCode());
+            if (res.statusCode() >= 200 && res.statusCode() < 300) {
+                // Success
+            } else {
+                System.out.println("[HelvetiCraft] Error: POST /initiatives/create failed");
+            }
         } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
             Thread.currentThread().interrupt();
         }
     }
@@ -222,7 +259,7 @@ public class InitiativeRequests {
         if (initiative.getAuthor() != null && initiative.getAuthor().equalsIgnoreCase(playerId.toString())) return;
 
         // toggle local memorized votes for UI immediacy (this exists only locally)
-        Set<String> votedInitiatives = playerVotesPhase1.computeIfAbsent(playerId, k -> new HashSet<>());
+        Set<String> votedInitiatives = getPlayerVotesPhase1(playerId);
         boolean isRemoving = votedInitiatives.contains(title);
         if (isRemoving) {
             votedInitiatives.remove(title);
@@ -259,8 +296,72 @@ public class InitiativeRequests {
     }
 
 
+    public static void refreshVotes(UUID playerId) {
+        cachedInitiatives.remove(playerId); // Invalidate cache on refresh
+        int phase = getCurrentPhase(playerId);
+        if (phase == 1) {
+            getPlayerVotesPhase1(playerId, true);
+        } else if (phase == 2) {
+            getPlayerVotesPhase2(playerId, true);
+        }
+    }
+
     public static Set<String> getPlayerVotesPhase1(UUID playerId) {
-        return playerVotesPhase1.computeIfAbsent(playerId, k -> new HashSet<>());
+        return getPlayerVotesPhase1(playerId, false);
+    }
+
+    public static Set<String> getPlayerVotesPhase1(UUID playerId, boolean forceRefresh) {
+        if (!forceRefresh && playerVotesPhase1.containsKey(playerId)) {
+            return playerVotesPhase1.get(playerId);
+        }
+
+        Set<String> votedTitles = new HashSet<>();
+        Collection<Initiative> all = getAllInitiatives(playerId);
+        
+        String playerName = org.bukkit.Bukkit.getOfflinePlayer(playerId).getName();
+        if (playerName == null) return votedTitles;
+
+        for (Initiative initiative : all) {
+            if (initiative.getId() == null) continue;
+            
+            try {
+                HttpRequest req = HttpRequest.newBuilder()
+                        .uri(URI.create(API_BASE + "/initiatives/" + initiative.getId() + "/votes"))
+                        .GET()
+                        .header("x-auth-from", "minecraft")
+                        .header("x-auth-key", API_KEY)
+                        .header("x-uuid", playerId.toString())
+                        .header("Content-Type", "application/json")
+                        .build();
+
+                HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+                System.out.println("[HelvetiCraft] GET /initiatives/" + initiative.getId() + "/votes returned status: " + res.statusCode());
+                if (res.statusCode() >= 200 && res.statusCode() < 300) {
+                    System.out.println("[HelvetiCraft] Response: " + res.body());
+                    VoteResponse vr = GSON.fromJson(res.body(), VoteResponse.class);
+                    if (vr != null) {
+                        // Update global votes count on the initiative object
+                        initiative.setVotes(vr.normal_votes);
+
+                        if (vr.votes != null) {
+                            for (VoteEntry entry : vr.votes) {
+                                if (playerName.equalsIgnoreCase(entry.username)) {
+                                    votedTitles.add(initiative.getTitle());
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    System.out.println("[HelvetiCraft] Error body: " + res.body());
+                }
+            } catch (IOException | InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        
+        playerVotesPhase1.put(playerId, votedTitles);
+        return votedTitles;
     }
 
     // --- Voting Phase 2 (for / against) ---
@@ -272,7 +373,7 @@ public class InitiativeRequests {
         Initiative initiative = getInitiative(title, playerId); // or use proper type if id is String
         if (initiative == null) return;
 
-        Map<String, Boolean> votes = playerVotesPhase2.computeIfAbsent(playerId, k -> new HashMap<>());
+        Map<String, Boolean> votes = getPlayerVotesPhase2(playerId);
         Boolean previousVote = votes.put(title, voteFor);
 
         // Local counters updates
@@ -284,18 +385,16 @@ public class InitiativeRequests {
         if (voteFor) initiative.voteFor();
         else initiative.voteAgainst();
 
-        // send POST /initiatives/vote/:id
+        // send POST /initiatives/finalvote/:id
         try {
             String encoded = URLEncoder.encode(id, StandardCharsets.UTF_8);
             Map<String, Object> votePayload = Map.of(
-                    "playerId", playerId.toString(),
-                    "phase", 2,
                     "vote", voteFor
             );
             String json = GSON.toJson(votePayload);
 
             HttpRequest req = HttpRequest.newBuilder()
-                    .uri(URI.create(API_BASE + "/initiatives/vote/" + encoded))
+                    .uri(URI.create(API_BASE + "/initiatives/finalvote/" + encoded))
                     .POST(HttpRequest.BodyPublishers.ofString(json))
                     .header("x-auth-from", "minecraft")
                     .header("x-auth-key", API_KEY)
@@ -303,14 +402,76 @@ public class InitiativeRequests {
                     .header("Content-Type", "application/json")
                     .build();
 
-            HttpResponse<Void> res = CLIENT.send(req, HttpResponse.BodyHandlers.discarding());
+            HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+            System.out.println("[HelvetiCraft] POST /initiatives/finalvote/" + id + " (Phase 2) returned status: " + res.statusCode());
+            if (res.statusCode() >= 200 && res.statusCode() < 300) {
+                // Success
+            } else {
+                System.out.println("[HelvetiCraft] Error: POST /initiatives/finalvote/" + id + " failed");
+            }
         } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
             Thread.currentThread().interrupt();
         }
     }
 
     public static Map<String, Boolean> getPlayerVotesPhase2(UUID playerId) {
-        return playerVotesPhase2.computeIfAbsent(playerId, k -> new HashMap<>());
+        return getPlayerVotesPhase2(playerId, false);
+    }
+
+    public static Map<String, Boolean> getPlayerVotesPhase2(UUID playerId, boolean forceRefresh) {
+        if (!forceRefresh && playerVotesPhase2.containsKey(playerId)) {
+            return playerVotesPhase2.get(playerId);
+        }
+
+        Map<String, Boolean> votedTitles = new HashMap<>();
+        Collection<Initiative> all = getAllInitiatives(playerId);
+
+        String playerName = org.bukkit.Bukkit.getOfflinePlayer(playerId).getName();
+        if (playerName == null) return votedTitles;
+
+        for (Initiative initiative : all) {
+            if (initiative.getId() == null) continue;
+
+            try {
+                HttpRequest req = HttpRequest.newBuilder()
+                        .uri(URI.create(API_BASE + "/initiatives/" + initiative.getId() + "/votes"))
+                        .GET()
+                        .header("x-auth-from", "minecraft")
+                        .header("x-auth-key", API_KEY)
+                        .header("x-uuid", playerId.toString())
+                        .header("Content-Type", "application/json")
+                        .build();
+
+                HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+                System.out.println("[HelvetiCraft] GET /initiatives/" + initiative.getId() + "/votes (Phase 2) returned status: " + res.statusCode());
+                if (res.statusCode() >= 200 && res.statusCode() < 300) {
+                    System.out.println("[HelvetiCraft] Response: " + res.body());
+                    VoteResponse vr = GSON.fromJson(res.body(), VoteResponse.class);
+                    if (vr != null) {
+                        // Update global votes count
+                        initiative.setVotesFor(vr.votes_for);
+                        initiative.setVotesAgainst(vr.votes_against);
+
+                        if (vr.votes != null) {
+                            for (VoteEntry entry : vr.votes) {
+                                if (playerName.equalsIgnoreCase(entry.username)) {
+                                    votedTitles.put(initiative.getTitle(), entry.vote);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    System.out.println("[HelvetiCraft] Error body: " + res.body());
+                }
+            } catch (IOException | InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        playerVotesPhase2.put(playerId, votedTitles);
+        return votedTitles;
     }
 
     // --- Helper method ---

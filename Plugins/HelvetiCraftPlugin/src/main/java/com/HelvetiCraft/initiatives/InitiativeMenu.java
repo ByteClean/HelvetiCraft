@@ -22,6 +22,7 @@ public class InitiativeMenu {
     }
 
     public void open(Player player, int page) {
+        InitiativeRequests.refreshVotes(player.getUniqueId());
         int phase = InitiativeRequests.getCurrentPhase(player.getUniqueId());
         List<Initiative> initiatives = new ArrayList<>(InitiativeRequests.getAllInitiatives(player.getUniqueId()));
 

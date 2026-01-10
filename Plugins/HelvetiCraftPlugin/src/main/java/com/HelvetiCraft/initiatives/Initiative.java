@@ -46,11 +46,14 @@ public class Initiative {
     public void setPhase(int phase) { this.phase = phase; }
 
     public int getVotes() { return votes; }
+    public void setVotes(int votes) { this.votes = votes; }
     public void incrementVotes() { votes++; }
     public void decrementVotes() { if (votes > 0) votes--; }
 
     public int getVotesFor() { return votesFor; }
+    public void setVotesFor(int votesFor) { this.votesFor = votesFor; }
     public int getVotesAgainst() { return votesAgainst; }
+    public void setVotesAgainst(int votesAgainst) { this.votesAgainst = votesAgainst; }
     public void voteFor() { votesFor++; }
     public void voteAgainst() { votesAgainst++; }
     public void decrementVoteFor() { if (votesFor > 0) votesFor--; }
