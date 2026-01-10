@@ -3,35 +3,48 @@ import { Router } from "express";
 import pool from "../services/mysql.service.js";
 import { verifyAuth } from "../middleware/auth.middleware.js";
 import {
-  getCurrentPhase,
   getMinVotes,
   advancePhaseAndEvaluate,
-  startPhases
+  startPhases,
 } from "../utils/phases.util.js";
 
 const r = Router();
 
 /**
  * GET /phases/current
- * Liefert aktuelle Phase + Startzeiten + Schwelle.
+ * Liefert aktive Runde: Phase + Startzeiten + Schwelle.
  */
 r.get("/current", async (req, res, next) => {
   try {
-    const [[row]] = await pool.query(
-      "SELECT phase, start_phase0, start_phase1, start_phase2, start_phase3 FROM phases WHERE id = 1"
-    );
+    const [[row]] = await pool.query(`
+      SELECT
+        id, phase, aktiv,
+        start_phase0, start_phase1, start_phase2, start_phase3,
+        duration_phase0, duration_phase1, duration_phase2, duration_phase3
+      FROM phases
+      WHERE aktiv = 1
+      ORDER BY id DESC
+      LIMIT 1
+    `);
+
     if (!row) {
-      return res.status(500).json({ error: "phases_row_missing" });
+      return res.status(404).json({ error: "no_active_phase_cycle" });
     }
 
     const { activePlayers, minVotes } = await getMinVotes(10);
 
     res.json({
-      phase: row.phase, // 0–3
+      cycleId: row.id,
+      phase: row.phase,
       start_phase0: row.start_phase0,
       start_phase1: row.start_phase1,
       start_phase2: row.start_phase2,
       start_phase3: row.start_phase3,
+      duration_phase0: row.duration_phase0,
+      duration_phase1: row.duration_phase1,
+      duration_phase2: row.duration_phase2,
+      duration_phase3: row.duration_phase3,
+      aktiv: row.aktiv,
       activePlayers,
       minVotes,
     });
@@ -42,7 +55,7 @@ r.get("/current", async (req, res, next) => {
 
 /**
  * POST /phases/advance
- * Admin-only: wechselt globale Phase + bewertet Initiativen.
+ * Admin-only: wechselt aktive Phase + bewertet Initiativen.
  */
 r.post("/advance", verifyAuth, async (req, res, next) => {
   if (!req.user.isAdmin) {
@@ -57,7 +70,10 @@ r.post("/advance", verifyAuth, async (req, res, next) => {
   }
 });
 
-
+/**
+ * POST /phases/start
+ * Admin-only: startet sofort eine neue Runde (deaktiviert alte, erstellt neue).
+ */
 r.post("/start", verifyAuth, async (req, res, next) => {
   if (!req.user.isAdmin) {
     return res.status(403).json({ error: "only_admin_can_start_phases" });
@@ -65,7 +81,7 @@ r.post("/start", verifyAuth, async (req, res, next) => {
 
   try {
     const result = await startPhases();
-    return res.json(result);
+    res.json(result);
   } catch (err) {
     next(err);
   }

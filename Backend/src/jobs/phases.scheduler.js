@@ -1,32 +1,45 @@
+// src/jobs/phases.scheduler.js
 import pool from "../services/mysql.service.js";
-import { advancePhaseAndEvaluate, startPhases } from "../utils/phases.util.js";
+import { advancePhaseAndEvaluate, endCycleAndRestart } from "../utils/phases.util.js";
 
 function addDays(date, days) {
   return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
-export async function startPhaseScheduler({ intervalMs = 60_000, daysForMinVotes = 10 } = {}) {
+/**
+ * intervalMs: wie oft prüfen
+ * daysForMinVotes: Fenster für aktive Spieler (minVotes)
+ *
+ * Annahme: duration_phaseX sind TAGE.
+ */
+export function startPhaseScheduler({
+  intervalMs = 12 * 60 * 60 * 1000,
+  daysForMinVotes = 10,
+} = {}) {
   setInterval(async () => {
     const conn = await pool.getConnection();
     try {
-      // Schutz, falls du mehrere Backend-Instanzen hast (Docker/Scaling):
-      const [[lockRow]] = await conn.query("SELECT GET_LOCK('phases_scheduler', 1) AS got");
+      // verhindert doppelte Ausführung bei mehreren Backend-Instanzen
+      const [[lockRow]] = await conn.query(
+        "SELECT GET_LOCK('phases_scheduler', 1) AS got"
+      );
       if (!lockRow || lockRow.got !== 1) return;
 
       const [[row]] = await conn.query(`
         SELECT
-          phase, aktiv,
+          id, phase, aktiv,
           start_phase0, start_phase1, start_phase2, start_phase3,
           duration_phase0, duration_phase1, duration_phase2, duration_phase3
         FROM phases
-        WHERE id = 1
+        WHERE aktiv = 1
+        ORDER BY id DESC
+        LIMIT 1
       `);
 
-      if (!row || row.aktiv !== 1) return;
+      if (!row) return;
 
       const now = new Date();
 
-      // Bestimme Endzeit der aktuellen Phase anhand start_phaseX + duration_phaseX
       let start;
       let durationDays;
 
@@ -36,18 +49,16 @@ export async function startPhaseScheduler({ intervalMs = 60_000, daysForMinVotes
       else if (row.phase === 3) { start = row.start_phase3; durationDays = row.duration_phase3; }
       else return;
 
-      if (!start) return; // noch nicht initialisiert
+      if (!start) return;
 
       const end = addDays(new Date(start), Number(durationDays));
-
-      // Noch nicht faellig
       if (now < end) return;
 
-      // Faellig: advance oder reset
       if (row.phase < 3) {
         await advancePhaseAndEvaluate(daysForMinVotes);
       } else {
-        await startPhases();
+        // Phase 3 ist vorbei -> alte Runde deaktivieren + neue starten
+        await endCycleAndRestart();
       }
     } catch (e) {
       console.error("[PHASE_SCHEDULER] error", e?.message || e);
