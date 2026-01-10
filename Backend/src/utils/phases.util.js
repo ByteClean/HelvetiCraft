@@ -2,16 +2,47 @@
 import pool from "../services/mysql.service.js";
 
 /**
- * Globale Phase holen (0–3).
+ * Hilfsfunktion: aktive Runde holen (ohne Lock).
+ */
+async function getActiveCycle() {
+  const [[row]] = await pool.query(`
+    SELECT
+      id, phase, aktiv,
+      start_phase0, start_phase1, start_phase2, start_phase3,
+      duration_phase0, duration_phase1, duration_phase2, duration_phase3
+    FROM phases
+    WHERE aktiv = 1
+    ORDER BY id DESC
+    LIMIT 1
+  `);
+  return row || null;
+}
+
+/**
+ * Hilfsfunktion: aktive Runde holen (mit Lock in Transaction).
+ */
+async function getActiveCycleForUpdate(connection) {
+  const [[row]] = await connection.query(`
+    SELECT
+      id, phase, aktiv,
+      start_phase0, start_phase1, start_phase2, start_phase3,
+      duration_phase0, duration_phase1, duration_phase2, duration_phase3
+    FROM phases
+    WHERE aktiv = 1
+    ORDER BY id DESC
+    LIMIT 1
+    FOR UPDATE
+  `);
+  return row || null;
+}
+
+/**
+ * Globale Phase holen (0–3) aus aktiver Runde.
  */
 export async function getCurrentPhase() {
-  const [[row]] = await pool.query(
-    "SELECT phase, start_phase0, start_phase1, start_phase2, start_phase3 FROM phases WHERE id = 1"
-  );
-  if (!row) {
-    throw new Error("phases_row_missing");
-  }
-  return row.phase; // 0,1,2,3
+  const cycle = await getActiveCycle();
+  if (!cycle) throw new Error("phases_row_missing");
+  return cycle.phase;
 }
 
 /**
@@ -41,57 +72,100 @@ export async function getMinVotes(days = 10) {
 }
 
 /**
- * Phase wechseln + Initiativen anhand der Phase-Regeln bewerten.
+ * Neue Runde starten:
+ * - alte aktive Runde (falls vorhanden) deaktivieren (aktiv=0)
+ * - neue Zeile INSERT mit aktiv=1, phase=0, Startzeiten berechnet
  *
- * Phasen:
- * 0 → Normales Voting (alle)
- * 1 → Admin JA/NEIN
- * 2 → Spieler JA/NEIN
- * 3 → akzeptiert (Endzustand, keine Bewertung mehr)
- *
- * Logik:
- * - Beim Wechsel 0→1: normale Votes prüfen
- * - Beim Wechsel 1→2: Admin-JA-Votes prüfen
- * - Beim Wechsel 2→3: Spieler-JA-Votes prüfen
- *
- * Initiativen, die minVotes NICHT erreichen:
- *   aktiv = 0
- *   status = aktuelle Phase
- *
- * Initiativen, die bestehen:
- *   status = nächste/letzte Phase (bei 2→3: status=3)
+ * Annahme: duration_phaseX sind TAGE.
+ */
+export async function startPhases() {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const active = await getActiveCycleForUpdate(connection);
+
+    // durations aus aktueller Runde oder Defaults
+    const d0 = active ? Number(active.duration_phase0) : 4;
+    const d1 = active ? Number(active.duration_phase1) : 4;
+    const d2 = active ? Number(active.duration_phase2) : 4;
+    const d3 = active ? Number(active.duration_phase3) : 4;
+
+    if (![d0, d1, d2, d3].every((n) => Number.isInteger(n) && n >= 0)) {
+      throw new Error("invalid_phase_durations");
+    }
+
+    if (active) {
+      await connection.query("UPDATE phases SET aktiv = 0 WHERE id = ?", [
+        active.id,
+      ]);
+    }
+
+    const [ins] = await connection.query(
+      `
+      INSERT INTO phases (
+        phase,
+        start_phase0, start_phase1, start_phase2, start_phase3,
+        duration_phase0, duration_phase1, duration_phase2, duration_phase3,
+        aktiv
+      )
+      VALUES (
+        0,
+        NOW(),
+        DATE_ADD(NOW(), INTERVAL ? DAY),
+        DATE_ADD(NOW(), INTERVAL ? DAY),
+        DATE_ADD(NOW(), INTERVAL ? DAY),
+        ?, ?, ?, ?,
+        1
+      )
+      `,
+      [d0, d0 + d1, d0 + d1 + d2, d0, d1, d2, d3]
+    );
+
+    await connection.commit();
+    return { ok: true, newCycleId: ins.insertId };
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
+}
+
+/**
+ * Phase wechseln + Initiativen anhand der Phase-Regeln bewerten (auf aktiver Runde).
  */
 export async function advancePhaseAndEvaluate(days = 10) {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
 
-    const [[ph]] = await connection.query(
-      "SELECT phase FROM phases WHERE id = 1 FOR UPDATE"
-    );
-    if (!ph) throw new Error("phases_row_missing");
-
-    const currentPhase = ph.phase;
-    if (currentPhase >= 3) {
-      // schon in akzeptiert
+    const active = await getActiveCycleForUpdate(connection);
+    if (!active) {
       await connection.rollback();
-      return { phase: currentPhase, changed: false };
+      return { changed: false, error: "no_active_phase_cycle" };
+    }
+
+    const currentPhase = active.phase;
+
+    if (currentPhase >= 3) {
+      await connection.rollback();
+      return { phase: currentPhase, changed: false, cycleId: active.id };
     }
 
     const { activePlayers, minVotes } = await getMinVotes(days);
 
-    // alle aktuell aktiven Initiativen holen
     const [initiatives] = await connection.query(
       "SELECT id, status FROM initiatives WHERE aktiv = 1"
     );
 
     if (currentPhase === 0) {
-      // Ende normales Voting – normale Votes prüfen
       for (const ini of initiatives) {
         const [[{ cnt }]] = await connection.query(
           "SELECT COUNT(*) AS cnt FROM votes WHERE initiative_id = ?",
           [ini.id]
         );
+
         if (cnt < minVotes) {
           await connection.query(
             "UPDATE initiatives SET aktiv = 0, status = 0 WHERE id = ?",
@@ -105,7 +179,6 @@ export async function advancePhaseAndEvaluate(days = 10) {
         }
       }
     } else if (currentPhase === 1) {
-      // Ende Admin-Voting – nur Admin-JA-Stimmen zählen
       for (const ini of initiatives) {
         const [[{ ja }]] = await connection.query(
           `
@@ -118,6 +191,7 @@ export async function advancePhaseAndEvaluate(days = 10) {
           `,
           [ini.id]
         );
+
         if (ja < minVotes) {
           await connection.query(
             "UPDATE initiatives SET aktiv = 0, status = 1 WHERE id = ?",
@@ -131,7 +205,6 @@ export async function advancePhaseAndEvaluate(days = 10) {
         }
       }
     } else if (currentPhase === 2) {
-      // Ende Spieler-Finalvoting – alle JA-Stimmen zählen
       for (const ini of initiatives) {
         const [[{ ja }]] = await connection.query(
           `
@@ -142,6 +215,7 @@ export async function advancePhaseAndEvaluate(days = 10) {
           `,
           [ini.id]
         );
+
         if (ja < minVotes) {
           await connection.query(
             "UPDATE initiatives SET aktiv = 0, status = 2 WHERE id = ?",
@@ -158,7 +232,6 @@ export async function advancePhaseAndEvaluate(days = 10) {
 
     const newPhase = currentPhase + 1;
 
-    // Phasen-Startzeit setzen
     const fieldName =
       newPhase === 1
         ? "start_phase1"
@@ -167,14 +240,15 @@ export async function advancePhaseAndEvaluate(days = 10) {
         : "start_phase3";
 
     await connection.query(
-      `UPDATE phases SET phase = ?, ${fieldName} = NOW() WHERE id = 1`,
-      [newPhase]
+      `UPDATE phases SET phase = ?, ${fieldName} = NOW() WHERE id = ?`,
+      [newPhase, active.id]
     );
 
     await connection.commit();
     return {
       phase: newPhase,
       changed: true,
+      cycleId: active.id,
       activePlayers,
       minVotes,
     };
@@ -184,4 +258,14 @@ export async function advancePhaseAndEvaluate(days = 10) {
   } finally {
     connection.release();
   }
+}
+
+/**
+ * Wenn Phase 3 vorbei ist:
+ * - aktive Runde deaktivieren
+ * - neue Runde starten (startPhases)
+ */
+export async function endCycleAndRestart() {
+  // startPhases() deaktiviert bereits die aktive Runde und startet neu
+  return startPhases();
 }
