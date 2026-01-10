@@ -21,7 +21,7 @@ services:
     env_file:
       - ./Backend/.env
     depends_on:
-      helveticraft-mariadb:
+      mariadb:
         condition: service_healthy
     # Use the image CMD (node src/server.js) so we don't run dev startup
 
