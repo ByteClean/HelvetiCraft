@@ -23,7 +23,6 @@ services:
     depends_on:
       mariadb:
         condition: service_healthy
-    # Use the image CMD (node src/server.js) so we don't run dev startup
 
   discord-bot:
     build: ./Discord_Bot
@@ -67,6 +66,12 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -u$$MARIADB_USER -p$$MARIADB_PASSWORD --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
   
   mongodb:
     image: mongo:7
