@@ -75,7 +75,9 @@ r.post("/advance", async (req, res, next) => {
  * Admin-only: startet sofort eine neue Runde (deaktiviert alte, erstellt neue).
  */
 r.post("/start", async (req, res, next) => {
-  
+  if (!req.user.isAdmin) {
+    return res.status(403).json({ error: "only_admin_can_start_phases" });
+  }
 
   try {
     const result = await startPhases();
