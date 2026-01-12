@@ -12,6 +12,7 @@ import initiativesRoutes from "./routes/initiatives.routes.js";
 import newsRoutes from "./routes/news.routes.js";
 import { verifyAuth } from "./middleware/auth.middleware.js";
 import financesRoutes from "./routes/finances.routes.js";
+import quizRoutes from "./routes/quiz.routes.js";
 //import statusRoutes from "./routes/status.routes.js";
 //import docsRoutes from "./routes/docs.routes.js";
 
@@ -30,6 +31,7 @@ app.use("/auth", authRoutes); // /login
 app.use("/initiatives", initiativesRoutes); // /  /:id  /create ... /finalvote/...
 app.use("/news", newsRoutes); // /  /:id  /create ...
 app.use("/finance", financesRoutes);    // /  /taxes /pay/... /sell /networth...
+app.use("/quiz", quizRoutes);          // /question /ranking
 //app.use("/", statusRoutes);      // /mc-web /project /helveticraft
 //app.use("/", docsRoutes);        // /news /news/current /blogs /blogs/current /guides ...
 
