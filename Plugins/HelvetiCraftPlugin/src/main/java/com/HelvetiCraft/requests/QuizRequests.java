@@ -11,13 +11,43 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
 
+
+
+import java.util.UUID;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import org.yaml.snakeyaml.Yaml;
+import java.util.Map;
+
 public class QuizRequests {
 
+
     private static final Gson GSON = new Gson();
+    private static String BACKEND_API_URL = "http://localhost:3000/quiz";
+    private static String API_KEY = "";
+    private static UUID PLAYER_UUID = null;
 
-
-    // Backend API base URL (adjust if needed)
-    private static final String BACKEND_API_URL = "http://localhost:3000/quiz";
+    /**
+     * Initialize QuizRequests using config file and parameters.
+     * If apiBase is null or empty, will try to read from config.yml (initiatives_api_base).
+     */
+    public static void init(String apiBase, String apiKey, UUID playerUuid) {
+        String base = apiBase;
+        if (base == null || base.isEmpty()) {
+            // Try to read from config.yml
+            try (InputStream input = new FileInputStream("src/main/resources/config.yml")) {
+                Yaml yaml = new Yaml();
+                Map<String, Object> config = yaml.load(input);
+                Object fromConfig = config.get("initiatives_api_base");
+                if (fromConfig != null) base = fromConfig.toString();
+            } catch (Exception e) {
+                System.err.println("[QuizRequests] Could not read initiatives_api_base from config.yml: " + e.getMessage());
+            }
+        }
+        if (base != null && !base.isEmpty()) BACKEND_API_URL = base.replaceAll("/+$", "") + "/quiz";
+        if (apiKey != null) API_KEY = apiKey;
+        if (playerUuid != null) PLAYER_UUID = playerUuid;
+    }
 
     public static QuizQuestion fetchNextQuestion() {
         try {
@@ -25,6 +55,9 @@ public class QuizRequests {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Accept", "application/json");
+            conn.setRequestProperty("x-auth-from", "minecraft");
+            conn.setRequestProperty("x-auth-key", API_KEY);
+            conn.setRequestProperty("x-uuid", PLAYER_UUID != null ? PLAYER_UUID.toString() : "");
 
             if (conn.getResponseCode() != 200) {
                 throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
@@ -53,6 +86,9 @@ public class QuizRequests {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("x-auth-from", "minecraft");
+            conn.setRequestProperty("x-auth-key", API_KEY);
+            conn.setRequestProperty("x-uuid", PLAYER_UUID != null ? PLAYER_UUID.toString() : "");
             conn.setDoOutput(true);
 
             String jsonInput = GSON.toJson(new RankingRequest(playerName, rankPosition));
