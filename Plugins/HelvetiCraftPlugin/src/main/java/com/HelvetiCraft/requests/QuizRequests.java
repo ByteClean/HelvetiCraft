@@ -4,11 +4,10 @@ import com.HelvetiCraft.quiz.QuizQuestion;
 import com.google.gson.Gson;
 
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.List;
 
 
@@ -24,6 +23,7 @@ public class QuizRequests {
 
     private static final Gson GSON = new Gson();
     private static String BACKEND_API_URL = "http://localhost:3000/quiz";
+    private static final HttpClient CLIENT = HttpClient.newBuilder().build();
     private static String API_KEY = "";
     private static UUID PLAYER_UUID = null;
 
@@ -51,27 +51,20 @@ public class QuizRequests {
 
     public static QuizQuestion fetchNextQuestion() {
         try {
-            URL url = new URL(BACKEND_API_URL + "/question");
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Accept", "application/json");
-            conn.setRequestProperty("x-auth-from", "minecraft");
-            conn.setRequestProperty("x-auth-key", API_KEY);
-            conn.setRequestProperty("x-uuid", PLAYER_UUID != null ? PLAYER_UUID.toString() : "");
+            HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(BACKEND_API_URL + "/quiz/question"))
+                .GET()
+                .header("Accept", "application/json")
+                .header("x-auth-from", "minecraft")
+                .header("x-auth-key", API_KEY)
+                .header("x-uuid", PLAYER_UUID != null ? PLAYER_UUID.toString() : "")
+                .build();
 
-            if (conn.getResponseCode() != 200) {
-                throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
+            HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+            if (res.statusCode() < 200 || res.statusCode() >= 300) {
+                throw new RuntimeException("Failed : HTTP error code : " + res.statusCode());
             }
-
-            BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
-            StringBuilder sb = new StringBuilder();
-            String output;
-            while ((output = br.readLine()) != null) {
-                sb.append(output);
-            }
-            conn.disconnect();
-
-            QuizJson parsed = GSON.fromJson(sb.toString(), QuizJson.class);
+            QuizJson parsed = GSON.fromJson(res.body(), QuizJson.class);
             return new QuizQuestion(parsed.question, parsed.answers);
         } catch (Exception e) {
             e.printStackTrace();
@@ -82,29 +75,18 @@ public class QuizRequests {
 
     public static String sendRankingUpdate(String playerName, int rankPosition) {
         try {
-            URL url = new URL(BACKEND_API_URL + "/ranking");
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setRequestProperty("x-auth-from", "minecraft");
-            conn.setRequestProperty("x-auth-key", API_KEY);
-            conn.setRequestProperty("x-uuid", PLAYER_UUID != null ? PLAYER_UUID.toString() : "");
-            conn.setDoOutput(true);
-
             String jsonInput = GSON.toJson(new RankingRequest(playerName, rankPosition));
-            try (OutputStream os = conn.getOutputStream()) {
-                byte[] input = jsonInput.getBytes("utf-8");
-                os.write(input, 0, input.length);
-            }
+            HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(BACKEND_API_URL + "/quiz/ranking"))
+                .POST(HttpRequest.BodyPublishers.ofString(jsonInput))
+                .header("Content-Type", "application/json")
+                .header("x-auth-from", "minecraft")
+                .header("x-auth-key", API_KEY)
+                .header("x-uuid", PLAYER_UUID != null ? PLAYER_UUID.toString() : "")
+                .build();
 
-            BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
-            StringBuilder response = new StringBuilder();
-            String responseLine;
-            while ((responseLine = br.readLine()) != null) {
-                response.append(responseLine.trim());
-            }
-            conn.disconnect();
-            return response.toString();
+            HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+            return res.body();
         } catch (Exception e) {
             e.printStackTrace();
             return GSON.toJson(new RankingResult(playerName, rankPosition, "error"));
