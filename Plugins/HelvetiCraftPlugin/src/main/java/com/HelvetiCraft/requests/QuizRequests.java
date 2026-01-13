@@ -16,13 +16,15 @@ import java.util.UUID;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import org.yaml.snakeyaml.Yaml;
+
 import java.util.Map;
+import static org.bukkit.Bukkit.getLogger;
 
 public class QuizRequests {
 
 
     private static final Gson GSON = new Gson();
-    private static String BACKEND_API_URL = "http://localhost:3000/quiz";
+    private static String BACKEND_API_URL = "http://helveticraft-backend:3000/quiz";
     private static final HttpClient CLIENT = HttpClient.newBuilder().build();
     private static String API_KEY = "";
     private static UUID PLAYER_UUID = null;
@@ -46,30 +48,60 @@ public class QuizRequests {
         }
         if (base != null && !base.isEmpty()) BACKEND_API_URL = base.replaceAll("/+$", "") + "/quiz";
         if (apiKey != null) API_KEY = apiKey;
+        getLogger().info("CONNECTION TO BACKEND FOR QUIZ" + API_KEY + "and BACKEND API URL" + BACKEND_API_URL);
         if (playerUuid != null) PLAYER_UUID = playerUuid;
     }
 
     public static QuizQuestion fetchNextQuestion() {
-        try {
-            HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(BACKEND_API_URL + "/quiz/question"))
-                .GET()
-                .header("Accept", "application/json")
-                .header("x-auth-from", "minecraft")
-                .header("x-auth-key", API_KEY)
-                .header("x-uuid", PLAYER_UUID != null ? PLAYER_UUID.toString() : "")
-                .build();
+        int maxRetries = 5;
+        int retryCount = 0;
 
-            HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
-            if (res.statusCode() < 200 || res.statusCode() >= 300) {
-                throw new RuntimeException("Failed : HTTP error code : " + res.statusCode());
+        while (retryCount < maxRetries) {
+            try {
+                HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(BACKEND_API_URL + "/quiz/question"))
+                    .GET()
+                    .header("Accept", "application/json")
+                    .header("x-auth-from", "minecraft")
+                    .header("x-auth-key", API_KEY)
+                    .header("x-uuid", PLAYER_UUID != null ? PLAYER_UUID.toString() : "")
+                    .build();
+
+                HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+                if (res.statusCode() < 200 || res.statusCode() >= 300) {
+                    throw new RuntimeException("Failed : HTTP error code : " + res.statusCode());
+                }
+                QuizJson parsed = GSON.fromJson(res.body(), QuizJson.class);
+
+                // Check if question is null and retry if so
+                if (parsed == null || parsed.question == null) {
+                    retryCount++;
+                    System.err.println("[QuizRequests] Question is null, retry attempt " + retryCount + "/" + maxRetries);
+                    if (retryCount < maxRetries) {
+                        Thread.sleep(500); // Wait 500ms before retrying
+                        continue;
+                    }
+                    throw new RuntimeException("Question is null after " + maxRetries + " retries");
+                }
+
+                return new QuizQuestion(parsed.question, parsed.answers);
+            } catch (Exception e) {
+                retryCount++;
+                System.err.println("[QuizRequests] Error fetching question (attempt " + retryCount + "/" + maxRetries + "): " + e.getMessage());
+                if (retryCount >= maxRetries) {
+                    e.printStackTrace();
+                    System.err.println("[QuizRequests] Failed to fetch question after " + maxRetries + " attempts. Returning null to prevent plugin crash.");
+                    return null;
+                }
+                try {
+                    Thread.sleep(500); // Wait 500ms before retrying
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return null;
+                }
             }
-            QuizJson parsed = GSON.fromJson(res.body(), QuizJson.class);
-            return new QuizQuestion(parsed.question, parsed.answers);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
         }
+        return null;
     }
 
 
