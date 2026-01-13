@@ -22,6 +22,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import javax.sql.rowset.spi.SyncFactoryException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -49,6 +50,7 @@ public class Main extends JavaPlugin {
         getLogger().info("API Base: " + apiBase);
 
         InitiativeRequests.init(apiBase, apiKey);
+        QuizRequests.init(apiBase, apiKey, null);
 
         PhaseFileManager.init(getDataFolder());
 
@@ -61,7 +63,6 @@ public class Main extends JavaPlugin {
         landTaxManager = new LandTaxManager(this, financeManager);
         vermoegensSteuerManager = new VermoegensSteuerManager(this, financeManager);
 
-        // === QUIZ SYSTEM ===
         // === QUIZ SYSTEM ===
         quizManager = new QuizManager(this);
         quizManager.start();
