@@ -3,8 +3,8 @@ import { MongoClient } from 'mongodb';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
-const dbName = process.env.MONGODB_DB || 'helveticraft';
+const uri = process.env.MONGODB_URI || 'mongodb://helveticraft-mongo:27017';
+const dbName = process.env.MONGO_INITDB_DATABASE || 'helveticraft';
 
 let client;
 let db;
