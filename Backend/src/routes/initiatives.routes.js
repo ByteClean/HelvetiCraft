@@ -91,7 +91,7 @@ r.get("/:id", async (req, res, next) => {
 });
 
 
-r.post("/create", verifyAuth, async (req, res, next) => {
+r.post("/create", async (req, res, next) => {
   const { title, description } = req.body;
   const { id: author_id, username } = req.user;
 
@@ -132,7 +132,7 @@ r.post("/create", verifyAuth, async (req, res, next) => {
 });
 
 
-r.put("/edit/:id", verifyAuth, async (req, res, next) => {
+r.put("/edit/:id", async (req, res, next) => {
   const { title, description } = req.body;
   const userId = req.user.id;
 
@@ -171,7 +171,7 @@ r.put("/edit/:id", verifyAuth, async (req, res, next) => {
 });
 
 
-r.delete("/del/:id", verifyAuth, async (req, res, next) => {
+r.delete("/del/:id", async (req, res, next) => {
   const userId = req.user.id;
 
   try {
@@ -206,7 +206,7 @@ r.delete("/del/:id", verifyAuth, async (req, res, next) => {
 });
 
 
-r.post("/vote/:id", verifyAuth, async (req, res, next) => {
+r.post("/vote/:id", async (req, res, next) => {
   const initiativeId = Number(req.params.id);
   const userId = req.user.id;
 
