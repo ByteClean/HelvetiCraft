@@ -19,11 +19,11 @@ export default function Initiatives() {
     // Initiativen + Phase vom Backend laden
     const fetchData = async () => {
       try {
-        const resInitiatives = await fetch("/initiatives");
+        const resInitiatives = await fetch("http://localhost:3000/initiatives");
         const dataInitiatives = await resInitiatives.json();
 
         // Optional: aktuelle Phase vom Backend holen
-        const resPhase = await fetch("/phases/current");
+        const resPhase = await fetch("http://localhost:3000/phases/current");
         const dataPhase = await resPhase.json();
 
         setInitiatives(dataInitiatives);
