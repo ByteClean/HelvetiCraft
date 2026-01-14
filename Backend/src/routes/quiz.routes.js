@@ -14,7 +14,7 @@ r.get("/question", async (req, res) => {
 		const { _id, ...rest } = question;
 		res.json(rest);
 	} catch (err) {
-		res.status(500).json({ error: "Failed to fetch question" });
+		res.status(500).json({ error: "Failed to fetch question", err});
 	}
 });
 
