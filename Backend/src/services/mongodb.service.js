@@ -13,6 +13,7 @@ export async function connectMongo() {
   if (!client) {
     client = new MongoClient(uri, { useUnifiedTopology: true });
     await client.connect();
+    console.log('Connected to MongoDB');
     db = client.db(dbName);
   }
   return db;
@@ -20,6 +21,7 @@ export async function connectMongo() {
 
 export async function getQuizCollection() {
   const database = await connectMongo();
+  console.log('Accessing quiz_questions collection');
   return database.collection('quiz_questions');
 }
 
