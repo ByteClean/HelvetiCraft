@@ -24,7 +24,7 @@ public class QuizRequests {
 
 
     private static final Gson GSON = new Gson();
-    private static String BACKEND_API_URL = "http://helveticraft-backend:3000/quiz";
+    private static String BACKEND_API_URL = "http://helveticraft-backend:3000";
     private static final HttpClient CLIENT = HttpClient.newBuilder().build();
     private static String API_KEY = "";
     private static UUID PLAYER_UUID = null;
@@ -46,7 +46,7 @@ public class QuizRequests {
                 System.err.println("[QuizRequests] Could not read initiatives_api_base from config.yml: " + e.getMessage());
             }
         }
-        if (base != null && !base.isEmpty()) BACKEND_API_URL = base.replaceAll("/+$", "") + "/quiz";
+        if (base != null && !base.isEmpty()) BACKEND_API_URL = base.replaceAll("/+$", "") + "";
         if (apiKey != null) API_KEY = apiKey;
         getLogger().info("CONNECTION TO BACKEND FOR QUIZ" + API_KEY + "and BACKEND API URL" + BACKEND_API_URL);
         if (playerUuid != null) PLAYER_UUID = playerUuid;
