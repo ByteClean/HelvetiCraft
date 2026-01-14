@@ -1,9 +1,8 @@
-// Backend/services/mongodb.service.js
 import { MongoClient } from 'mongodb';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const uri = process.env.MONGODB_URI || 'mongodb://helveticraft-mongodb:27017';
+const uri = process.env.MONGODB_URI || 'mongodb://admin:strongpassword123@helveticraft-mongodb:27017/helveticraft?authSource=admin';
 const dbName = process.env.MONGO_INITDB_DATABASE || 'helveticraft';
 
 let client;
