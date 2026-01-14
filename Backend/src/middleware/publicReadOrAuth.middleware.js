@@ -3,36 +3,34 @@ import { verifyAuth } from "./auth.middleware.js";
 
 /**
  * Public-Read oder Auth:
- * - Erlaubt bestimmte Public Requests (z.B. GET /initiatives, GET /phases/current)
- * - Alles andere erfordert verifyAuth (Minecraft/Discord/JWT)
+ * - Erlaubt bestimmte Public Requests (nur READ + Login)
+ * - Alles andere erfordert verifyAuth (minecraft/discord/web JWT)
  *
- * WICHTIG:
- * Da Caddy bei dir /api/* -> Backend weiterleitet und dabei /api stripped (handle_path),
- * sieht das Backend nur /initiatives, /phases/current usw. (ohne /api).
+ * Hinweis: Bei dir strippt Caddy /api via handle_path /api/*,
+ * daher sieht Express Pfade wie /initiatives statt /api/initiatives.
  */
 export function publicReadOrAuth(req, res, next) {
-  const method = (req.method || "").toUpperCase();
+  const method = String(req.method || "").toUpperCase();
   const path = req.path || req.originalUrl || "";
 
-  // --- Public endpoints (no auth) ---
-  // Health
+  // Public: Health
   if (method === "GET" && path === "/health") return next();
 
-  // Initiatives: nur lesen (GET)
+  // Public: Initiatives lesen
   if (method === "GET" && path.startsWith("/initiatives")) return next();
 
-  // Phases current: nur lesen (GET)
+  // Public: Phase anzeigen
   if (method === "GET" && path === "/phases/current") return next();
 
-  // News: nur lesen (GET)
+  // Public: News lesen (falls du das willst)
   if (method === "GET" && path.startsWith("/news")) return next();
 
-  // Quiz: nur lesen (GET)
+  // Public: Quiz lesen (falls du das willst)
   if (method === "GET" && path.startsWith("/quiz")) return next();
 
-  // Auth: Login muss ohne Auth gehen
+  // Public: Login (muss ohne Auth gehen)
   if (method === "POST" && path === "/auth/login") return next();
 
-  // --- Everything else: protected ---
+  // Alles andere: protected
   return verifyAuth(req, res, next);
 }

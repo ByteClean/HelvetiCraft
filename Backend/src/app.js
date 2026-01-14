@@ -22,25 +22,21 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
 
-// Health (public)
+// Public health
 app.get("/health", (req, res) => res.json({ ok: true }));
 
-// Detect origin (setzt z.B. req.source/headers-Infos)
+// Gilt fuer ALLE Requests
 app.use(detectOrigin);
 
-// Public-Read oder Auth (NEU)
-// - erlaubt public GETs fuer Website
-// - alles andere verlangt verifyAuth
+// NEU: entscheidet public vs protected
 app.use(publicReadOrAuth);
 
-// Routes (laufen jetzt hinter publicReadOrAuth)
+// Routes
 app.use("/initiatives", initiativesRoutes);
 app.use("/quiz", quizRoutes);
-
 app.use("/phases", phasesRouter);
 app.use("/discord-logging", discordLoggingRoutes);
 app.use("/auth", authRoutes);
-
 app.use("/news", newsRoutes);
 app.use("/finance", financesRoutes);
 
@@ -49,7 +45,9 @@ app.use((req, res) => res.status(404).json({ error: "Route nicht gefunden" }));
 
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(err.status || 500).json({ error: err.message || "Interner Fehler" });
+  res
+    .status(err.status || 500)
+    .json({ error: err.message || "Interner Fehler" });
 });
 
 export default app;
