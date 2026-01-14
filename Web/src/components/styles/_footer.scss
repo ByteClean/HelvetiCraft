@@ -1,21 +1,43 @@
-@import '../../styles/_variables';
-@import '../../styles/_mixins';
-
 .site-footer {
-  margin-top: 2rem;
-  border-top: 8px solid #000;
-  padding-top: 0.5rem;
+  width: 100%;
+  background: url("/imgs/blocks/bedrock.png") center / 64px 64px repeat, #0f0f0f;
+  padding: 2rem 0;
+}
 
+.footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+
+  font-size: 13px;
+}
+
+.footer-links {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.site-footer a,
+.site-footer a:visited {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  color: #aaffaa;
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
   .footer-inner {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.6rem 0;
-    font-size: 12px;
-
-    a {
-      color: $text;
-      margin-left: 0.8rem;
-      text-decoration: none;
-    }
+    flex-direction: column;
+    text-align: center;
   }
 }

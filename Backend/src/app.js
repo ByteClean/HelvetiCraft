@@ -12,6 +12,7 @@ import initiativesRoutes from "./routes/initiatives.routes.js";
 import newsRoutes from "./routes/news.routes.js";
 import { verifyAuth } from "./middleware/auth.middleware.js";
 import financesRoutes from "./routes/finances.routes.js";
+import quizRoutes from "./routes/quiz.routes.js";
 //import statusRoutes from "./routes/status.routes.js";
 //import docsRoutes from "./routes/docs.routes.js";
 
@@ -22,6 +23,8 @@ app.use(express.json());
 app.use(morgan("dev"));
 
 app.get("/health", (req, res) => res.json({ ok: true }));app.use("/initiatives", initiativesRoutes); // /  /:id  /create ... /finalvote/...
+app.use("/quiz", quizRoutes);          // /question /ranking
+app.get("/health", (req, res) => res.json({ ok: true }));
 app.use(detectOrigin); // gilt für ALLE Anfragen
 app.use(verifyAuth); // gilt für ALLE NACHFOLGENDEN Routen
 app.use("/phases", phasesRouter); // /current /advance

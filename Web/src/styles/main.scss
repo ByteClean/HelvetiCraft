@@ -2,7 +2,15 @@
 @import "./_variables";
 @import "./_mixins";
 
-/* GLOBAL DEFAULTS */
+/* ======================================
+   COMPONENT STYLES (WICHTIG!)
+====================================== */
+@import "../components/styles/_header";
+@import "../components/styles/_footer";
+
+/* ======================================
+   GLOBAL DEFAULTS
+====================================== */
 :root {
   --block-size: 64px;
   --zoom: 10;
@@ -14,130 +22,81 @@
   padding: 0;
 }
 
+/* ======================================
+   BASE / BODY
+====================================== */
 html,
 body {
   height: 100%;
-  margin: 0;
   background: url("/imgs/blocks/stone.png") repeat fixed;
   background-size: 64px 64px;
   color: white;
   font-family: "Minecraft", "Press Start 2P", sans-serif;
   image-rendering: pixelated;
-  text-shadow: 2px 2px 0 #000;
+  text-shadow: 3px 3px 0 #000;
 }
 
-.full-width {
-  width: 100vw;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
-}
-
-/* HEADER */
-.site-header {
-  width: 100vw;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
-  background: url("/imgs/blocks/grass-side.png") top center / auto 64px repeat-x,
-    url("/imgs/blocks/dirt.png") top center / 64px 64px repeat;
-  background-color: #8b7355;
-  border-bottom: 8px solid #000;
-  padding-top: 64px;
-}
-
-.header-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1.5rem 1rem;
+/* ======================================
+   APP LAYOUT
+====================================== */
+.app {
+  min-height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 2rem;
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.6),
-    rgba(0, 0, 0, 0.3)
-  );
+  flex-direction: column;
 }
 
-/* MAIN CONTENT */
+/* ======================================
+   MAIN CONTENT (REFERENZ)
+====================================== */
 .main-content {
-  flex: 1;
-  padding: 3rem 1rem;
+  flex: 1 0 auto;
   max-width: 1200px;
   margin: 0 auto;
+  padding: 2.5rem 1rem;
+  width: 100%;
 }
 
-/* FOOTER */
-.site-footer {
-  width: 100vw;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
-  background: url("/imgs/blocks/bedrock.png") center / 64px 64px repeat, #0f0f0f;
-  border-top: 8px solid #000;
-  padding: 2rem 1rem;
-}
-
-.footer-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-  font-size: 13px;
-
-  a {
-    color: #88ddff;
-    text-decoration: none;
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-}
-
-/* ========== GLOBAL COMPONENTS ========== */
-
-/* MINECRAFT BUTTON */
+/* ======================================
+   MINECRAFT BUTTON
+====================================== */
 .minecraft-button {
   --zoom: 10;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 36px;
+
   min-height: 48px;
-  font-size: 18px;
+  padding: 12px 24px;
+
+  font-size: 16px;
   font-weight: bold;
   color: #e0e0e0;
+
   text-shadow: 3px 3px 0 #000;
-  background: url("/imgs/ui/button-inside.png") center/cover no-repeat;
+  background: url("/imgs/ui/button-inside.png") center / cover no-repeat;
+
   border: calc(var(--block-size) / var(--zoom)) solid transparent;
   border-image: url("/imgs/ui/button-border.png") 10% 3% stretch;
   border-image-slice: 10% 3%;
+
   image-rendering: pixelated;
   cursor: pointer;
+  white-space: nowrap;
 
   &:hover {
     color: #ffffa0;
     background-image: url("/imgs/ui/button-inside-hover.png");
     border-image-source: url("/imgs/ui/button-border-hover.png");
   }
+
   &:active {
     color: #bbbbbb;
     background-image: url("/imgs/ui/button-inside-active.png");
     border-image-source: url("/imgs/ui/button-border-active.png");
     transform: translateY(3px);
   }
+
   &.outline {
     background: transparent !important;
     border: 5px solid #000 !important;
@@ -146,37 +105,65 @@ body {
   }
 }
 
-/* PANEL (minecraft UI frame) */
+/* ======================================
+   MINECRAFT PANEL
+====================================== */
 .minecraft-panel {
   --zoom: 10;
+
   padding: 20px;
   background: #8b8b8b;
+
   border: calc(var(--block-size) / var(--zoom)) solid transparent;
   border-image: url("/imgs/ui/panel.png") 43% fill;
   border-image-slice: 43% fill;
+
   image-rendering: pixelated;
   box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.7);
 }
 
-/* GLOBAL RESPONSIVE RULES */
-@media (max-width: 768px) {
-  .header-inner,
-  .footer-inner {
-    flex-direction: column;
-    text-align: center;
+/* ======================================
+   RESPONSIVE
+====================================== */
+@media (max-width: 1024px) {
+  .main-content {
+    padding: 2rem 1rem;
   }
+
   .minecraft-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px 20px;
-    min-height: 40px;
+    padding: 10px 20px;
     font-size: 14px;
-    box-sizing: border-box;
-    white-space: nowrap;
-    flex: 0 1 auto;
   }
 }
 
-/* IMPORT HOME PAGE AFTER GLOBALS */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1.5rem 0.8rem;
+  }
+
+  .minecraft-button {
+    width: 100%;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+
+  .hero-title {
+    font-size: 32px;
+  }
+
+  .hero-subtitle {
+    font-size: 20px;
+  }
+}
+
+/* ======================================
+   PAGE STYLES
+====================================== */
 @import "../pages/styles/_home";
+@import "../pages/styles/_initiatives";

@@ -1,13 +1,12 @@
-import React from 'react'
-
 export default function Footer() {
   return (
     <footer className="site-footer">
       <div className="footer-inner">
         <div>
-          © {new Date().getFullYear()} <strong>HelvetiCraft</strong> – Schweizer Demokratie-Server
+          © {new Date().getFullYear()} <strong>HelvetiCraft</strong>
         </div>
-        <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+
+        <div className="footer-links">
           <a href="#">Impressum</a>
           <a href="#">Datenschutz</a>
           <a href="https://discord.gg/DEIN_LINK" target="_blank" rel="noopener">
