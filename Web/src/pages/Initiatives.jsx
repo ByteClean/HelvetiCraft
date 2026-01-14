@@ -49,8 +49,8 @@ export default function Initiatives() {
         setError("");
 
         const [resInitiatives, resPhase] = await Promise.all([
-          fetch("http://localhost:3000/initiatives/"),
-          fetch("http://localhost:3000/phases/current"),
+          fetch("http://localhost:3000/api/initiatives/"),
+          fetch("http://localhost:3000/api/phases/current"),
         ]);
 
         if (!resInitiatives.ok) {
