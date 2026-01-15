@@ -9,7 +9,7 @@ export default function Footer() {
         <div className="footer-links">
           <a href="#">Impressum</a>
           <a href="#">Datenschutz</a>
-          <a href="https://discord.gg/DEIN_LINK" target="_blank" rel="noopener">
+          <a href="https://discord.gg/q2mMrXad9h" target="_blank" rel="noopener">
             Discord
           </a>
         </div>
