@@ -59,45 +59,63 @@ public class InitiativeManager implements Listener {
         int phase = InitiativeRequests.getCurrentPhase(player.getUniqueId());
 
         // Main Initiative Menu
-        if (title.startsWith("§6Volksinitiativen")) {
+        if (title.startsWith("§6Volksinitiativen") || title.startsWith("§6Initiativen")) {
             String displayName = clicked.getItemMeta().getDisplayName();
-            if (phase == 1) {
-                switch (clicked.getType()) {
-                    case EMERALD -> {
-                        if (InitiativeRequests.canCreateInitiative(player.getUniqueId(), player.getName())) {
-                            startInitiativeCreation(player);
-                        } else player.sendMessage("§cDu kannst keine weitere Initiative in Phase 1 erstellen!");
+            switch (phase) {
+                case 1: // Phase 1: Create initiatives
+                    switch (clicked.getType()) {
+                        case EMERALD -> {
+                            if (InitiativeRequests.canCreateInitiative(player.getUniqueId(), player.getName())) {
+                                startInitiativeCreation(player);
+                            } else player.sendMessage("§cDu kannst keine weitere Initiative in Phase 1 erstellen!");
+                        }
+                        case PAPER, GREEN_WOOL  -> {
+                            String voteTitle = stripColorPrefix(displayName);
+                            InitiativeRequests.votePhase1(player.getUniqueId(), voteTitle);
+                            openInitiativeMenu(player);
+                        }
+                        case WRITABLE_BOOK -> openOwnInitiativesMenu(player);
+                        case ARROW -> {
+                            int page = playerPages.getOrDefault(player.getUniqueId(), 0);
+                            playerPages.put(player.getUniqueId(), displayName.contains("Zurück") ? page - 1 : page + 1);
+                            openInitiativeMenu(player);
+                        }
                     }
-                    case PAPER, GREEN_WOOL -> {
-                        String voteTitle = stripColorPrefix(displayName);
-                        InitiativeRequests.votePhase1(player.getUniqueId(), voteTitle);
-                        openInitiativeMenu(player);
+                    break;
+                case 2: // Phase 2: Admin acceptance, no voting in Minecraft
+                    // Only allow viewing initiatives, no voting
+                    switch (clicked.getType()) {
+                        case PAPER -> {
+                            // Just display info
+                        }
+                        case ARROW -> {
+                            int page = playerPages.getOrDefault(player.getUniqueId(), 0);
+                            playerPages.put(player.getUniqueId(), displayName.contains("Zurück") ? page - 1 : page + 1);
+                            openInitiativeMenu(player);
+                        }
                     }
-                    case WRITABLE_BOOK -> openOwnInitiativesMenu(player);
-                    case ARROW -> {
-                        int page = playerPages.getOrDefault(player.getUniqueId(), 0);
-                        playerPages.put(player.getUniqueId(), displayName.contains("Zurück") ? page - 1 : page + 1);
-                        openInitiativeMenu(player);
+                    break;
+                case 3: // Phase 3: Voting for/against
+                    switch (clicked.getType()) {
+                        case GREEN_WOOL, RED_WOOL -> {
+                            List<String> lore = clicked.getItemMeta().getLore();
+                            if (lore == null || lore.size() < 2) return;
+                            String initiativeTitle = lore.get(lore.size() - 1).replace("§8Initiative: ", "").trim();
+                            boolean voteFor = clicked.getType() == Material.GREEN_WOOL;
+                            InitiativeRequests.votePhase2(player.getUniqueId(), initiativeTitle, voteFor);
+                            openInitiativeMenu(player);
+                        }
+                        case ARROW -> {
+                            int page = playerPages.getOrDefault(player.getUniqueId(), 0);
+                            playerPages.put(player.getUniqueId(), displayName.contains("Zurück") ? page - 1 : page + 1);
+                            openInitiativeMenu(player);
+                        }
                     }
-                }
-            } else { // Phase 2
-                switch (clicked.getType()) {
-                    case GREEN_WOOL, RED_WOOL -> {
-                        // Extract initiative title from the last line of the lore
-                        List<String> lore = clicked.getItemMeta().getLore();
-                        if (lore == null || lore.size() < 2) return;
-                        String initiativeTitle = lore.get(lore.size() - 1).replace("§8Initiative: ", "").trim();
-
-                        boolean voteFor = clicked.getType() == Material.GREEN_WOOL;
-                        InitiativeRequests.votePhase2(player.getUniqueId(), initiativeTitle, voteFor);
-                        openInitiativeMenu(player);
-                    }
-                    case ARROW -> {
-                        int page = playerPages.getOrDefault(player.getUniqueId(), 0);
-                        playerPages.put(player.getUniqueId(), displayName.contains("Zurück") ? page - 1 : page + 1);
-                        openInitiativeMenu(player);
-                    }
-                }
+                    break;
+                default: // Phase 4: Pause
+                    // No actions allowed
+                    player.sendMessage("§cDie Initiativen befinden sich aktuell in einer Pause.");
+                    break;
             }
             return;
         }

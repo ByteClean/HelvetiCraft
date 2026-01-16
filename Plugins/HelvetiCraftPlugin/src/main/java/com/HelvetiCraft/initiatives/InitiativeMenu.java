@@ -26,10 +26,18 @@ public class InitiativeMenu {
         int phase = InitiativeRequests.getCurrentPhase(player.getUniqueId());
         List<Initiative> initiatives = new ArrayList<>(InitiativeRequests.getAllInitiatives(player.getUniqueId()));
 
-        if (phase == 1) {
-            openPhase1(player, page, initiatives);
-        } else if (phase == 2) {
-            openPhase2(player, page, initiatives);
+        switch (phase) {
+            case 1:
+                openPhase1(player, page, initiatives);
+                break;
+            case 2:
+                openPhase2AdminAcceptance(player, page, initiatives);
+                break;
+            case 3:
+                openPhase3Voting(player, page, initiatives);
+                break;
+            default:
+                openPauseMessage(player);
         }
     }
 
@@ -103,22 +111,66 @@ public class InitiativeMenu {
     }
 
     // ------------------- Phase 2 -------------------
-    private void openPhase2(Player player, int page, List<Initiative> list) {
-        int initiativesPerPage = 7; // 7 columns available (1–7)
+    // --- Phase 2: Admin acceptance, no voting in Minecraft ---
+    private void openPhase2AdminAcceptance(Player player, int page, List<Initiative> list) {
+        int initiativesPerPage = 18;
         int totalPages = Math.max(1, (int) Math.ceil((double) list.size() / initiativesPerPage));
         page = Math.max(0, Math.min(page, totalPages - 1));
         manager.getPlayerPages().put(player.getUniqueId(), page);
 
-        Inventory inv = Bukkit.createInventory(null, 27, "§6Volksinitiativen (Phase 2)");
+        Inventory inv = Bukkit.createInventory(null, 27, "§6Initiativen (Phase 2: Admin-Prüfung)");
+
+        int start = page * initiativesPerPage;
+        int end = Math.min(start + initiativesPerPage, list.size());
+        for (int i = start; i < end; i++) {
+            Initiative initiative = list.get(i);
+            ItemStack item = new ItemStack(Material.PAPER);
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                meta.setDisplayName("§b" + initiative.getTitle());
+                meta.setLore(Arrays.asList(
+                        "§7Autor: " + initiative.getAuthor(),
+                        "§7Beschreibung: " + initiative.getDescription(),
+                        "§eStatus: " + (initiative.getPhase() == 2 ? "§aAkzeptiert" : "§cAusstehend")
+                ));
+                item.setItemMeta(meta);
+            }
+            inv.addItem(item);
+        }
+
+        // Pagination
+        if (page > 0) {
+            ItemStack prev = new ItemStack(Material.ARROW);
+            ItemMeta meta = prev.getItemMeta();
+            if (meta != null) meta.setDisplayName("§eZurück");
+            inv.setItem(24, prev);
+        }
+        if (page < totalPages - 1) {
+            ItemStack next = new ItemStack(Material.ARROW);
+            ItemMeta meta = next.getItemMeta();
+            if (meta != null) meta.setDisplayName("§eWeiter");
+            inv.setItem(25, next);
+        }
+
+        player.openInventory(inv);
+    }
+
+    // --- Phase 3: Voting for/against in Minecraft ---
+    private void openPhase3Voting(Player player, int page, List<Initiative> list) {
+        int initiativesPerPage = 7;
+        int totalPages = Math.max(1, (int) Math.ceil((double) list.size() / initiativesPerPage));
+        page = Math.max(0, Math.min(page, totalPages - 1));
+        manager.getPlayerPages().put(player.getUniqueId(), page);
+
+        Inventory inv = Bukkit.createInventory(null, 27, "§6Initiativen (Phase 3: Abstimmung)");
 
         int start = page * initiativesPerPage;
         int end = Math.min(start + initiativesPerPage, list.size());
         Map<String, Boolean> playerVotes = InitiativeRequests.getPlayerVotesPhase2(player.getUniqueId());
 
-        // Base column index 1–7 for initiatives
         for (int i = start; i < end; i++) {
             Initiative initiative = list.get(i);
-            int colIndex = i - start + 1; // +1 to skip left arrow column (0)
+            int colIndex = i - start + 1;
             int topSlot = colIndex;
             int midSlot = colIndex + 9;
             int botSlot = colIndex + 18;
@@ -170,8 +222,7 @@ public class InitiativeMenu {
             inv.setItem(botSlot, red);
         }
 
-        // --- Pagination arrows ---
-        // Left (center row slot 9)
+        // Pagination arrows
         if (page > 0) {
             ItemStack prev = new ItemStack(Material.ARROW);
             ItemMeta prevMeta = prev.getItemMeta();
@@ -181,8 +232,6 @@ public class InitiativeMenu {
             }
             inv.setItem(9, prev);
         }
-
-        // Right (center row slot 17)
         if (page < totalPages - 1) {
             ItemStack next = new ItemStack(Material.ARROW);
             ItemMeta nextMeta = next.getItemMeta();
@@ -193,6 +242,20 @@ public class InitiativeMenu {
             inv.setItem(17, next);
         }
 
+        player.openInventory(inv);
+    }
+
+    // --- Phase 4: Pause ---
+    private void openPauseMessage(Player player) {
+        Inventory inv = Bukkit.createInventory(null, 9, "§6Initiativen (Pause)");
+        ItemStack info = new ItemStack(Material.BARRIER);
+        ItemMeta meta = info.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName("§cKeine Initiativen möglich");
+            meta.setLore(Collections.singletonList("§7Die Initiativen befinden sich aktuell in einer Pause."));
+            info.setItemMeta(meta);
+        }
+        inv.setItem(4, info);
         player.openInventory(inv);
     }
 }

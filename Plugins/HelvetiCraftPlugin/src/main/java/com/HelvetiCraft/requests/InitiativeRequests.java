@@ -309,7 +309,7 @@ public class InitiativeRequests {
             String encoded = URLEncoder.encode(id, StandardCharsets.UTF_8);
             Map<String, Object> votePayload = Map.of(
                     "playerId", playerId.toString(),
-                    "phase", 1,
+                    "phase", 0,
                     "vote", !isRemoving // true to add support, false if removing
             );
             String json = GSON.toJson(votePayload);

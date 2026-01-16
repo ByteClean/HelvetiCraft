@@ -87,9 +87,9 @@ export async function startPhases() {
 
     // durations aus aktueller Runde oder Defaults
     const d0 = active ? Number(active.duration_phase0) : 4;
-    const d1 = active ? Number(active.duration_phase1) : 4;
+    const d1 = active ? Number(active.duration_phase1) : 2;
     const d2 = active ? Number(active.duration_phase2) : 4;
-    const d3 = active ? Number(active.duration_phase3) : 4;
+    const d3 = active ? Number(active.duration_phase3) : 2;
 
     if (![d0, d1, d2, d3].every((n) => Number.isInteger(n) && n >= 0)) {
       throw new Error("invalid_phase_durations");
