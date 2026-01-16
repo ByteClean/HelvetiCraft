@@ -19,6 +19,20 @@ public class FinanceRequests {
         if (apiKey != null) API_KEY = apiKey;
     }
 
+    // Call this from your Main.onEnable, passing the plugin instance
+    public static void loadConfigFromPlugin(org.bukkit.plugin.java.JavaPlugin plugin) {
+        String apiBase = plugin.getConfig().getString("initiatives_api_base");
+        String apiKey = plugin.getConfig().getString("minecraft_api_key");
+        if (apiBase == null || apiBase.isEmpty()) {
+            plugin.getLogger().warning("[FinanceRequests] finances_api_base missing in config.yml!");
+        }
+        if (apiKey == null || apiKey.isEmpty()) {
+            plugin.getLogger().warning("[FinanceRequests] minecraft_api_key missing in config.yml!");
+        }
+        init(apiBase, apiKey);
+        plugin.getLogger().info("[FinanceRequests] Initialized with API base: " + apiBase);
+    }
+
     public static boolean hasAccount(UUID id) {
         try {
             HttpRequest req = HttpRequest.newBuilder()
