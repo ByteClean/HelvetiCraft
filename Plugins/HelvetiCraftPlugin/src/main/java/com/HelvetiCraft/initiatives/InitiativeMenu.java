@@ -55,8 +55,8 @@ public class InitiativeMenu {
         int end = Math.min(start + initiativesPerPage, list.size());
 
         // Always refresh votes and initiatives for up-to-date display
-        List<Initiative> freshList = new ArrayList<>(InitiativeRequests.getAllInitiatives(player.getUniqueId()));
-        Set<String> votedSet = InitiativeRequests.getPlayerVotesPhase1(player.getUniqueId(), true);
+        List<Initiative> freshList = new ArrayList<>(com.HelvetiCraft.requests.InitiativeRequests.getAllInitiatives(player.getUniqueId()));
+        Set<String> votedSet = com.HelvetiCraft.requests.InitiativeRequests.getPlayerVotesPhase1(player.getUniqueId(), true);
 
         for (int i = start; i < end; i++) {
             Initiative initiative = freshList.get(i);
@@ -75,9 +75,9 @@ public class InitiativeMenu {
             }
             inv.addItem(item);
         }
+        boolean canCreate = com.HelvetiCraft.requests.InitiativeRequests.canCreateInitiative(player.getUniqueId(), player.getName());
 
-        // Create new initiative button (re-check with fresh list)
-        if (InitiativeRequests.canCreateInitiative(player.getUniqueId(), player.getName())) {
+        if (canCreate) {
             ItemStack create = new ItemStack(Material.EMERALD);
             ItemMeta meta = create.getItemMeta();
             if (meta != null) {

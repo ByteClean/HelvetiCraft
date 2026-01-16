@@ -269,13 +269,14 @@ public class InitiativeRequests {
 
     public static boolean canCreateInitiative(UUID playerId, String playerName) {
         int phase = getCurrentPhase(playerId);
-        if (phase != 1) return false;
+        if (phase != 0) return false; // Only allow in phase 0
 
-        // Check whether player already created in phase 1
+        // Check whether player already created in phase 0
         Collection<Initiative> all = getAllInitiatives(playerId);
         for (Initiative i : all) {
-            if (i.getAuthor() != null && i.getAuthor().equalsIgnoreCase(playerName) && i.getPhase() == 1)
+            if (i.getAuthor() != null && i.getAuthor().equalsIgnoreCase(playerName)) {
                 return false;
+            }
         }
         return true;
     }
