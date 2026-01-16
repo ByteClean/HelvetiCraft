@@ -17,7 +17,7 @@ export default function Header() {
         <nav className="nav">
           <PixelButton as="a" href="/">Home</PixelButton>
           <PixelButton as="a" href="/initiatives">Initiativen</PixelButton>
-          <PixelButton as="a" href="/features">Features</PixelButton>
+          <PixelButton as="a" href="/guidance">Anleitung</PixelButton>
           <PixelButton as="a" href="/news">News</PixelButton>
           <PixelButton as="a" href="/about">Über uns</PixelButton>
           <PixelButton as="a" href="/status">Status</PixelButton>
