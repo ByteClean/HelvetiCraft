@@ -38,7 +38,7 @@ app.use("/phases", phasesRouter);
 app.use("/discord-logging", discordLoggingRoutes);
 app.use("/auth", authRoutes);
 app.use("/news", newsRoutes);
-app.use("/finance", financesRoutes);
+app.use("/finances", financesRoutes);
 
 // 404 + Fehlerhandler
 app.use((req, res) => res.status(404).json({ error: "Route nicht gefunden" }));
