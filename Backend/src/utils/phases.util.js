@@ -1,9 +1,6 @@
 // src/utils/phases.util.js
 import pool from "../services/mysql.service.js";
 
-/**
- * Hilfsfunktion: aktive Runde holen (ohne Lock).
- */
 async function getActiveCycle() {
   const [[row]] = await pool.query(`
     SELECT
@@ -18,9 +15,6 @@ async function getActiveCycle() {
   return row || null;
 }
 
-/**
- * Hilfsfunktion: aktive Runde holen (mit Lock in Transaction).
- */
 async function getActiveCycleForUpdate(connection) {
   const [[row]] = await connection.query(`
     SELECT
@@ -36,19 +30,12 @@ async function getActiveCycleForUpdate(connection) {
   return row || null;
 }
 
-/**
- * Globale Phase holen (0–3) aus aktiver Runde.
- */
 export async function getCurrentPhase() {
   const cycle = await getActiveCycle();
   if (!cycle) throw new Error("phases_row_missing");
   return cycle.phase;
 }
 
-/**
- * Aktive Spieler in den letzten `days` Tagen.
- * lastlogin ist Unix-Timestamp in Millisekunden.
- */
 export async function getActivePlayersCount(days = 10) {
   const seconds = days * 24 * 60 * 60;
   const [[{ activePlayers }]] = await pool.query(
@@ -62,22 +49,12 @@ export async function getActivePlayersCount(days = 10) {
   return activePlayers;
 }
 
-/**
- * Mindeststimmen: ceil(activePlayers / 3)
- */
 export async function getMinVotes(days = 10) {
   const activePlayers = await getActivePlayersCount(days);
   const minVotes = Math.ceil(activePlayers / 3);
   return { activePlayers, minVotes };
 }
 
-/**
- * Neue Runde starten:
- * - alte aktive Runde (falls vorhanden) deaktivieren (aktiv=0)
- * - neue Zeile INSERT mit aktiv=1, phase=0, Startzeiten berechnet
- *
- * Annahme: duration_phaseX sind TAGE.
- */
 export async function startPhases() {
   const connection = await pool.getConnection();
   try {
@@ -85,11 +62,10 @@ export async function startPhases() {
 
     const active = await getActiveCycleForUpdate(connection);
 
-    // durations aus aktueller Runde oder Defaults
     const d0 = active ? Number(active.duration_phase0) : 4;
-    const d1 = active ? Number(active.duration_phase1) : 4;
+    const d1 = active ? Number(active.duration_phase1) : 2;
     const d2 = active ? Number(active.duration_phase2) : 4;
-    const d3 = active ? Number(active.duration_phase3) : 4;
+    const d3 = active ? Number(active.duration_phase3) : 2;
 
     if (![d0, d1, d2, d3].every((n) => Number.isInteger(n) && n >= 0)) {
       throw new Error("invalid_phase_durations");
@@ -132,9 +108,6 @@ export async function startPhases() {
   }
 }
 
-/**
- * Phase wechseln + Initiativen anhand der Phase-Regeln bewerten (auf aktiver Runde).
- */
 export async function advancePhaseAndEvaluate(days = 10) {
   const connection = await pool.getConnection();
   try {
@@ -179,15 +152,14 @@ export async function advancePhaseAndEvaluate(days = 10) {
         }
       }
     } else if (currentPhase === 1) {
+      // Admin-Votes sind in admin_votes
       for (const ini of initiatives) {
         const [[{ ja }]] = await connection.query(
           `
           SELECT COUNT(*) AS ja
-          FROM final_votes fv
-          JOIN authme a ON a.id = fv.user_id
-          WHERE fv.initiative_id = ?
-            AND fv.stimme = 1
-            AND a.isAdmin = 1
+          FROM admin_votes
+          WHERE initiative_id = ?
+            AND stimme = 1
           `,
           [ini.id]
         );
@@ -205,11 +177,12 @@ export async function advancePhaseAndEvaluate(days = 10) {
         }
       }
     } else if (currentPhase === 2) {
+      // Spieler-Votes sind in player_votes
       for (const ini of initiatives) {
         const [[{ ja }]] = await connection.query(
           `
           SELECT COUNT(*) AS ja
-          FROM final_votes
+          FROM player_votes
           WHERE initiative_id = ?
             AND stimme = 1
           `,
@@ -260,12 +233,6 @@ export async function advancePhaseAndEvaluate(days = 10) {
   }
 }
 
-/**
- * Wenn Phase 3 vorbei ist:
- * - aktive Runde deaktivieren
- * - neue Runde starten (startPhases)
- */
 export async function endCycleAndRestart() {
-  // startPhases() deaktiviert bereits die aktive Runde und startet neu
   return startPhases();
 }

@@ -13,6 +13,5 @@ app.listen(PORT, "0.0.0.0", () => {
 
 // 12 Stunden = 12 * 60 * 60 * 1000
 startPhaseScheduler({
-  intervalMs: 12 * 60 * 60 * 1000,
   daysForMinVotes: 10,
 });

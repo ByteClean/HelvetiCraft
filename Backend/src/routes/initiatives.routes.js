@@ -1,10 +1,36 @@
-import { Router } from "express"; 
+// src/routes/initiatives.routes.js
+import { Router } from "express";
 import pool from "../services/mysql.service.js";
-import { verifyAuth } from "../middleware/auth.middleware.js";
 import { getCurrentPhase } from "../utils/phases.util.js";
 
 const r = Router();
 
+function phaseToFinalVoteTable(phase) {
+  // Phase 1 = Admin-Voting, Phase 2/3 = Spieler-Voting
+  if (phase === 1) return "admin_votes";
+  return "player_votes";
+}
+
+async function getFinalVoteCounts(initiativeId) {
+  const phase = await getCurrentPhase();
+  const table = phaseToFinalVoteTable(phase);
+
+  const [[finals]] = await pool.query(
+    `SELECT
+       SUM(stimme = 1) AS ja,
+       SUM(stimme = 0) AS nein
+     FROM ${table}
+     WHERE initiative_id = ?`,
+    [initiativeId]
+  );
+
+  return {
+    phase,
+    table,
+    ja: finals?.ja || 0,
+    nein: finals?.nein || 0,
+  };
+}
 
 r.get(["/", "/all"], async (req, res, next) => {
   try {
@@ -25,18 +51,15 @@ r.get(["/", "/all"], async (req, res, next) => {
         [ini.id]
       );
 
-      const [[finals]] = await pool.query(
-        `SELECT 
-           SUM(stimme = 1) AS ja,
-           SUM(stimme = 0) AS nein
-         FROM final_votes WHERE initiative_id = ?`,
-        [ini.id]
-      );
+      const finals = await getFinalVoteCounts(ini.id);
 
       ini.stimmen = {
         normal: normalVotes,
-        ja: finals.ja || 0,
-        nein: finals.nein || 0,
+        ja: finals.ja,
+        nein: finals.nein,
+        // optional debug:
+        // phase: finals.phase,
+        // table: finals.table,
       };
     }
 
@@ -60,8 +83,7 @@ r.get("/:id", async (req, res, next) => {
       [req.params.id]
     );
 
-    if (rows.length === 0)
-      return res.status(404).json({ error: "not_found" });
+    if (rows.length === 0) return res.status(404).json({ error: "not_found" });
 
     const initiative = rows[0];
 
@@ -70,18 +92,12 @@ r.get("/:id", async (req, res, next) => {
       [initiative.id]
     );
 
-    const [[finals]] = await pool.query(
-      `SELECT 
-         SUM(stimme = 1) AS ja,
-         SUM(stimme = 0) AS nein
-       FROM final_votes WHERE initiative_id = ?`,
-      [initiative.id]
-    );
+    const finals = await getFinalVoteCounts(initiative.id);
 
     initiative.stimmen = {
       normal: normalVotes,
-      ja: finals.ja || 0,
-      nein: finals.nein || 0,
+      ja: finals.ja,
+      nein: finals.nein,
     };
 
     res.json(initiative);
@@ -89,7 +105,6 @@ r.get("/:id", async (req, res, next) => {
     next(err);
   }
 });
-
 
 r.post("/create", async (req, res, next) => {
   const { title, description } = req.body;
@@ -109,8 +124,7 @@ r.post("/create", async (req, res, next) => {
       [title]
     );
 
-    if (exists.length > 0)
-      return res.status(409).json({ error: "title_already_exists" });
+    if (exists.length > 0) return res.status(409).json({ error: "title_already_exists" });
 
     const [result] = await pool.query(
       "INSERT INTO initiatives (author_id, title, description, status, aktiv) VALUES (?, ?, ?, 0, 1)",
@@ -131,7 +145,6 @@ r.post("/create", async (req, res, next) => {
   }
 });
 
-
 r.put("/edit/:id", async (req, res, next) => {
   const { title, description } = req.body;
   const userId = req.user.id;
@@ -150,14 +163,9 @@ r.put("/edit/:id", async (req, res, next) => {
       [req.params.id]
     );
 
-    if (rows.length === 0)
-      return res.status(404).json({ error: "not_found" });
-
-    if (!rows[0].aktiv)
-      return res.status(400).json({ error: "initiative_not_active" });
-
-    if (rows[0].author_id !== userId)
-      return res.status(403).json({ error: "not_author" });
+    if (rows.length === 0) return res.status(404).json({ error: "not_found" });
+    if (!rows[0].aktiv) return res.status(400).json({ error: "initiative_not_active" });
+    if (rows[0].author_id !== userId) return res.status(403).json({ error: "not_author" });
 
     await pool.query(
       "UPDATE initiatives SET title=?, description=? WHERE id=?",
@@ -169,7 +177,6 @@ r.put("/edit/:id", async (req, res, next) => {
     next(err);
   }
 });
-
 
 r.delete("/del/:id", async (req, res, next) => {
   const userId = req.user.id;
@@ -188,14 +195,9 @@ r.delete("/del/:id", async (req, res, next) => {
       [req.params.id]
     );
 
-    if (rows.length === 0)
-      return res.status(404).json({ error: "not_found" });
-
-    if (!rows[0].aktiv)
-      return res.status(400).json({ error: "initiative_not_active" });
-
-    if (rows[0].author_id !== userId)
-      return res.status(403).json({ error: "not_author" });
+    if (rows.length === 0) return res.status(404).json({ error: "not_found" });
+    if (!rows[0].aktiv) return res.status(400).json({ error: "initiative_not_active" });
+    if (rows[0].author_id !== userId) return res.status(403).json({ error: "not_author" });
 
     await pool.query("DELETE FROM initiatives WHERE id=?", [req.params.id]);
 
@@ -204,7 +206,6 @@ r.delete("/del/:id", async (req, res, next) => {
     next(err);
   }
 });
-
 
 r.post("/vote/:id", async (req, res, next) => {
   const initiativeId = Number(req.params.id);
@@ -227,13 +228,9 @@ r.post("/vote/:id", async (req, res, next) => {
       [initiativeId]
     );
 
-    if (rows.length === 0)
-      return res.status(404).json({ error: "initiative_not_found" });
+    if (rows.length === 0) return res.status(404).json({ error: "initiative_not_found" });
+    if (!rows[0].aktiv) return res.status(400).json({ error: "initiative_not_active" });
 
-    if (!rows[0].aktiv)
-      return res.status(400).json({ error: "initiative_not_active" });
-
-    
     const [existing] = await pool.query(
       "SELECT id FROM votes WHERE initiative_id = ? AND user_id = ? LIMIT 1",
       [initiativeId, userId]
@@ -252,7 +249,6 @@ r.post("/vote/:id", async (req, res, next) => {
       });
     }
 
-    // FALL 2: Noch kein Vote → hinzufügen
     await pool.query(
       "INSERT INTO votes (initiative_id, user_id) VALUES (?, ?)",
       [initiativeId, userId]
@@ -267,8 +263,6 @@ r.post("/vote/:id", async (req, res, next) => {
     next(err);
   }
 });
-
-
 
 r.get("/:id/votes", async (req, res, next) => {
   const initiativeId = Number(req.params.id);
@@ -322,20 +316,14 @@ r.get("/leaderboard", async (req, res, next) => {
         [ini.id]
       );
 
-      const [[finals]] = await pool.query(
-        `SELECT 
-           SUM(stimme = 1) AS ja,
-           SUM(stimme = 0) AS nein
-         FROM final_votes WHERE initiative_id = ?`,
-        [ini.id]
-      );
+      const finals = await getFinalVoteCounts(ini.id);
 
       result.push({
         ...ini,
         stimmen: {
           normal,
-          ja: finals.ja || 0,
-          nein: finals.nein || 0,
+          ja: finals.ja,
+          nein: finals.nein,
         },
       });
     }
@@ -345,7 +333,6 @@ r.get("/leaderboard", async (req, res, next) => {
     next(err);
   }
 });
-
 
 r.post("/finalvote/:id", async (req, res, next) => {
   const initiativeId = Number(req.params.id);
@@ -364,19 +351,11 @@ r.post("/finalvote/:id", async (req, res, next) => {
     return res.status(400).json({ error: "invalid_initiative_id" });
   }
 
-  // ⬇️ NEU: true / false
   if (typeof vote !== "boolean") {
-    console.warn("[FINALVOTE] invalid vote type", {
-      userId,
-      initiativeId,
-      vote,
-    });
-    return res
-      .status(400)
-      .json({ error: "invalid_vote_must_be_boolean" });
+    console.warn("[FINALVOTE] invalid vote type", { userId, initiativeId, vote });
+    return res.status(400).json({ error: "invalid_vote_must_be_boolean" });
   }
 
-  // true = ja (1), false = nein (0)
   const stimme = vote ? 1 : 0;
 
   try {
@@ -384,11 +363,7 @@ r.post("/finalvote/:id", async (req, res, next) => {
     console.log("[FINALVOTE] current phase", { initiativeId, phase });
 
     if (phase === 0 || phase === 3) {
-      console.warn("[FINALVOTE] vote not allowed in phase", {
-        userId,
-        initiativeId,
-        phase,
-      });
+      console.warn("[FINALVOTE] vote not allowed in phase", { userId, initiativeId, phase });
       return res.status(400).json({
         error: "finalvote_not_allowed_in_this_phase",
         phase,
@@ -396,14 +371,11 @@ r.post("/finalvote/:id", async (req, res, next) => {
     }
 
     if (phase === 1 && !req.user.isAdmin) {
-      console.warn("[FINALVOTE] non-admin tried finalvote in phase 1", {
-        userId,
-        initiativeId,
-      });
-      return res.status(403).json({
-        error: "only_admin_can_finalvote_in_phase_1",
-      });
+      console.warn("[FINALVOTE] non-admin tried finalvote in phase 1", { userId, initiativeId });
+      return res.status(403).json({ error: "only_admin_can_finalvote_in_phase_1" });
     }
+
+    const table = phase === 1 ? "admin_votes" : "player_votes";
 
     const [rows] = await pool.query(
       "SELECT id, aktiv FROM initiatives WHERE id = ?",
@@ -421,7 +393,7 @@ r.post("/finalvote/:id", async (req, res, next) => {
     }
 
     const [existing] = await pool.query(
-      "SELECT id, stimme FROM final_votes WHERE initiative_id = ? AND user_id = ?",
+      `SELECT id, stimme FROM ${table} WHERE initiative_id = ? AND user_id = ?`,
       [initiativeId, userId]
     );
 
@@ -429,24 +401,21 @@ r.post("/finalvote/:id", async (req, res, next) => {
 
     if (existing.length === 0) {
       await pool.query(
-        "INSERT INTO final_votes (initiative_id, user_id, stimme) VALUES (?, ?, ?)",
+        `INSERT INTO ${table} (initiative_id, user_id, stimme) VALUES (?, ?, ?)`,
         [initiativeId, userId, stimme]
       );
       action = "created";
 
-      console.log("[FINALVOTE] vote created", {
-        userId,
-        initiativeId,
-        stimme,
-      });
+      console.log("[FINALVOTE] vote created", { table, userId, initiativeId, stimme });
     } else {
       await pool.query(
-        "UPDATE final_votes SET stimme = ? WHERE id = ?",
+        `UPDATE ${table} SET stimme = ? WHERE id = ?`,
         [stimme, existing[0].id]
       );
       action = "updated";
 
       console.log("[FINALVOTE] vote updated", {
+        table,
         userId,
         initiativeId,
         oldStimme: existing[0].stimme,
@@ -454,25 +423,17 @@ r.post("/finalvote/:id", async (req, res, next) => {
       });
     }
 
-    console.log("[FINALVOTE] success", {
-      userId,
-      initiativeId,
-      action,
-      stimme,
-    });
+    console.log("[FINALVOTE] success", { table, userId, initiativeId, action, stimme });
 
     return res.json({
       id: initiativeId,
       final_voted: true,
       action,
-      vote, // true / false zurueck
+      phase,
+      vote,
     });
   } catch (err) {
-    console.error("[FINALVOTE] error", {
-      initiativeId,
-      userId,
-      error: err.message,
-    });
+    console.error("[FINALVOTE] error", { initiativeId, userId, error: err.message });
     next(err);
   }
 });
