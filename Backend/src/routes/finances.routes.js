@@ -4,6 +4,63 @@ import * as finances from "../services/finances.service.js";
 
 const r = Router();
 
+// Set main_cents for a user
+r.post("/:uuid/setMain", async (req, res) => {
+  const { cents } = req.body;
+  const { uuid } = req.params;
+  try {
+    await pool.query(
+      `UPDATE finances SET main_cents = ? WHERE uuid = ?`,
+      [cents, uuid]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Set savings_cents for a user
+r.post("/:uuid/setSavings", async (req, res) => {
+  const { cents } = req.body;
+  const { uuid } = req.params;
+  try {
+    await pool.query(
+      `UPDATE finances SET savings_cents = ? WHERE uuid = ?`,
+      [cents, uuid]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Add to main_cents for a user
+r.post("/:uuid/addToMain", async (req, res) => {
+  const { cents } = req.body;
+  const { uuid } = req.params;
+  try {
+    await pool.query(
+      `UPDATE finances SET main_cents = COALESCE(main_cents,0) + ? WHERE uuid = ?`,
+      [cents, uuid]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Get total net worth (all users)
+r.get("/totalNetWorth", async (req, res) => {
+  try {
+    const [[row]] = await pool.query(
+      `SELECT SUM(COALESCE(main_cents,0) + COALESCE(savings_cents,0)) AS totalNetWorth FROM finances`
+    );
+    res.json({ totalNetWorth: Number(row.totalNetWorth) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Transfer main -> main (muss vor /:uuid stehen!)
 r.post("/transfer", async (req, res) => {
   const { from, to, cents } = req.body;
