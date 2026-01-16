@@ -239,16 +239,16 @@ public class InitiativeRequests {
                 Map<String, Object> map = GSON.fromJson(res.body(), Map.class);
                 PhaseSchedule schedule = new PhaseSchedule();
                 // The backend returns ISO strings for start_phase0, start_phase1, ...
-                // We'll use start_phase1, start_phase2, start_phase3, and start_phase0+duration_phase0 as abschluss
+                String s0 = (String) map.get("start_phase0");
                 String s1 = (String) map.get("start_phase1");
                 String s2 = (String) map.get("start_phase2");
                 String s3 = (String) map.get("start_phase3");
-                String s0 = (String) map.get("start_phase0");
                 Double d0 = map.get("duration_phase0") instanceof Number ? ((Number) map.get("duration_phase0")).doubleValue() : null;
                 Double d1 = map.get("duration_phase1") instanceof Number ? ((Number) map.get("duration_phase1")).doubleValue() : null;
                 Double d2 = map.get("duration_phase2") instanceof Number ? ((Number) map.get("duration_phase2")).doubleValue() : null;
                 Double d3 = map.get("duration_phase3") instanceof Number ? ((Number) map.get("duration_phase3")).doubleValue() : null;
                 // Parse instants
+                schedule.setStart0(Instant.parse(s0));
                 schedule.setStart1(Instant.parse(s1));
                 schedule.setStart2(Instant.parse(s2));
                 schedule.setStart3(Instant.parse(s3));
@@ -518,5 +518,15 @@ public class InitiativeRequests {
                 .map(Initiative::getId)
                 .findFirst()
                 .orElse(null);
+    }
+
+    /**
+     * Forces a refresh of the phase schedule from the backend for the given player.
+     */
+    public static void refreshPhaseSchedule(UUID playerId) {
+        cachedSchedule = fetchPhaseScheduleFromBackend(playerId);
+        if (cachedSchedule != null) {
+            PhaseFileManager.savePhaseSchedule(cachedSchedule);
+        }
     }
 }

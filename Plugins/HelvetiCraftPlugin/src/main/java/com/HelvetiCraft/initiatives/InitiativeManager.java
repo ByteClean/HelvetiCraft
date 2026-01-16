@@ -47,8 +47,14 @@ public class InitiativeManager implements Listener {
         String title = event.getView().getTitle();
         ItemStack clicked = event.getCurrentItem();
 
+        // Prevent taking items out of initiative menus
+        if (title.startsWith("§6Initiativen") || title.startsWith("§6Volksinitiativen") || title.equals("§6Deine Volksinitiativen")) {
+            event.setCancelled(true);
+        }
+
         if (clicked == null || !clicked.hasItemMeta()) return;
-        if (!(title.startsWith("§6Volksinitiativen") || title.equals("§6Deine Volksinitiativen"))) return;
+        // Only handle clicks for initiative menus
+        if (!(title.startsWith("§6Initiativen") || title.startsWith("§6Volksinitiativen") || title.equals("§6Deine Volksinitiativen"))) return;
 
         Inventory top = player.getOpenInventory().getTopInventory();
         int topSize = top.getSize();
@@ -62,14 +68,14 @@ public class InitiativeManager implements Listener {
         if (title.startsWith("§6Volksinitiativen") || title.startsWith("§6Initiativen")) {
             String displayName = clicked.getItemMeta().getDisplayName();
             switch (phase) {
-                case 1: // Phase 1: Create initiatives
+                case 0: // Phase 0: Voting
                     switch (clicked.getType()) {
                         case EMERALD -> {
                             if (InitiativeRequests.canCreateInitiative(player.getUniqueId(), player.getName())) {
                                 startInitiativeCreation(player);
-                            } else player.sendMessage("§cDu kannst keine weitere Initiative in Phase 1 erstellen!");
+                            } else player.sendMessage("§cDu kannst keine weitere Initiative in Phase 0 erstellen!");
                         }
-                        case PAPER, GREEN_WOOL  -> {
+                        case PAPER, GREEN_WOOL -> {
                             String voteTitle = stripColorPrefix(displayName);
                             InitiativeRequests.votePhase1(player.getUniqueId(), voteTitle);
                             openInitiativeMenu(player);
@@ -82,8 +88,7 @@ public class InitiativeManager implements Listener {
                         }
                     }
                     break;
-                case 2: // Phase 2: Admin acceptance, no voting in Minecraft
-                    // Only allow viewing initiatives, no voting
+                case 1: // Phase 1: Admin acceptance, no voting
                     switch (clicked.getType()) {
                         case PAPER -> {
                             // Just display info
@@ -95,7 +100,7 @@ public class InitiativeManager implements Listener {
                         }
                     }
                     break;
-                case 3: // Phase 3: Voting for/against
+                case 2: // Phase 2: Final voting for/against
                     switch (clicked.getType()) {
                         case GREEN_WOOL, RED_WOOL -> {
                             List<String> lore = clicked.getItemMeta().getLore();
@@ -112,7 +117,7 @@ public class InitiativeManager implements Listener {
                         }
                     }
                     break;
-                default: // Phase 4: Pause
+                default: // Phase 3: Pause
                     // No actions allowed
                     player.sendMessage("§cDie Initiativen befinden sich aktuell in einer Pause.");
                     break;
