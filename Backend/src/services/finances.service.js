@@ -70,10 +70,10 @@ export async function transferMain(fromUuid, toUuid, cents) {
       [cents, toUuid]
     );
 
-    await conn.query(
-      "INSERT INTO transactions (from_uuid, to_uuid, cents, transaction_type) VALUES (?, ?, ?, 'TRANSFER')",
-      [fromUuid, toUuid, cents]
-    );
+    //await conn.query(
+    //  "INSERT INTO transactions (from_uuid, to_uuid, cents, transaction_type) VALUES (?, ?, ?, 'TRANSFER')",
+    //  [fromUuid, toUuid, cents]
+    //);
 
     await conn.commit();
     return true;
