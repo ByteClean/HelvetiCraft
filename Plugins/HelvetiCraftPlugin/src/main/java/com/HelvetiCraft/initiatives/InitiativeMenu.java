@@ -1,7 +1,5 @@
 package com.HelvetiCraft.initiatives;
 
-import com.HelvetiCraft.initiatives.Initiative;
-import com.HelvetiCraft.initiatives.InitiativeManager;
 import com.HelvetiCraft.requests.InitiativeRequests;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -22,32 +20,47 @@ public class InitiativeMenu {
     }
 
     public void open(Player player, int page) {
+        // Always fetch the latest phase schedule from backend before using phase
+        InitiativeRequests.refreshPhaseSchedule(player.getUniqueId());
         InitiativeRequests.refreshVotes(player.getUniqueId());
         int phase = InitiativeRequests.getCurrentPhase(player.getUniqueId());
         List<Initiative> initiatives = new ArrayList<>(InitiativeRequests.getAllInitiatives(player.getUniqueId()));
 
-        if (phase == 1) {
-            openPhase1(player, page, initiatives);
-        } else if (phase == 2) {
-            openPhase2(player, page, initiatives);
+        switch (phase) {
+            case 0:
+                openPhase0Voting(player, page, initiatives);
+                break;
+            case 1:
+                // If you have a method for phase 1 admin acceptance, call it here. Otherwise, show pause or info.
+                openPauseMessage(player);
+                break;
+            case 2:
+                openPhase2FinalVoting(player, page, initiatives);
+                break;
+            default:
+                openPauseMessage(player);
         }
     }
 
-    // ------------------- Phase 1 -------------------
-    private void openPhase1(Player player, int page, List<Initiative> list) {
+    // ------------------- Phase 0: Voting -------------------
+    private void openPhase0Voting(Player player, int page, List<Initiative> list) {
         int initiativesPerPage = 18;
         int totalPages = Math.max(1, (int) Math.ceil((double) list.size() / initiativesPerPage));
         page = Math.max(0, Math.min(page, totalPages - 1));
         manager.getPlayerPages().put(player.getUniqueId(), page);
 
-        Inventory inv = Bukkit.createInventory(null, 27, "§6Volksinitiativen (Phase 1)");
+        Inventory inv = Bukkit.createInventory(null, 27, "§6Initiativen (Phase 0: Vorschlag/Voting)");
 
         int start = page * initiativesPerPage;
         int end = Math.min(start + initiativesPerPage, list.size());
 
+        // Always refresh votes and initiatives for up-to-date display
+        List<Initiative> freshList = new ArrayList<>(com.HelvetiCraft.requests.InitiativeRequests.getAllInitiatives(player.getUniqueId()));
+        Set<String> votedSet = com.HelvetiCraft.requests.InitiativeRequests.getPlayerVotesPhase1(player.getUniqueId(), true);
+
         for (int i = start; i < end; i++) {
-            Initiative initiative = list.get(i);
-            boolean voted = InitiativeRequests.getPlayerVotesPhase1(player.getUniqueId()).contains(initiative.getTitle());
+            Initiative initiative = freshList.get(i);
+            boolean voted = votedSet.contains(initiative.getTitle());
             ItemStack item = new ItemStack(voted ? Material.GREEN_WOOL : Material.PAPER);
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
@@ -62,9 +75,9 @@ public class InitiativeMenu {
             }
             inv.addItem(item);
         }
+        boolean canCreate = com.HelvetiCraft.requests.InitiativeRequests.canCreateInitiative(player.getUniqueId(), player.getName());
 
-        // Create new initiative button
-        if (InitiativeRequests.canCreateInitiative(player.getUniqueId(), player.getName())) {
+        if (canCreate) {
             ItemStack create = new ItemStack(Material.EMERALD);
             ItemMeta meta = create.getItemMeta();
             if (meta != null) {
@@ -102,97 +115,107 @@ public class InitiativeMenu {
         player.openInventory(inv);
     }
 
-    // ------------------- Phase 2 -------------------
-    private void openPhase2(Player player, int page, List<Initiative> list) {
-        int initiativesPerPage = 7; // 7 columns available (1–7)
-        int totalPages = Math.max(1, (int) Math.ceil((double) list.size() / initiativesPerPage));
-        page = Math.max(0, Math.min(page, totalPages - 1));
-        manager.getPlayerPages().put(player.getUniqueId(), page);
+// --- Phase 2: Final voting for/against in Minecraft ---
+private void openPhase2FinalVoting(Player player, int page, List<Initiative> list) {
+    int initiativesPerPage = 7;
+    int totalPages = Math.max(1, (int) Math.ceil((double) list.size() / initiativesPerPage));
+    page = Math.max(0, Math.min(page, totalPages - 1));
+    manager.getPlayerPages().put(player.getUniqueId(), page);
 
-        Inventory inv = Bukkit.createInventory(null, 27, "§6Volksinitiativen (Phase 2)");
+    Inventory inv = Bukkit.createInventory(null, 27, "§6Initiativen (Phase 2: Abstimmung)");
 
-        int start = page * initiativesPerPage;
-        int end = Math.min(start + initiativesPerPage, list.size());
-        Map<String, Boolean> playerVotes = InitiativeRequests.getPlayerVotesPhase2(player.getUniqueId());
+    int start = page * initiativesPerPage;
+    int end = Math.min(start + initiativesPerPage, list.size());
+    Map<String, Boolean> playerVotes = InitiativeRequests.getPlayerVotesPhase2(player.getUniqueId());
 
-        // Base column index 1–7 for initiatives
-        for (int i = start; i < end; i++) {
-            Initiative initiative = list.get(i);
-            int colIndex = i - start + 1; // +1 to skip left arrow column (0)
-            int topSlot = colIndex;
-            int midSlot = colIndex + 9;
-            int botSlot = colIndex + 18;
+    for (int i = start; i < end; i++) {
+        Initiative initiative = list.get(i);
+        int colIndex = i - start + 1;
+        int topSlot = colIndex;
+        int midSlot = colIndex + 9;
+        int botSlot = colIndex + 18;
 
-            // --- Paper info (top row) ---
-            ItemStack paper = new ItemStack(Material.PAPER);
-            ItemMeta paperMeta = paper.getItemMeta();
-            if (paperMeta != null) {
-                paperMeta.setDisplayName("§b" + initiative.getTitle());
-                paperMeta.setLore(Arrays.asList(
-                        "§7Autor: " + initiative.getAuthor(),
-                        "§7Beschreibung: " + initiative.getDescription(),
-                        "§eFür: " + initiative.getVotesFor() + " / Gegen: " + initiative.getVotesAgainst()
-                ));
-                paper.setItemMeta(paperMeta);
-            }
-            inv.setItem(topSlot, paper);
-
-            // --- Green wool (middle row) ---
-            ItemStack green = new ItemStack(Material.GREEN_WOOL);
-            ItemMeta greenMeta = green.getItemMeta();
-            if (greenMeta != null) {
-                greenMeta.setDisplayName("§aDafür stimmen");
-                if (Boolean.TRUE.equals(playerVotes.get(initiative.getTitle()))) {
-                    greenMeta.addEnchant(Enchantment.UNBREAKING, 1, true);
-                }
-                greenMeta.setLore(Arrays.asList(
-                        "§7Klicke, um für zu stimmen",
-                        "§8Initiative: " + initiative.getTitle()
-                ));
-                green.setItemMeta(greenMeta);
-            }
-            inv.setItem(midSlot, green);
-
-            // --- Red wool (bottom row) ---
-            ItemStack red = new ItemStack(Material.RED_WOOL);
-            ItemMeta redMeta = red.getItemMeta();
-            if (redMeta != null) {
-                redMeta.setDisplayName("§cDagegen stimmen");
-                if (Boolean.FALSE.equals(playerVotes.get(initiative.getTitle()))) {
-                    redMeta.addEnchant(Enchantment.UNBREAKING, 1, true);
-                }
-                redMeta.setLore(Arrays.asList(
-                        "§7Klicke, um dagegen zu stimmen",
-                        "§8Initiative: " + initiative.getTitle()
-                ));
-                red.setItemMeta(redMeta);
-            }
-            inv.setItem(botSlot, red);
+        // --- Paper info (top row) ---
+        ItemStack paper = new ItemStack(Material.PAPER);
+        ItemMeta paperMeta = paper.getItemMeta();
+        if (paperMeta != null) {
+            paperMeta.setDisplayName("§b" + initiative.getTitle());
+            paperMeta.setLore(Arrays.asList(
+                    "§7Autor: " + initiative.getAuthor(),
+                    "§7Beschreibung: " + initiative.getDescription(),
+                    "§eFür: " + initiative.getVotesFor() + " / Gegen: " + initiative.getVotesAgainst()
+            ));
+            paper.setItemMeta(paperMeta);
         }
+        inv.setItem(topSlot, paper);
 
-        // --- Pagination arrows ---
-        // Left (center row slot 9)
-        if (page > 0) {
-            ItemStack prev = new ItemStack(Material.ARROW);
-            ItemMeta prevMeta = prev.getItemMeta();
-            if (prevMeta != null) {
-                prevMeta.setDisplayName("§eZurück");
-                prev.setItemMeta(prevMeta);
+        // --- Green wool (middle row) ---
+        ItemStack green = new ItemStack(Material.GREEN_WOOL);
+        ItemMeta greenMeta = green.getItemMeta();
+        if (greenMeta != null) {
+            greenMeta.setDisplayName("§aDafür stimmen");
+            if (Boolean.TRUE.equals(playerVotes.get(initiative.getTitle()))) {
+                greenMeta.addEnchant(Enchantment.UNBREAKING, 1, true);
             }
-            inv.setItem(9, prev);
+            greenMeta.setLore(Arrays.asList(
+                    "§7Klicke, um für zu stimmen",
+                    "§8Initiative: " + initiative.getTitle()
+            ));
+            green.setItemMeta(greenMeta);
         }
+        inv.setItem(midSlot, green);
 
-        // Right (center row slot 17)
-        if (page < totalPages - 1) {
-            ItemStack next = new ItemStack(Material.ARROW);
-            ItemMeta nextMeta = next.getItemMeta();
-            if (nextMeta != null) {
-                nextMeta.setDisplayName("§eWeiter");
-                next.setItemMeta(nextMeta);
+        // --- Red wool (bottom row) ---
+        ItemStack red = new ItemStack(Material.RED_WOOL);
+        ItemMeta redMeta = red.getItemMeta();
+        if (redMeta != null) {
+            redMeta.setDisplayName("§cDagegen stimmen");
+            if (Boolean.FALSE.equals(playerVotes.get(initiative.getTitle()))) {
+                redMeta.addEnchant(Enchantment.UNBREAKING, 1, true);
             }
-            inv.setItem(17, next);
+            redMeta.setLore(Arrays.asList(
+                    "§7Klicke, um dagegen zu stimmen",
+                    "§8Initiative: " + initiative.getTitle()
+            ));
+            red.setItemMeta(redMeta);
         }
-
-        player.openInventory(inv);
+        inv.setItem(botSlot, red);
     }
+
+    // Pagination arrows
+    if (page > 0) {
+        ItemStack prev = new ItemStack(Material.ARROW);
+        ItemMeta prevMeta = prev.getItemMeta();
+        if (prevMeta != null) {
+            prevMeta.setDisplayName("§eZurück");
+            prev.setItemMeta(prevMeta);
+        }
+        inv.setItem(9, prev);
+    }
+    if (page < totalPages - 1) {
+        ItemStack next = new ItemStack(Material.ARROW);
+        ItemMeta nextMeta = next.getItemMeta();
+        if (nextMeta != null) {
+            nextMeta.setDisplayName("§eWeiter");
+            next.setItemMeta(nextMeta);
+        }
+        inv.setItem(17, next);
+    }
+
+    player.openInventory(inv);
+}
+
+// --- Phase 4: Pause ---
+private void openPauseMessage(Player player) {
+    Inventory inv = Bukkit.createInventory(null, 9, "§6Initiativen (Pause)");
+    ItemStack info = new ItemStack(Material.BARRIER);
+    ItemMeta meta = info.getItemMeta();
+    if (meta != null) {
+        meta.setDisplayName("§cKeine Initiativen möglich");
+        meta.setLore(Collections.singletonList("§7Die Initiativen befinden sich aktuell in einer Pause."));
+        info.setItemMeta(meta);
+    }
+    inv.setItem(4, info);
+    player.openInventory(inv);
+}
 }
