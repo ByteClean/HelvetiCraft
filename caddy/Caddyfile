@@ -1,0 +1,66 @@
+{
+  email nicolas.ammeter@hotmail.com
+}
+
+# --- www → apex redirect for nicolasammeter.ch ---
+www.nicolasammeter.ch {
+  redir https://nicolasammeter.ch{uri} permanent
+}
+
+# --- nicolasammeter.ch main site (old PC 192.168.1.213) ---
+nicolasammeter.ch {
+  header {
+    X-Content-Type-Options nosniff
+    X-Frame-Options SAMEORIGIN
+    Referrer-Policy no-referrer-when-downgrade
+  }
+
+  reverse_proxy 192.168.1.213:5000
+}
+
+# --- helveticraft.com main site (new PC 192.168.1.220) ---
+helveticraft.com {
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "no-referrer-when-downgrade"
+  }
+
+  handle_path /map1* {
+    redir https://map.helveticraft.com{uri} permanent
+  }
+
+  # /api/* -> public backend (strip /api)
+  handle_path /api/* {
+    reverse_proxy helveticraft-public-backend:3002
+  }
+
+  # everything else -> web
+  handle {
+    reverse_proxy helveticraft-web:80
+  }
+}
+
+www.helveticraft.com {
+  redir https://helveticraft.com{uri} permanent
+}
+
+map.helveticraft.com {
+  reverse_proxy 192.168.1.220:8080
+
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "no-referrer-when-downgrade"
+  }
+}
+
+# --- bombio.notascam.ch (old PC 192.168.1.213) ---
+bombio.notascam.ch {
+  encode gzip
+
+  @api path /socket.io* /api*
+  reverse_proxy @api 192.168.1.213:3001
+
+  reverse_proxy 192.168.1.213:80
+}
