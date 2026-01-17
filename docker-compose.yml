@@ -1,28 +1,68 @@
 services:
+  caddy:
+    image: caddy:2
+    container_name: helveticraft-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - public-backend
+    networks:
+      - helveticraft
+
   web:
     build: ./Web
     container_name: helveticraft-web
     restart: unless-stopped
     working_dir: /app
-    ports:
-      - "80:80"
     environment:
       - NODE_ENV=production
-  
+    expose:
+      - "80"
+    networks:
+      - helveticraft
+
   backend:
     build: ./Backend
     container_name: helveticraft-backend
     restart: unless-stopped
     working_dir: /app
-    ports:
-      - "3000:3000"
     environment:
       - NODE_ENV=production
     env_file:
       - ./Backend/.env
+    expose:
+      - "3000"
     depends_on:
       mariadb:
         condition: service_healthy
+    networks:
+      - helveticraft
+
+  public-backend:
+    build: ./public_backend
+    container_name: helveticraft-public-backend
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+    env_file:
+      - ./public_backend/.env
+    expose:
+      - "3002"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - helveticraft
 
   discord-bot:
     build: ./Discord_Bot
@@ -36,6 +76,8 @@ services:
     ports:
       - "8081:8081"
     command: ["python", "bot.py"]
+    networks:
+      - helveticraft
 
   minecraft-server:
     image: eclipse-temurin:21-jdk
@@ -48,12 +90,14 @@ services:
     environment:
       EULA: "TRUE"
     ports:
-      - "25565:25565"      # Minecraft server port
-      - "24454:24454/udp"      # Voice chat port
-      - "8080:8080"        # Pl3xMap port
+      - "25565:25565"
+      - "24454:24454/udp"
+      - "8080:8080"
     depends_on:
       - mariadb
     command: ["java", "-Xms14G", "-Xmx14G", "-jar", "server.jar", "--nogui"]
+    networks:
+      - helveticraft
 
   mariadb:
     image: mariadb:11
@@ -72,7 +116,9 @@ services:
       timeout: 3s
       retries: 30
       start_period: 10s
-  
+    networks:
+      - helveticraft
+
   mongodb:
     image: mongo:7
     container_name: helveticraft-mongodb
@@ -85,6 +131,12 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
+    networks:
+      - helveticraft
+
+networks:
+  helveticraft:
+    name: helveticraft_default
 
 volumes:
   mc_server:
@@ -93,6 +145,9 @@ volumes:
       type: none
       device: ${PWD}/mc_server
       o: bind
-  
+
   mongodb_data:
   mariadb_data:
+
+  caddy_data:
+  caddy_config:
