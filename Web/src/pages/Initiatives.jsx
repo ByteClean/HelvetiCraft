@@ -49,8 +49,8 @@ export default function Initiatives() {
         setError("");
 
         const [resInitiatives, resPhase] = await Promise.all([
-          fetch("http://localhost:3000/api/initiatives/"),
-          fetch("http://localhost:3000/api/phases/current"),
+          fetch("https://helveticraft.com/api/initiatives/"),
+          fetch("https://helveticraft.com/api/phases/current"),
         ]);
 
         if (!resInitiatives.ok) {
