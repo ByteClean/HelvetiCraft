@@ -14,7 +14,7 @@ services:
 
     depends_on:
       - web
- #     - public-backend
+      - public-backend
 
 
   web:
@@ -43,25 +43,25 @@ services:
       mariadb:
         condition: service_healthy
 
-#
-#  public-backend:
-#    build: ./public_backend
-#    container_name: helveticraft-public-backend
-#    restart: unless-stopped
-#    working_dir: /app
-#    environment:
-#      - NODE_ENV=production
-#      - PORT=3002
-#    env_file:
-#      - ./public_backend/.env
-#    expose:
-#      - "3002"
-#    depends_on:
-#      mariadb:
-#        condition: service_healthy
-#    networks:
-#      - helveticraft
-#
+
+  public-backend:
+    build: ./public_backend
+    container_name: helveticraft-public-backend
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+    env_file:
+      - ./public_backend/.env
+    expose:
+      - "3002"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - helveticraft
+
   discord-bot:
     build: ./Discord_Bot
     container_name: helveticraft-discord-bot
