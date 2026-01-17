@@ -59,8 +59,7 @@ services:
     depends_on:
       mariadb:
         condition: service_healthy
-    networks:
-      - helveticraft
+
 
   discord-bot:
     build: ./Discord_Bot
