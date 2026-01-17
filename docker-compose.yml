@@ -14,8 +14,7 @@ services:
     depends_on:
       - web
  #     - public-backend
-    networks:
-      - helveticraft
+
 
   web:
     build: ./Web
@@ -26,8 +25,7 @@ services:
       - NODE_ENV=production
     expose:
       - "80"
-    networks:
-      - helveticraft
+
 
   backend:
     build: ./Backend
@@ -43,8 +41,7 @@ services:
     depends_on:
       mariadb:
         condition: service_healthy
-    networks:
-      - helveticraft
+
 #
 #  public-backend:
 #    build: ./public_backend
@@ -76,8 +73,7 @@ services:
     ports:
       - "8081:8081"
     command: ["python", "bot.py"]
-    networks:
-      - helveticraft
+
 
   minecraft-server:
     image: eclipse-temurin:21-jdk
@@ -96,8 +92,7 @@ services:
     depends_on:
       - mariadb
     command: ["java", "-Xms14G", "-Xmx14G", "-jar", "server.jar", "--nogui"]
-    networks:
-      - helveticraft
+
 
   mariadb:
     image: mariadb:11
@@ -116,8 +111,6 @@ services:
       timeout: 3s
       retries: 30
       start_period: 10s
-    networks:
-      - helveticraft
 
   mongodb:
     image: mongo:7
@@ -131,8 +124,6 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
-    networks:
-      - helveticraft
 
 networks:
   helveticraft:
