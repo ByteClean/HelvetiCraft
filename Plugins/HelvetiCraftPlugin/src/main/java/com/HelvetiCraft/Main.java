@@ -52,6 +52,8 @@ public class Main extends JavaPlugin {
         InitiativeRequests.init(apiBase, apiKey);
         QuizRequests.init(apiBase, apiKey, null);
         FinanceRequests.loadConfigFromPlugin(this);
+        TransactionLogRequests.loadConfigFromPlugin(this);
+        ShopTransactionRequests.loadConfigFromPlugin(this);
 
         PhaseFileManager.init(getDataFolder());
 

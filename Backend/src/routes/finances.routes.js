@@ -146,6 +146,24 @@ r.post("/transactions/log", async (req, res) => {
   }
 });
 
+// Log a shop transaction
+r.post("/shop-transactions/log", async (req, res) => {
+  const { itemType, quantity, transactionType, priceCents, buyerUuid, sellerUuid } = req.body;
+  try {
+    await finances.logShopTransaction(
+      itemType,
+      quantity,
+      transactionType,
+      priceCents,
+      buyerUuid === "null" || !buyerUuid ? null : buyerUuid,
+      sellerUuid === "null" || !sellerUuid ? null : sellerUuid
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Account erstellen (ganz am Schluss!)
 r.post("/:uuid", async (req, res) => {
   const { starterCents } = req.body;

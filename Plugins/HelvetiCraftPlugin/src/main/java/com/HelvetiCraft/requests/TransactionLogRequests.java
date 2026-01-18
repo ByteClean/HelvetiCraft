@@ -40,11 +40,8 @@ public class TransactionLogRequests {
         json.addProperty("to", toUuid != null ? toUuid.toString() : "null");
         json.addProperty("cents", sumTotal);
 
-        // Send to backend asynchronously
-        Bukkit.getScheduler().runTaskAsynchronously(
-            Bukkit.getPluginManager().getPlugin("HelvetiCraftPlugin"),
-            () -> sendTransactionLog(json.toString())
-        );
+        // Send to backend (HttpClient handles async internally, no scheduler needed for Folia)
+        sendTransactionLog(json.toString());
     }
 
     private static void sendTransactionLog(String jsonBody) {
@@ -58,16 +55,21 @@ public class TransactionLogRequests {
                     .header("Content-Type", "application/json")
                     .build();
 
-            HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
-            
-            if (res.statusCode() >= 200 && res.statusCode() < 300) {
-                Bukkit.getLogger().info("[TransactionLog] Transaction logged successfully");
-            } else {
-                Bukkit.getLogger().warning("[TransactionLog] Failed to log transaction: " + res.statusCode() + " - " + res.body());
-            }
-        } catch (IOException | InterruptedException e) {
-            Bukkit.getLogger().severe("[TransactionLog] Error sending transaction log: " + e.getMessage());
-            Thread.currentThread().interrupt();
+            // Send async - no need to wait for response
+            CLIENT.sendAsync(req, HttpResponse.BodyHandlers.ofString())
+                .thenAccept(res -> {
+                    if (res.statusCode() >= 200 && res.statusCode() < 300) {
+                        Bukkit.getLogger().info("[TransactionLog] Transaction logged successfully");
+                    } else {
+                        Bukkit.getLogger().warning("[TransactionLog] Failed to log transaction: " + res.statusCode() + " - " + res.body());
+                    }
+                })
+                .exceptionally(e -> {
+                    Bukkit.getLogger().severe("[TransactionLog] Error sending transaction log: " + e.getMessage());
+                    return null;
+                });
+        } catch (Exception e) {
+            Bukkit.getLogger().severe("[TransactionLog] Error creating transaction log request: " + e.getMessage());
         }
     }
 }
