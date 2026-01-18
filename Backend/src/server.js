@@ -10,27 +10,36 @@ import { createEconomyTables } from "./services/economy.service.js";
 
 const PORT = process.env.PORT || 3000;
 
-// Initialize database tables
-createShopTransactionsTable()
-  .then(() => console.log("shop_transactions table ready"))
-  .catch(err => console.error("Failed to create shop_transactions table:", err));
+// Initialize database tables sequentially
+async function initializeDatabaseAndStart() {
+  try {
+    console.log("[Server] Initializing database tables...");
 
-createTaxConfigTable()
-  .then(() => initializeTaxConfig())
-  .then(() => console.log("tax_config table ready with default values"))
-  .catch(err => console.error("Failed to create/initialize tax_config table:", err));
+    await createShopTransactionsTable();
+    console.log("[Server] shop_transactions table ready");
 
-createEconomyTables()
-  .then(() => console.log("economy tables ready (konjunktur_cycles, bip_history, item_supply_demand)"))
-  .catch(err => console.error("Failed to create economy tables:", err));
+    await createTaxConfigTable();
+    await initializeTaxConfig();
+    console.log("[Server] tax_config table ready with default values");
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`API laeuft auf Port ${PORT}`);
-});
+    await createEconomyTables();
+    console.log("[Server] economy tables ready (konjunktur_cycles, bip_history, item_supply_demand)");
 
-// Start schedulers
-startPhaseScheduler({
-  daysForMinVotes: 10,
-});
+    // Start app
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`[Server] API laeuft auf Port ${PORT}`);
+    });
 
-startEconomyScheduler();
+    // Start schedulers AFTER tables are ready
+    startPhaseScheduler({
+      daysForMinVotes: 10,
+    });
+
+    startEconomyScheduler();
+  } catch (err) {
+    console.error("[Server] Failed to initialize database:", err);
+    process.exit(1);
+  }
+}
+
+initializeDatabaseAndStart();
