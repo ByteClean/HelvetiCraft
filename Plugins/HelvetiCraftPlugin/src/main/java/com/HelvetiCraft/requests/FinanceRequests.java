@@ -13,6 +13,7 @@ public class FinanceRequests {
     private static final HttpClient CLIENT = HttpClient.newBuilder().build();
     private static String API_BASE = "http://helveticraft-backend:3000";
     private static String API_KEY = "";
+    static UUID govUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     public static void init(String apiBase, String apiKey) {
         if (apiBase != null && !apiBase.isEmpty()) API_BASE = apiBase.replaceAll("/+$$", "");
@@ -233,6 +234,7 @@ public class FinanceRequests {
                     .GET()
                     .header("x-auth-from", "minecraft")
                     .header("x-auth-key", API_KEY)
+                    .header("x-uuid", govUUID.toString())
                     .header("Content-Type", "application/json")
                     .build();
             HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
@@ -256,7 +258,45 @@ public class FinanceRequests {
     }
 
     public static Set<UUID> getKnownPlayers() {
-        // Not supported by backend for all users at once
+        try {
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(API_BASE + "/finances/knownPlayers"))
+                    .GET()
+                    .header("x-auth-from", "minecraft")
+                    .header("x-auth-key", API_KEY)
+                    .header("x-uuid", govUUID.toString())
+                    .header("Content-Type", "application/json")
+                    .build();
+            HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+            if (res.statusCode() >= 200 && res.statusCode() < 300 && res.body().contains("players")) {
+                Set<UUID> players = new HashSet<>();
+                String body = res.body();
+                // Parse JSON array: "players":["uuid1","uuid2",...]
+                int startIdx = body.indexOf("\"players\"");
+                if (startIdx != -1) {
+                    int arrStart = body.indexOf("[", startIdx);
+                    int arrEnd = body.indexOf("]", arrStart);
+                    if (arrStart != -1 && arrEnd != -1) {
+                        String arrayContent = body.substring(arrStart + 1, arrEnd);
+                        String[] uuidStrings = arrayContent.split(",");
+                        for (String uuidStr : uuidStrings) {
+                            String cleaned = uuidStr.replaceAll("[\"\\s]", "");
+                            if (!cleaned.isEmpty()) {
+                                try {
+                                    players.add(UUID.fromString(cleaned));
+                                } catch (IllegalArgumentException e) {
+                                    // Skip invalid UUIDs
+                                }
+                            }
+                        }
+                    }
+                }
+                return players;
+            }
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            Thread.currentThread().interrupt();
+        }
         return new HashSet<>();
     }
 

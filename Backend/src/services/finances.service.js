@@ -84,3 +84,12 @@ export async function transferMain(fromUuid, toUuid, cents) {
     conn.release();
   }
 }
+
+// -------- get all known players --------
+
+export async function getKnownPlayers() {
+  const [rows] = await pool.query(
+    "SELECT uuid FROM authme WHERE uuid IS NOT NULL AND uuid != '00000000-0000-0000-0000-000000000000'"
+  );
+  return rows.map(row => row.uuid);
+}

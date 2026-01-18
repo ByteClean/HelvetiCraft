@@ -61,6 +61,16 @@ r.get("/totalNetWorth", async (req, res) => {
   }
 });
 
+// Get all known players (from authme table)
+r.get("/knownPlayers", async (req, res) => {
+  try {
+    const uuids = await finances.getKnownPlayers();
+    res.json({ players: uuids });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Transfer main -> main (muss vor /:uuid stehen!)
 r.post("/transfer", async (req, res) => {
   const { from, to, cents } = req.body;
