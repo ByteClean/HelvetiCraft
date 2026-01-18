@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 /**
@@ -22,6 +23,7 @@ public class TaxRequests {
     private static final HttpClient CLIENT = HttpClient.newHttpClient();
     private static final Gson GSON = new Gson();
     private static Logger logger;
+    static UUID govUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     // Tax rates - dynamically loaded from backend
     public static double MWST = 7.7;
@@ -73,7 +75,9 @@ public class TaxRequests {
             HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(API_BASE + "/finances/tax-config/all"))
                     .GET()
-                    .header("minecraft-api-key", API_KEY)
+                    .header("x-auth-from", "minecraft")
+                    .header("x-auth-key", API_KEY)
+                    .header("x-uuid", govUUID.toString())
                     .build();
 
             HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
@@ -153,7 +157,9 @@ public class TaxRequests {
                     .uri(URI.create(API_BASE + "/finances/tax-config/" + configKey))
                     .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
                     .header("Content-Type", "application/json")
-                    .header("minecraft-api-key", API_KEY)
+                    .header("x-auth-from", "minecraft")
+                    .header("x-auth-key", API_KEY)
+                    .header("x-uuid", govUUID.toString())
                     .build();
 
             HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
