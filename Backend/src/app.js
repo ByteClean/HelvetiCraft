@@ -27,9 +27,7 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 
 // Gilt fuer ALLE Requests
 app.use(detectOrigin);
-
-// NEU: entscheidet public vs protected
-app.use(publicReadOrAuth);
+app.use(verifyAuth);
 
 // Routes
 app.use("/initiatives", initiativesRoutes);
