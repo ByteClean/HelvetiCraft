@@ -38,7 +38,7 @@ services:
     env_file:
       - ./Backend/.env
     expose:
-      - "3000"
+      - "3000:3000"
     depends_on:
       mariadb:
         condition: service_healthy
@@ -55,7 +55,7 @@ services:
     env_file:
       - ./public_backend/.env
     expose:
-      - "3002"
+      - "3002:3002"
     depends_on:
       mariadb:
         condition: service_healthy
