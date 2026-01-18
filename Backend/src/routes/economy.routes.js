@@ -65,6 +65,16 @@ r.get("/konjunktur/history", async (req, res) => {
   }
 });
 
+// Get supply/demand for all items (latest calculation) - MUST be before :itemType route
+r.get("/supply-demand/all", async (req, res) => {
+  try {
+    const data = await economy.getAllItemsSupplyDemand();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get supply/demand for specific item
 r.get("/supply-demand/:itemType", async (req, res) => {
   try {
@@ -77,16 +87,6 @@ r.get("/supply-demand/:itemType", async (req, res) => {
     }
     
     res.json(limit === 1 ? data[0] : data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Get supply/demand for all items (latest calculation)
-r.get("/supply-demand/all", async (req, res) => {
-  try {
-    const data = await economy.getAllItemsSupplyDemand();
-    res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
