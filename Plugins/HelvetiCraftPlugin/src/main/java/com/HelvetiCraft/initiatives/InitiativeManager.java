@@ -108,9 +108,17 @@ public class InitiativeManager implements Listener {
                             // Initiative title is the last line in lore, strip §8 prefix
                             String initiativeTitle = lore.get(lore.size() - 1).replaceAll("§.", "").trim();
                             boolean voteFor = clicked.getType() == Material.GREEN_WOOL;
+                            
+                            player.sendMessage(voteFor ? "§aDu hast dafür gestimmt!" : "§cDu hast dagegen gestimmt!");
+                            player.sendMessage("§7Menü wird aktualisiert... Starte den Menu new um es zu sehen.");
+                            
                             InitiativeRequests.votePhase2(player.getUniqueId(), initiativeTitle, voteFor);
-                            // Delay refresh to let backend process the vote
-                            Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> openInitiativeMenu(player), 10L);
+                            
+                            // Clear cache and refresh menu after longer delay
+                            Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+                                InitiativeRequests.refreshVotes(player.getUniqueId());
+                                openInitiativeMenu(player);
+                            }, 20L); // 1 second delay
                         }
                         case ARROW -> {
                             int page = playerPages.getOrDefault(player.getUniqueId(), 0);
