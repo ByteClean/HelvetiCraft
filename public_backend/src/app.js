@@ -41,21 +41,24 @@ app.use(
   createProxyMiddleware({
     target: BACKEND_BASE_URL,
     changeOrigin: true,
-    logLevel: "warn",
+    logLevel: "debug",
 
-    onProxyReq(proxyReq) {
-      proxyReq.setHeader("x-auth-from", PUBLIC_X_AUTH_FROM);
-      proxyReq.setHeader("x-auth-key", PUBLIC_X_AUTH_KEY);
-      // bewusst KEIN x-uuid
+    // garantiert beim Request dabei
+    headers: {
+      "x-auth-from": "website",
+      "x-auth-key": process.env.PUBLIC_X_AUTH_KEY,
     },
 
-    onError(err, req, res) {
-      res.status(502).json({
-        message: "backend_unreachable",
-        detail: err?.message,
-      });
+    onProxyReq: (proxyReq, req, res) => {
+      proxyReq.setHeader("x-auth-from", "website");
+      proxyReq.setHeader("x-auth-key", process.env.PUBLIC_X_AUTH_KEY);
+    },
+
+    onError: (err, req, res) => {
+      res.status(502).json({ message: "backend_unreachable", detail: err?.message });
     },
   })
 );
+
 
 export default app;
