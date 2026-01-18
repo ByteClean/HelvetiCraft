@@ -125,8 +125,20 @@ public class FinanceManager {
     }
 
     public String getPlayerNameOrUuid(UUID id) {
+        // First try to get name from Bukkit (works for online/recently online players)
         OfflinePlayer p = plugin.getServer().getOfflinePlayer(id);
         String name = p.getName();
-        return name != null ? name : id.toString();
+        if (name != null) {
+            return name;
+        }
+
+        // Fallback: try to get username from backend (authme table)
+        name = FinanceRequests.getUsername(id);
+        if (name != null) {
+            return name;
+        }
+
+        // Last resort: return UUID string
+        return id.toString();
     }
 }

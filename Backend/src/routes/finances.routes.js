@@ -115,6 +115,21 @@ r.get("/:uuid/exists", async (req, res) => {
   res.json({ exists });
 });
 
+// Get username by UUID (from authme table)
+r.get("/:uuid/username", async (req, res) => {
+  const { uuid } = req.params;
+  try {
+    const [[row]] = await pool.query(
+      "SELECT username FROM authme WHERE uuid = ?",
+      [uuid]
+    );
+    if (!row) return res.status(404).json({ error: "user_not_found" });
+    res.json({ uuid, username: row.username });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Account erstellen (ganz am Schluss!)
 r.post("/:uuid", async (req, res) => {
   const { starterCents } = req.body;
