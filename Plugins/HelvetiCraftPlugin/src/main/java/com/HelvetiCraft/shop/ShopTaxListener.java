@@ -2,6 +2,7 @@ package com.HelvetiCraft.shop;
 
 import com.Acrobot.ChestShop.Events.TransactionEvent;
 import com.HelvetiCraft.finance.FinanceManager;
+import com.HelvetiCraft.requests.ShopTransactionRequests;
 import com.HelvetiCraft.requests.TransactionLogRequests;
 import com.HelvetiCraft.util.FinanceTransactionLogger;
 import org.bukkit.OfflinePlayer;
@@ -57,6 +58,16 @@ public class ShopTaxListener implements Listener {
 
             UUID sellerUUID = owner.getUniqueId();
 
+            // Log shop transaction for supply/demand analytics
+            ShopTransactionRequests.logShopTransaction(
+                itemName,
+                amount,
+                "BUY",
+                grossCents,
+                client.getUniqueId(),  // buyer
+                sellerUUID              // seller
+            );
+
             TransactionLogRequests.prepareRequest("Shop-Buy-Transaction", client.getUniqueId(), sellerUUID, grossCents);
             // STEUERN VOM VERKÄUFER ABZIEHEN
             FinanceTransactionLogger logger = new FinanceTransactionLogger(financeManager);
@@ -74,6 +85,17 @@ public class ShopTaxListener implements Listener {
         else if (event.getTransactionType() == TransactionEvent.TransactionType.SELL) {
 
             UUID sellerUUID = client.getUniqueId();
+            UUID buyerUUID = (owner != null) ? owner.getUniqueId() : ShopTaxManager.GOVERNMENT_UUID;
+
+            // Log shop transaction for supply/demand analytics
+            ShopTransactionRequests.logShopTransaction(
+                itemName,
+                amount,
+                "SELL",
+                grossCents,
+                buyerUUID,   // shop owner/buyer
+                sellerUUID   // player selling to shop
+            );
 
             // Nur wenn es KEIN Admin-Shop ist → Spieler zahlt Steuer
             if (owner == null || "Admin Shop".equals(owner.getName()) ||

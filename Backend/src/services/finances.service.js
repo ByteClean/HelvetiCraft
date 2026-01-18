@@ -102,3 +102,31 @@ export async function logTransaction(fromUuid, toUuid, cents, transactionType) {
     [fromUuid || null, toUuid || null, cents, transactionType]
   );
 }
+
+// -------- shop transaction logging --------
+
+export async function createShopTransactionsTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS shop_transactions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      item_type VARCHAR(100) NOT NULL,
+      quantity INT NOT NULL,
+      transaction_type ENUM('BUY', 'SELL') NOT NULL,
+      price_cents BIGINT NOT NULL,
+      buyer_uuid VARCHAR(36),
+      seller_uuid VARCHAR(36),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_item_type (item_type),
+      INDEX idx_created_at (created_at),
+      INDEX idx_buyer (buyer_uuid),
+      INDEX idx_seller (seller_uuid)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+}
+
+export async function logShopTransaction(itemType, quantity, transactionType, priceCents, buyerUuid, sellerUuid) {
+  await pool.query(
+    "INSERT INTO shop_transactions (item_type, quantity, transaction_type, price_cents, buyer_uuid, seller_uuid, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())",
+    [itemType, quantity, transactionType, priceCents, buyerUuid || null, sellerUuid || null]
+  );
+}
