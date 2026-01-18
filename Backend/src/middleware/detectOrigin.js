@@ -9,8 +9,8 @@ export function detectOrigin(req, res, next) {
     req.source = "minecraft";
   } else if (source === "discord") {
     req.source = "discord";
-  } else if (source === "web") {
-    req.source = "web";
+  } else if (source === "website") {
+    req.source = "website";
   } else {
     return res.status(400).json({ error: "Unknown source" });
   }
