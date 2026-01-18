@@ -3,27 +3,28 @@
 
 .initiatives-page {
   h2 { margin-bottom: 0.5rem; }
-  
-  .desc { 
-    color: #cccccc; // dunkleres Grau für bessere Lesbarkeit
-    margin-bottom: 1.5rem; 
+
+  .desc {
+    color: #cccccc;
+    margin-bottom: 1.5rem;
     font-size: 16px;
+  }
+
+  .current-phase {
+    margin-bottom: 2rem;
+    padding: 8px 16px;
+    border: 3px solid #000;
+    background: rgba(0,0,0,0.4);
+    display: inline-block;
+    font-size: 16px;
+    text-shadow: 2px 2px 0 #000;
+    color: #fff;
   }
 
   .initiatives-grid {
     display: grid;
-    gap: 2rem; // größerer Abstand für luftigere Karten
-    grid-auto-rows: 1fr;
-
-    // max 3 Karten pro Reihe, Karten groß
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-
-    @media (max-width: 1200px) {
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    }
-    @media (max-width: 768px) {
-      grid-template-columns: 1fr; // mobile: 1 Karte pro Reihe
-    }
+    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   }
 
   .initiative-card {
@@ -36,97 +37,126 @@
     image-rendering: pixelated;
     display: flex;
     flex-direction: column;
-    padding: 28px; // mehr Innenabstand
-    min-height: 380px; // groß genug für Lesbarkeit
-    height: 100%;
+    padding: 28px;
+    min-height: 400px;
 
     .card-head {
       display: flex;
-      gap: 0.75rem;
-      align-items: center;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
 
-      img { display: none; } // Diamond entfernen
-
-      h3 { 
-        margin: 0; 
-        font-size: 18px; 
-        color: #ffffff; 
+      h3 {
+        margin: 0;
+        font-size: 18px;
+        color: #ffffff;
         text-shadow: 2px 2px 0 #000;
       }
 
       .status {
         font-size: 13px;
-        margin-top: 4px;
         padding: 4px 10px;
         border: 3px solid #000;
-        display: inline-block;
-        @include pixel-font;
         text-shadow: 1px 1px 0 #000;
+        white-space: nowrap;
 
-        // Hintergrund für bessere Lesbarkeit
-        &.voting { 
-          background: rgba(255,255,110,0.25); // Heller Hintergrund
-          color: $accent; 
+        &.voting {
+          background: rgba(255,255,110,0.25);
+          color: #ffeb3b;
         }
-        &.accepted { 
-          background: rgba(110,230,110,0.2); 
-          color: #7ee07e; 
-        }
-        &.rejected { 
-          background: rgba(230,110,110,0.2); 
-          color: #e07e7e; 
+        &.accepted {
+          background: rgba(110,230,110,0.3);
+          color: #7eff7e;
         }
       }
     }
 
-    .card-desc { 
-      color: #FFFFFF; // dunkleres Grau für bessere Lesbarkeit
-      margin: 14px 0; 
-      font-size: 15px; 
+    .card-desc {
+      flex-grow: 1;
+      margin: 16px 0;
+      font-size: 15px;
       line-height: 1.6;
-      flex-grow: 1; 
+      color: #ffffff;
       text-shadow: 2px 2px 0 #000;
     }
 
     .card-footer {
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-      justify-content: space-between;
       margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 13px;
+      text-shadow: 2px 2px 0 #000;
 
-      .vote-meta {
-        font-size: 13px; 
-        color: #ffffff;
-        text-shadow: 2px 2px 0 #000;
+      .phase-info {
         display: flex;
-        gap: 1rem;
-        span { white-space: nowrap; }
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .normal-votes {
+        font-size: 14px;
+        strong { color: #ffeb3b; }
+      }
+
+      .info-text {
+        font-size: 14px;
+        text-align: center;
+        opacity: 0.9;
       }
 
       .mc-progress {
-        flex: 1;
-        height: 14px; 
+        height: 16px;
         border: 2px solid #000;
-        background: rgba(0,0,0,0.3);
-        position: relative;
-        border-image: none;
+        background: rgba(0,0,0,0.4);
 
         .mc-progress-fill {
-          background: #55ff55;
           height: 100%;
-          display: block;
+          background: linear-gradient(90deg, #55ff55, #88ff88);
         }
+      }
 
-        .mc-progress-label {
-          position: absolute;
-          top: -20px;
-          right: 0;
-          font-size: 12px;
-          color: #ffffff;
-          text-shadow: 2px 2px 0 #000;
-        }
+      .final-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        font-size: 13px;
+
+        .yes { color: #7cff7c; }
+        .no { color: #ff7c7c; text-align: right; }
+      }
+
+      .total {
+        text-align: center;
+        font-size: 12px;
+        opacity: 0.8;
+      }
+
+      .final-result {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        font-size: 14px;
+        span:first-child { color: #7cff7c; }
+        span:last-child { color: #ff7c7c; text-align: right; }
       }
     }
   }
+
+  .error {
+    color: #ff6b6b;
+    font-weight: bold;
+    text-align: center;
+    margin-top: 2rem;
+  }
+}
+
+.phase-message {
+  padding: 40px;
+  border: 3px solid #000;
+  background: rgba(0,0,0,0.5);
+  text-align: center;
+  font-size: 18px;
+  color: #ffffff;
+  text-shadow: 2px 2px 0 #000;
 }

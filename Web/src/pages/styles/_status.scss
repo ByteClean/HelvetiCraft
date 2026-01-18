@@ -1,0 +1,55 @@
+@import '../../styles/_variables';
+@import '../../styles/_mixins';
+
+.status-page {
+  h2 {
+    margin-bottom: 0.5rem;
+  }
+
+  .desc {
+    color: #cccccc;
+    margin-bottom: 2.5rem;
+    font-size: 16px;
+    max-width: 800px;
+  }
+
+  .status-section {
+    margin-bottom: 3rem;
+
+    h3 {
+      font-size: 22px;
+      margin-bottom: 1rem;
+      color: #ffffff;
+      text-shadow: 3px 3px 0 #000;
+    }
+  }
+
+  /* SERVER STATUS */
+  .status-panel {
+    max-width: 520px;
+  }
+
+  /* MAP */
+  .map-panel {
+    padding: 0;
+    overflow: hidden;
+
+    iframe {
+      width: 100%;
+      height: 70vh;
+      min-height: 480px;
+      border: none;
+      display: block;
+    }
+  }
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .status-page {
+    .map-panel iframe {
+      height: 60vh;
+      min-height: 360px;
+    }
+  }
+}
