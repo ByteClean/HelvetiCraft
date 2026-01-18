@@ -15,6 +15,7 @@ public class ShopTransactionRequests {
     private static String API_KEY;
     private static final HttpClient CLIENT = HttpClient.newHttpClient();
     private static Logger logger;
+    static UUID govUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     public static void loadConfigFromPlugin(Plugin plugin) {
         API_BASE = plugin.getConfig().getString("initiatives_api_base");
@@ -53,7 +54,9 @@ public class ShopTransactionRequests {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Content-Type", "application/json")
-                .header("minecraft-api-key", API_KEY)
+                .header("x-auth-key", API_KEY)
+                .header("x-auth-from", "minecraft")
+                .header("x-uuid", govUUID.toString())
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
 
