@@ -93,3 +93,12 @@ export async function getKnownPlayers() {
   );
   return rows.map(row => row.uuid);
 }
+
+// -------- transaction logging --------
+
+export async function logTransaction(fromUuid, toUuid, cents, transactionType) {
+  await pool.query(
+    "INSERT INTO transactions (from_uuid, to_uuid, cents, transaction_type, created_at) VALUES (?, ?, ?, ?, NOW())",
+    [fromUuid || null, toUuid || null, cents, transactionType]
+  );
+}
