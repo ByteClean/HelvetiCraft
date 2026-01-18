@@ -75,6 +75,21 @@ r.get("/supply-demand/all", async (req, res) => {
   }
 });
 
+// Get recommended prices for ALL items (including unsold) with base prices from MongoDB
+r.get("/prices/all", async (req, res) => {
+  try {
+    const prices = await economy.getAllRecommendedPrices();
+    res.json({
+      total_items: prices.length,
+      items_with_trade_data: prices.filter(p => p.has_trade_data).length,
+      items_without_trade_data: prices.filter(p => !p.has_trade_data).length,
+      prices: prices
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get supply/demand for specific item
 r.get("/supply-demand/:itemType", async (req, res) => {
   try {
@@ -98,28 +113,44 @@ r.get("/price-recommendation/:itemType", async (req, res) => {
     const { itemType } = req.params;
     const quantity = parseInt(req.query.quantity) || 1;
     
+    // Try to get supply/demand data
     const [data] = await economy.getItemSupplyDemand(itemType, 1);
     
-    if (!data) {
-      return res.status(404).json({ error: "No price data available for this item" });
-    }
-
     // Get current BIF for adjustment
     const bipData = await economy.getCurrentBIPData();
     const bif = bipData?.bif_rate || 1.0;
 
-    // Calculate price with BIF adjustment
-    const basePrice = data.recommended_price;
-    const adjustedPrice = Math.round(basePrice * bif * quantity);
+    let basePrice, recommendedPrice, demandRatio, hasTradeData;
+
+    if (data) {
+      // Item has trade data
+      basePrice = data.recommended_price;
+      recommendedPrice = Math.round(basePrice * bif * quantity);
+      demandRatio = data.demand_ratio;
+      hasTradeData = true;
+    } else {
+      // No trade data - check MongoDB for base price
+      const mongoBasePrice = await economy.getBasePrice(itemType);
+      
+      if (!mongoBasePrice) {
+        return res.status(404).json({ error: "No price data available for this item" });
+      }
+      
+      basePrice = mongoBasePrice;
+      recommendedPrice = Math.round(basePrice * bif * quantity);
+      demandRatio = 1.0;
+      hasTradeData = false;
+    }
 
     res.json({
       item_type: itemType,
-      base_price_per_unit: basePrice,
+      base_price_per_unit: Math.round(basePrice / quantity),
       quantity: quantity,
-      bif_adjusted_price: adjustedPrice,
+      bif_adjusted_price: recommendedPrice,
       bif_rate: bif,
-      demand_ratio: data.demand_ratio,
-      calculation_date: data.calculation_date
+      demand_ratio: demandRatio,
+      has_trade_data: hasTradeData,
+      calculation_date: data?.calculation_date || new Date()
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

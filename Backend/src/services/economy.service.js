@@ -1,4 +1,45 @@
 import pool from "./mysql.service.js";
+import { getDatabase } from "./mongodb.service.js";
+
+// -------- base prices from MongoDB --------
+
+export async function getBasePrice(itemType) {
+  try {
+    const db = getDatabase();
+    const collection = db.collection('items');
+    const item = await collection.findOne({ _id: itemType });
+    
+    if (item && item.stack_sell) {
+      // stack_sell is already in cents
+      return Number(item.stack_sell);
+    }
+    
+    return null;
+  } catch (err) {
+    console.error(`[Economy] Error fetching base price for ${itemType}:`, err.message);
+    return null;
+  }
+}
+
+export async function getAllBasePrices() {
+  try {
+    const db = getDatabase();
+    const collection = db.collection('items');
+    const items = await collection.find({}).toArray();
+    
+    const prices = {};
+    for (const item of items) {
+      if (item._id && item.stack_sell) {
+        prices[item._id] = Number(item.stack_sell);
+      }
+    }
+    
+    return prices;
+  } catch (err) {
+    console.error('[Economy] Error fetching all base prices:', err.message);
+    return {};
+  }
+}
 
 // -------- table creation --------
 
@@ -267,10 +308,15 @@ export async function calculateSupplyDemand(periodStart, periodEnd) {
     const supply = Number(item.sell_count);
     const demand_ratio = (demand + 1) / (supply + 1);
 
-    // Calculate recommended price based on average and demand ratio
-    const avgBuyPrice = item.buy_quantity > 0 ? item.total_buy_value / item.buy_quantity : 0;
-    const avgSellPrice = item.sell_quantity > 0 ? item.total_sell_value / item.sell_quantity : 0;
-    const basePrice = Math.max(avgBuyPrice, avgSellPrice);
+    // Get base price from MongoDB
+    let basePrice = await getBasePrice(item.item_type);
+    
+    // Fallback to average transaction price if no base price found
+    if (!basePrice) {
+      const avgBuyPrice = item.buy_quantity > 0 ? item.total_buy_value / item.buy_quantity : 0;
+      const avgSellPrice = item.sell_quantity > 0 ? item.total_sell_value / item.sell_quantity : 0;
+      basePrice = Math.max(avgBuyPrice, avgSellPrice, 1); // minimum 1 cent
+    }
 
     // Apply demand factor (logarithmic adjustment from document)
     const k = 0.04; // adjustment coefficient
@@ -392,4 +438,64 @@ export async function getAllItemsSupplyDemand() {
     demand_ratio: Number(row.demand_ratio),
     recommended_price: Number(row.recommended_price)
   }));
+}
+
+/**
+ * Get recommended prices for ALL items (including those never sold)
+ * Combines base prices from MongoDB with supply/demand data
+ */
+export async function getAllRecommendedPrices() {
+  // Get all base prices from MongoDB
+  const basePrices = await getAllBasePrices();
+  
+  // Get current BIF for adjustment
+  const current = await getCurrentKonjunktur();
+  const bif = current ? Number(current.bif_rate) : 1.0;
+  
+  // Get supply/demand data for items that have been traded
+  const supplyDemandData = await getAllItemsSupplyDemand();
+  
+  // Create a map of supply/demand by item_type
+  const supplyDemandMap = {};
+  for (const item of supplyDemandData) {
+    supplyDemandMap[item.item_type] = item;
+  }
+  
+  // Build result for all items
+  const result = [];
+  
+  for (const [itemType, basePrice] of Object.entries(basePrices)) {
+    const supplyDemand = supplyDemandMap[itemType];
+    
+    if (supplyDemand) {
+      // Item has been traded - use calculated recommended price with BIF
+      result.push({
+        item_type: itemType,
+        base_price: basePrice,
+        has_trade_data: true,
+        demand_ratio: supplyDemand.demand_ratio,
+        buy_count: supplyDemand.buy_count,
+        sell_count: supplyDemand.sell_count,
+        recommended_price: Math.round(supplyDemand.recommended_price * bif),
+        bif_adjusted: true
+      });
+    } else {
+      // Item has never been traded - use base price × BIF
+      result.push({
+        item_type: itemType,
+        base_price: basePrice,
+        has_trade_data: false,
+        demand_ratio: 1.0,
+        buy_count: 0,
+        sell_count: 0,
+        recommended_price: Math.round(basePrice * bif),
+        bif_adjusted: true
+      });
+    }
+  }
+  
+  // Sort by item_type
+  result.sort((a, b) => a.item_type.localeCompare(b.item_type));
+  
+  return result;
 }
