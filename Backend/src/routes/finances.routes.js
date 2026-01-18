@@ -130,6 +130,22 @@ r.get("/:uuid/username", async (req, res) => {
   }
 });
 
+// Log a transaction
+r.post("/transactions/log", async (req, res) => {
+  const { from, to, cents, transactionType } = req.body;
+  try {
+    await finances.logTransaction(
+      from === "null" || !from ? null : from,
+      to === "null" || !to ? null : to,
+      cents,
+      transactionType
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Account erstellen (ganz am Schluss!)
 r.post("/:uuid", async (req, res) => {
   const { starterCents } = req.body;
