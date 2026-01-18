@@ -164,6 +164,67 @@ r.post("/shop-transactions/log", async (req, res) => {
   }
 });
 
+// ====== TAX CONFIG ENDPOINTS ======
+
+// Get all tax config
+r.get("/tax-config/all", async (req, res) => {
+  try {
+    const configs = await finances.getAllTaxConfig();
+    const result = {};
+    configs.forEach(cfg => {
+      if (cfg.config_type === 'json') {
+        result[cfg.config_key] = JSON.parse(cfg.config_value);
+      } else if (cfg.config_type === 'number') {
+        result[cfg.config_key] = parseFloat(cfg.config_value);
+      } else {
+        result[cfg.config_key] = cfg.config_value;
+      }
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get single tax config
+r.get("/tax-config/:key", async (req, res) => {
+  const { key } = req.params;
+  try {
+    const config = await finances.getTaxConfig(key);
+    if (!config) return res.status(404).json({ error: "config_not_found" });
+    
+    let value = config.config_value;
+    if (config.config_type === 'json') {
+      value = JSON.parse(value);
+    } else if (config.config_type === 'number') {
+      value = parseFloat(value);
+    }
+    
+    res.json({ key: config.config_key, value, type: config.config_type });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update single tax config
+r.post("/tax-config/:key", async (req, res) => {
+  const { key } = req.params;
+  const { value, type } = req.body;
+  try {
+    // Validate JSON type
+    if (type === 'json' && typeof value === 'object') {
+      await finances.updateTaxConfig(key, JSON.stringify(value), 'json');
+    } else if (type === 'number') {
+      await finances.updateTaxConfig(key, String(value), 'number');
+    } else {
+      await finances.updateTaxConfig(key, String(value), type || 'string');
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Account erstellen (ganz am Schluss!)
 r.post("/:uuid", async (req, res) => {
   const { starterCents } = req.body;

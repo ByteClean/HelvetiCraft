@@ -54,6 +54,7 @@ public class Main extends JavaPlugin {
         FinanceRequests.loadConfigFromPlugin(this);
         TransactionLogRequests.loadConfigFromPlugin(this);
         ShopTransactionRequests.loadConfigFromPlugin(this);
+        TaxRequests.loadConfigFromPlugin(this);
 
         PhaseFileManager.init(getDataFolder());
 
