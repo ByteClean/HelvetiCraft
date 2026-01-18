@@ -427,7 +427,8 @@ public class InitiativeRequests {
         try {
             String encoded = URLEncoder.encode(id, StandardCharsets.UTF_8);
             Map<String, Object> votePayload = Map.of(
-                    "vote", voteFor
+                    "vote", voteFor,
+                    "phase", 2
             );
             String json = GSON.toJson(votePayload);
 

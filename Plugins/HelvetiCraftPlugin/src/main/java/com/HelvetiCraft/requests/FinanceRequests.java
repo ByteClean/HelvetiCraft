@@ -81,9 +81,20 @@ public class FinanceRequests {
                     .header("Content-Type", "application/json")
                     .build();
             HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
-            if (res.statusCode() >= 200 && res.statusCode() < 300 && res.body().contains("main_cents")) {
+            if (res.statusCode() >= 200 && res.statusCode() < 300) {
                 String body = res.body();
-                int idx = body.indexOf("main_cents");
+                // Try to parse JSON for "main" field
+                int idx = body.indexOf("\"main\"");
+                if (idx != -1) {
+                    String sub = body.substring(idx);
+                    String[] parts = sub.split(":");
+                    if (parts.length > 1) {
+                        String value = parts[1].replaceAll("[^0-9]", "");
+                        if (!value.isEmpty()) return Long.parseLong(value);
+                    }
+                }
+                // Fallback: try main_cents for legacy
+                idx = body.indexOf("main_cents");
                 if (idx != -1) {
                     String sub = body.substring(idx);
                     String[] parts = sub.split(":");
@@ -111,9 +122,20 @@ public class FinanceRequests {
                     .header("Content-Type", "application/json")
                     .build();
             HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
-            if (res.statusCode() >= 200 && res.statusCode() < 300 && res.body().contains("savings_cents")) {
+            if (res.statusCode() >= 200 && res.statusCode() < 300) {
                 String body = res.body();
-                int idx = body.indexOf("savings_cents");
+                // Try to parse JSON for "savings" field
+                int idx = body.indexOf("\"savings\"");
+                if (idx != -1) {
+                    String sub = body.substring(idx);
+                    String[] parts = sub.split(":");
+                    if (parts.length > 1) {
+                        String value = parts[1].replaceAll("[^0-9]", "");
+                        if (!value.isEmpty()) return Long.parseLong(value);
+                    }
+                }
+                // Fallback: try savings_cents for legacy
+                idx = body.indexOf("savings_cents");
                 if (idx != -1) {
                     String sub = body.substring(idx);
                     String[] parts = sub.split(":");
