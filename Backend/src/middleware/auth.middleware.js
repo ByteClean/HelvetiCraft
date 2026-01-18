@@ -106,40 +106,26 @@ export async function verifyAuth(req, res, next) {
       return next();
     }
 
-    // -----------------------------------------------------------
-    // 3) Web (JWT)
-    // -----------------------------------------------------------
-    if (origin === "web") {
+   const WEBSITE_API_KEY = process.env.WEBSITE_API_KEY;
 
-      let payload;
-      try {
-        payload = jwt.verify(key, JWT_SECRET);
-      } catch {
-        return res.status(401).json({ error: "invalid_or_expired_jwt" });
-      }
+// ...
 
-      // payload: sub = username
-      const [rows] = await pool.query(
-        "SELECT id, username, uuid, discord_id, isAdmin FROM authme WHERE username = ? LIMIT 1",
-        [payload.sub]
-      );
+if (origin === "website") {
+  if (key !== WEBSITE_API_KEY) {
+    return res.status(403).json({ error: "invalid_website_key" });
+  }
 
-      if (rows.length === 0) {
-        return res.status(401).json({ error: "user_not_found" });
-      }
+  req.user = {
+    id: 0,
+    username: "website",
+    discord_id: null,
+    isAdmin: false
+  };
 
-      const u = rows[0];
+  req.source = "website";
+  return next();
+}
 
-      req.user = {
-        id: u.id,
-        username: u.username,
-        discord_id: u.discord_id || null,
-        isAdmin: u.isAdmin === 1
-      };
-
-      req.source = "web";
-      return next();
-    }
 
     // -----------------------------------------------------------
     // Unbekannte Quelle
