@@ -18,6 +18,10 @@ export async function connectMongo() {
   return db;
 }
 
+export async function getDatabase() {
+  return await connectMongo();
+}
+
 export async function getQuizCollection() {
   const database = await connectMongo();
   console.log('Accessing quiz_questions collection');
