@@ -126,7 +126,7 @@ private void openPhase2FinalVoting(Player player, int page, List<Initiative> lis
 
     int start = page * initiativesPerPage;
     int end = Math.min(start + initiativesPerPage, list.size());
-    Map<String, Boolean> playerVotes = InitiativeRequests.getPlayerVotesPhase2(player.getUniqueId());
+    Map<String, Boolean> playerVotes = InitiativeRequests.getPlayerVotesPhase2(player.getUniqueId(), true); // Force refresh
 
     for (int i = start; i < end; i++) {
         Initiative initiative = list.get(i);
@@ -134,6 +134,8 @@ private void openPhase2FinalVoting(Player player, int page, List<Initiative> lis
         int topSlot = colIndex;
         int midSlot = colIndex + 9;
         int botSlot = colIndex + 18;
+
+        Boolean playerVote = playerVotes.get(initiative.getTitle());
 
         // --- Paper info (top row) ---
         ItemStack paper = new ItemStack(Material.PAPER);
@@ -154,13 +156,15 @@ private void openPhase2FinalVoting(Player player, int page, List<Initiative> lis
         ItemMeta greenMeta = green.getItemMeta();
         if (greenMeta != null) {
             greenMeta.setDisplayName("§aDafür stimmen");
-            if (Boolean.TRUE.equals(playerVotes.get(initiative.getTitle()))) {
+            List<String> greenLore = new ArrayList<>();
+            if (playerVote != null && playerVote) {
                 greenMeta.addEnchant(Enchantment.UNBREAKING, 1, true);
+                greenLore.add("§e✔ Du stimmst dafür");
+            } else {
+                greenLore.add("§7Klicke, um für zu stimmen");
             }
-            greenMeta.setLore(Arrays.asList(
-                    "§7Klicke, um für zu stimmen",
-                    "§8Initiative: " + initiative.getTitle()
-            ));
+            greenLore.add("§8" + initiative.getTitle());
+            greenMeta.setLore(greenLore);
             green.setItemMeta(greenMeta);
         }
         inv.setItem(midSlot, green);
@@ -170,13 +174,15 @@ private void openPhase2FinalVoting(Player player, int page, List<Initiative> lis
         ItemMeta redMeta = red.getItemMeta();
         if (redMeta != null) {
             redMeta.setDisplayName("§cDagegen stimmen");
-            if (Boolean.FALSE.equals(playerVotes.get(initiative.getTitle()))) {
+            List<String> redLore = new ArrayList<>();
+            if (playerVote != null && !playerVote) {
                 redMeta.addEnchant(Enchantment.UNBREAKING, 1, true);
+                redLore.add("§e✔ Du stimmst dagegen");
+            } else {
+                redLore.add("§7Klicke, um dagegen zu stimmen");
             }
-            redMeta.setLore(Arrays.asList(
-                    "§7Klicke, um dagegen zu stimmen",
-                    "§8Initiative: " + initiative.getTitle()
-            ));
+            redLore.add("§8" + initiative.getTitle());
+            redMeta.setLore(redLore);
             red.setItemMeta(redMeta);
         }
         inv.setItem(botSlot, red);

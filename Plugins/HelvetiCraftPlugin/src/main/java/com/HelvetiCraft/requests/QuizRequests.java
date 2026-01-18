@@ -115,7 +115,7 @@ public class QuizRequests {
                 .header("Content-Type", "application/json")
                 .header("x-auth-from", "minecraft")
                 .header("x-auth-key", API_KEY)
-                .header("x-uuid", PLAYER_UUID != null ? PLAYER_UUID.toString() : "")
+                .header("x-uuid", govUUID.toString())
                 .build();
 
             HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());

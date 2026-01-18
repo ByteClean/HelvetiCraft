@@ -104,11 +104,13 @@ public class InitiativeManager implements Listener {
                     switch (clicked.getType()) {
                         case GREEN_WOOL, RED_WOOL -> {
                             List<String> lore = clicked.getItemMeta().getLore();
-                            if (lore == null || lore.size() < 2) return;
-                            String initiativeTitle = lore.get(lore.size() - 1).replace("§8Initiative: ", "").trim();
+                            if (lore == null || lore.isEmpty()) return;
+                            // Initiative title is the last line in lore, strip §8 prefix
+                            String initiativeTitle = lore.get(lore.size() - 1).replaceAll("§.", "").trim();
                             boolean voteFor = clicked.getType() == Material.GREEN_WOOL;
                             InitiativeRequests.votePhase2(player.getUniqueId(), initiativeTitle, voteFor);
-                            openInitiativeMenu(player);
+                            // Delay refresh to let backend process the vote
+                            Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> openInitiativeMenu(player), 10L);
                         }
                         case ARROW -> {
                             int page = playerPages.getOrDefault(player.getUniqueId(), 0);
