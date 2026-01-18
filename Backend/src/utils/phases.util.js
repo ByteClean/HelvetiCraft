@@ -33,7 +33,14 @@ async function getActiveCycleForUpdate(connection) {
 export async function getCurrentPhase() {
   const cycle = await getActiveCycle();
   if (!cycle) throw new Error("phases_row_missing");
-  return cycle.phase;
+  
+  const now = new Date();
+  
+  // Compute current phase based on timestamps, not just the stored phase column
+  if (cycle.start_phase1 && now < new Date(cycle.start_phase1)) return 0;
+  if (cycle.start_phase2 && now < new Date(cycle.start_phase2)) return 1;
+  if (cycle.start_phase3 && now < new Date(cycle.start_phase3)) return 2;
+  return 3;
 }
 
 export async function getActivePlayersCount(days = 10) {
