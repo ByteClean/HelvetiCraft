@@ -296,6 +296,55 @@ r.get("/:id/votes", async (req, res, next) => {
   }
 });
 
+// Get phase 2 final votes for an initiative
+r.get("/:id/finalvotes", async (req, res, next) => {
+  const initiativeId = Number(req.params.id);
+  const userId = req.user.id;
+
+  if (!Number.isInteger(initiativeId))
+    return res.status(400).json({ error: "invalid_initiative_id" });
+
+  try {
+    const phase = await getCurrentPhase();
+    const table = phase === 1 ? "admin_votes" : "player_votes";
+
+    // Get all votes for this initiative in the current phase
+    const [allVotes] = await pool.query(
+      `SELECT a.id AS user_id, a.username, v.stimme
+       FROM ${table} v
+       JOIN authme a ON a.id = v.user_id
+       WHERE v.initiative_id = ?
+       ORDER BY v.created_at ASC`,
+      [initiativeId]
+    );
+
+    // Count votes for and against
+    let votesFor = 0;
+    let votesAgainst = 0;
+    let playerVote = null;
+
+    for (const vote of allVotes) {
+      if (vote.stimme === 1) votesFor++;
+      else if (vote.stimme === 0) votesAgainst++;
+
+      if (vote.user_id === userId) {
+        playerVote = vote.stimme === 1;
+      }
+    }
+
+    res.json({
+      initiative_id: initiativeId,
+      phase,
+      votes_for: votesFor,
+      votes_against: votesAgainst,
+      player_vote: playerVote,
+      all_votes: allVotes,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 r.get("/leaderboard", async (req, res, next) => {
   try {
     const [initiatives] = await pool.query(`
