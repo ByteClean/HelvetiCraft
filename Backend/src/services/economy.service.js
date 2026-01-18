@@ -5,13 +5,22 @@ import { getDatabase } from "./mongodb.service.js";
 
 export async function getBasePrice(itemType) {
   try {
-    const db = getDatabase();
+    const db = await getDatabase();
     const collection = db.collection('items');
-    const item = await collection.findOne({ _id: itemType });
+    
+    // First try to find as individual document with _id
+    let item = await collection.findOne({ _id: itemType });
     
     if (item && item.stack_sell) {
-      // stack_sell is already in cents
       return Number(item.stack_sell);
+    }
+    
+    // Otherwise, check if items are stored as properties within documents
+    const docs = await collection.find({}).limit(10).toArray();
+    for (const doc of docs) {
+      if (doc[itemType] && doc[itemType].stack_sell) {
+        return Number(doc[itemType].stack_sell);
+      }
     }
     
     return null;
@@ -23,14 +32,27 @@ export async function getBasePrice(itemType) {
 
 export async function getAllBasePrices() {
   try {
-    const db = getDatabase();
+    const db = await getDatabase();
     const collection = db.collection('items');
-    const items = await collection.find({}).toArray();
+    const docs = await collection.find({}).toArray();
     
     const prices = {};
-    for (const item of items) {
-      if (item._id && item.stack_sell) {
-        prices[item._id] = Number(item.stack_sell);
+    
+    for (const doc of docs) {
+      // Skip MongoDB metadata fields
+      const skipFields = ['_id', '_export_metadata'];
+      
+      for (const [key, value] of Object.entries(doc)) {
+        if (skipFields.includes(key)) continue;
+        
+        // Check if this field is an item object with stack_sell
+        if (typeof value === 'object' && value !== null && value.stack_sell) {
+          prices[key] = Number(value.stack_sell);
+        }
+        // Also support documents where _id is the item type and stack_sell is direct field
+        else if (key === 'stack_sell' && doc._id && typeof doc._id === 'string') {
+          prices[doc._id] = Number(value);
+        }
       }
     }
     
