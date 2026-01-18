@@ -5,7 +5,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 
 import { detectOrigin } from "./middleware/detectOrigin.js";
-import { publicReadOrAuth } from "./middleware/publicReadOrAuth.middleware.js";
+import { verifyAuth } from "./middleware/auth.middleware.js";
 
 import authRoutes from "./routes/auth.routes.js";
 import phasesRouter from "./routes/phases.routes.js";
@@ -27,9 +27,7 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 
 // Gilt fuer ALLE Requests
 app.use(detectOrigin);
-
-// NEU: entscheidet public vs protected
-app.use(publicReadOrAuth);
+app.use(verifyAuth);
 
 // Routes
 app.use("/initiatives", initiativesRoutes);
