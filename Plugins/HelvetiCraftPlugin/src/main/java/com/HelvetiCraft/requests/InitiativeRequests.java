@@ -466,15 +466,13 @@ public class InitiativeRequests {
         Map<String, Boolean> votedTitles = new HashMap<>();
         Collection<Initiative> all = getAllInitiatives(playerId);
 
-        String playerName = org.bukkit.Bukkit.getOfflinePlayer(playerId).getName();
-        if (playerName == null) return votedTitles;
-
         for (Initiative initiative : all) {
             if (initiative.getId() == null) continue;
 
             try {
+                // Use new /finalvotes endpoint for phase 2 votes
                 HttpRequest req = HttpRequest.newBuilder()
-                        .uri(URI.create(API_BASE + "/initiatives/" + initiative.getId() + "/votes"))
+                        .uri(URI.create(API_BASE + "/initiatives/" + initiative.getId() + "/finalvotes"))
                         .GET()
                         .header("x-auth-from", "minecraft")
                         .header("x-auth-key", API_KEY)
@@ -483,23 +481,48 @@ public class InitiativeRequests {
                         .build();
 
                 HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
-                System.out.println("[HelvetiCraft] GET /initiatives/" + initiative.getId() + "/votes (Phase 2) returned status: " + res.statusCode());
+                System.out.println("[HelvetiCraft] GET /initiatives/" + initiative.getId() + "/finalvotes returned status: " + res.statusCode());
                 if (res.statusCode() >= 200 && res.statusCode() < 300) {
                     System.out.println("[HelvetiCraft] Response: " + res.body());
-                    VoteResponse vr = GSON.fromJson(res.body(), VoteResponse.class);
-                    if (vr != null) {
-                        // Update global votes count
-                        initiative.setVotesFor(vr.votes_for);
-                        initiative.setVotesAgainst(vr.votes_against);
-
-                        if (vr.votes != null) {
-                            for (VoteEntry entry : vr.votes) {
-                                if (playerName.equalsIgnoreCase(entry.username)) {
-                                    votedTitles.put(initiative.getTitle(), entry.vote);
-                                    break;
-                                }
+                    // Parse JSON response
+                    String body = res.body();
+                    
+                    // Extract votes_for
+                    int votesForIdx = body.indexOf("\"votes_for\"");
+                    if (votesForIdx != -1) {
+                        String sub = body.substring(votesForIdx);
+                        String[] parts = sub.split(":");
+                        if (parts.length > 1) {
+                            String value = parts[1].replaceAll("[^0-9]", "");
+                            if (!value.isEmpty()) {
+                                initiative.setVotesFor(Integer.parseInt(value));
                             }
                         }
+                    }
+                    
+                    // Extract votes_against
+                    int votesAgainstIdx = body.indexOf("\"votes_against\"");
+                    if (votesAgainstIdx != -1) {
+                        String sub = body.substring(votesAgainstIdx);
+                        String[] parts = sub.split(":");
+                        if (parts.length > 1) {
+                            String value = parts[1].replaceAll("[^0-9]", "");
+                            if (!value.isEmpty()) {
+                                initiative.setVotesAgainst(Integer.parseInt(value));
+                            }
+                        }
+                    }
+                    
+                    // Extract player_vote (null, true, or false)
+                    int playerVoteIdx = body.indexOf("\"player_vote\"");
+                    if (playerVoteIdx != -1) {
+                        String sub = body.substring(playerVoteIdx);
+                        if (sub.contains("true")) {
+                            votedTitles.put(initiative.getTitle(), true);
+                        } else if (sub.contains("false")) {
+                            votedTitles.put(initiative.getTitle(), false);
+                        }
+                        // If "null", don't add to votedTitles (player hasn't voted)
                     }
                 } else {
                     System.out.println("[HelvetiCraft] Error body: " + res.body());
