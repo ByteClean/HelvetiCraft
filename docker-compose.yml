@@ -23,8 +23,8 @@ services:
     working_dir: /app
     environment:
       - NODE_ENV=production
-    ports:
-      - "80:80"
+    expose:
+      - "80"
 
 
   backend:
