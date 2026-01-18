@@ -309,4 +309,35 @@ public class FinanceRequests {
         // Not supported by backend
         throw new UnsupportedOperationException("resetPeriodIncome not supported by backend");
     }
+
+    public static String getUsername(UUID id) {
+        try {
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(API_BASE + "/finances/" + id + "/username"))
+                    .GET()
+                    .header("x-auth-from", "minecraft")
+                    .header("x-auth-key", API_KEY)
+                    .header("x-uuid", govUUID.toString())
+                    .header("Content-Type", "application/json")
+                    .build();
+            HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+            if (res.statusCode() >= 200 && res.statusCode() < 300 && res.body().contains("username")) {
+                String body = res.body();
+                int idx = body.indexOf("\"username\"");
+                if (idx != -1) {
+                    String sub = body.substring(idx);
+                    int colonIdx = sub.indexOf(":");
+                    int quoteStart = sub.indexOf("\"", colonIdx);
+                    int quoteEnd = sub.indexOf("\"", quoteStart + 1);
+                    if (quoteStart != -1 && quoteEnd != -1) {
+                        return sub.substring(quoteStart + 1, quoteEnd);
+                    }
+                }
+            }
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            Thread.currentThread().interrupt();
+        }
+        return null;
+    }
 }
