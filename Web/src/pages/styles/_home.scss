@@ -38,7 +38,7 @@
 .hero-subtitle {
   font-size: 30px;
   margin: 0 0 1.8rem 0;
-  color: #aaffaa;
+  color: #f7ea38;
   text-shadow: 4px 4px 0 #000;
 }
 
@@ -99,7 +99,7 @@
 .copy-btn-small {
   background: none;
   border: none;
-  color: #55ff55;
+  color: #f7ea38;
   font-weight: bold;
   cursor: pointer;
   font-size: 13px;
@@ -108,13 +108,13 @@
 }
 
 .status-online {
-  color: #55ff55;
+  color: #07ba07;
   font-weight: bold;
   text-shadow: 0 0 8px #55ff55;
 }
 
 .ping {
-  color: #55ff55;
+  color: #f7ea38;
 }
 
 /* RIGHT SIDE PANEL / IMAGE FRAME */
@@ -159,6 +159,11 @@
   display: block;
 }
 
+.copy-ip-button {
+  min-width: 260px;           // 240–280 px – teste was bei dir perfekt passt
+  text-align: center;
+}
+
 /* LARGE SCREENS */
 @media (min-width: 1400px) {
   .world-preview {
@@ -179,3 +184,4 @@
     padding: 16px;
   }
 }
+

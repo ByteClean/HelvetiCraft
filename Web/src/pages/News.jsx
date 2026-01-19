@@ -56,7 +56,11 @@ export default function News() {
 
             {post.image_url && (
               <div className="news-image">
-                <img src={post.image_url} alt={post.title} />
+                <img
+                  src={post.image_url}
+                  alt={post.title}
+                  loading="lazy"
+                />
               </div>
             )}
 
