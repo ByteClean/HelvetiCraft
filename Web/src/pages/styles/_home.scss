@@ -1,39 +1,30 @@
 // src/styles/pages/_home.scss
 
 .home-page {
-  padding: 2rem 1rem;
-  width: 100%;
-  max-width: 100vw;
-  overflow-x: hidden; // Verhindert seitliches Scrollen auf Seitenebene
+  padding: 2rem 0;
 }
 
 /* HERO SECTION */
 .hero {
+  display: flex;
+  align-items: stretch;
+  gap: 4rem;
+  flex-wrap: wrap;
+  justify-content: space-between;
   margin-bottom: 4rem;
-  width: 100%;
 }
 
 .hero-content {
   width: 100%;
   display: flex;
-  flex-direction: column; // Standard für Mobile: Alles untereinander
   align-items: center;
-  gap: 2rem;
-  text-align: center; // Zentriert Text auf Mobile
-
-  // Erst ab Desktop (Laptops) nebeneinander
-  @media (min-width: 1024px) {
-    flex-direction: row;
-    text-align: left;
-    gap: 4rem;
-    align-items: stretch;
-  }
+  gap: 4rem;
+  flex-wrap: wrap;
 }
 
 .hero-left {
   flex: 1;
-  width: 100%;
-  min-width: 0; // Wichtig, damit Flexbox schrumpfen kann
+  min-width: 340px;
 }
 
 .hero-title {
@@ -52,62 +43,32 @@
   overflow-wrap: normal; 
 }
 
+
 .hero-subtitle {
-  font-size: clamp(18px, 5vw, 30px);
+  font-size: 30px;
   margin: 0 0 1.8rem 0;
   color: #f7ea38;
-  text-shadow: 3px 3px 0 #000;
-  line-height: 1.2;
+  text-shadow: 4px 4px 0 #000;
 }
 
 .hero-desc {
-  font-size: clamp(16px, 4vw, 19px);
-  line-height: 1.6;
+  font-size: 19px;
+  line-height: 1.7;
   margin-bottom: 2.5rem;
   max-width: 640px;
-  margin-left: auto;
-  margin-right: auto;
   opacity: 0.95;
-
-  @media (min-width: 1024px) {
-    margin-left: 0;
-  }
 }
 
 .hero-ctas {
   display: flex;
-  flex-direction: column; // Buttons untereinander auf Handy
-  gap: 1rem;
+  gap: 1.2rem;
   margin-bottom: 3rem;
-  align-items: center;
-
-  @media (min-width: 480px) {
-    flex-direction: row; // Nebeneinander ab kleinen Tablets
-    justify-content: center;
-  }
-
-  @media (min-width: 1024px) {
-    justify-content: flex-start;
-  }
-}
-
-/* BUTTONS */
-.copy-ip-button {
-  width: 100%;
-  max-width: 280px;
-  min-width: 0 !important; // Entfernt deine alte fixe min-width
-  text-align: center;
+  flex-wrap: wrap;
 }
 
 /* SERVER STATUS CARD */
 .server-status-card {
   margin-top: 1rem;
-  display: flex;
-  justify-content: center;
-
-  @media (min-width: 1024px) {
-    justify-content: flex-start;
-  }
 }
 
 .server-status-inner {
@@ -115,32 +76,60 @@
   align-items: center;
   gap: 1.2rem;
   padding: 8px 0;
-  max-width: 100%;
 }
 
 .server-icon {
-  width: 48px;
-  height: 48px;
+  width: 64px;
+  height: 64px;
   image-rendering: pixelated;
   border: 3px solid #000;
-  box-shadow: 3px 3px 0 rgba(0,0,0,0.5);
-
-  @media (min-width: 768px) {
-    width: 64px;
-    height: 64px;
-  }
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
 }
 
 .server-name {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: bold;
+  margin-bottom: 0.2rem;
 }
 
-/* RIGHT SIDE PANEL / IMAGE */
+.server-ip-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.server-ip {
+  font-size: 17px;
+  color: #ddd;
+  font-family: 'Minecraft', sans-serif;
+}
+
+.copy-btn-small {
+  background: none;
+  border: none;
+  color: #f7ea38;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 10px;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.status-online {
+  color: #07ba07;
+  font-weight: bold;
+  text-shadow: 0 0 8px #55ff55;
+}
+
+.ping {
+  color: #f7ea38;
+}
+
+/* RIGHT SIDE PANEL / IMAGE FRAME */
 .hero-right {
   flex: 1;
-  width: 100%;
-  min-width: 0;
+  min-width: 300px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -149,37 +138,59 @@
 .world-preview {
   --zoom: 10;
   background: #8b8b8b;
-  border: calc(40px / var(--zoom)) solid transparent;
+  border: calc(var(--block-size)/var(--zoom)) solid transparent;
   border-image: url('/imgs/ui/panel.png') 43% fill;
   border-image-slice: 43% fill;
   image-rendering: pixelated;
-  box-shadow: 8px 8px 0 rgba(0,0,0,0.7);
+  box-shadow: 10px 10px 0 rgba(0,0,0,0.7);
 
-  padding: 15px;
-  width: 100%;
-  max-width: 320px; // Begrenzt die Bildbox auf Handy
-  aspect-ratio: 1 / 1;
+  padding-top: 0px;
+  padding-bottom: 25px;
+  padding-left: 20px;
+  padding-right: 20px;
+
+  width: auto;
+  height: auto;
+  max-width: 900px;
+  max-height: 900px;
+  margin: 0 auto;
+
   display: flex;
   justify-content: center;
   align-items: center;
-
-  @media (min-width: 1024px) {
-    max-width: 600px;
-    padding: 25px;
-  }
 }
 
 .world-preview img {
   width: 100%;
-  height: auto;
+  height: 100%;
   object-fit: contain;
   image-rendering: pixelated;
+  display: block;
 }
 
-/* EXTRA LARGE SCREENS */
+.copy-ip-button {
+  min-width: 260px;           // 240–280 px – teste was bei dir perfekt passt
+  text-align: center;
+}
+
+/* LARGE SCREENS */
 @media (min-width: 1400px) {
   .world-preview {
-    max-width: 800px;
-    box-shadow: 12px 12px 0 rgba(0,0,0,0.8);
+    max-width: 1100px;
+    max-height: 1100px;
+    padding: 28px;
+    box-shadow: 14px 14px 0 rgba(0,0,0,0.8);
   }
 }
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .world-preview {
+    width: 88vmin;
+    height: 88vmin;
+    max-width: 420px;
+    max-height: 420px;
+    padding: 16px;
+  }
+}
+
