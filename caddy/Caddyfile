@@ -62,5 +62,5 @@ bombio.notascam.ch {
   @api path /socket.io* /api*
   reverse_proxy @api 192.168.1.213:3001
 
-  reverse_proxy 192.168.1.213:80
+  reverse_proxy 192.168.1.213:81
 }
