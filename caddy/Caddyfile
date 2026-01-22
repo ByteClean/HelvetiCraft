@@ -54,7 +54,7 @@ map.helveticraft.com {
     Referrer-Policy "no-referrer-when-downgrade"
   }
 }
-www.bombio.notascam.ch.com {
+www.bombio.notascam.ch {
   redir https://bombio.notascam.ch{uri} permanent
 }
 
