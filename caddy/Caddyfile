@@ -59,7 +59,7 @@ map.helveticraft.com {
 bombio.notascam.ch {
   encode gzip
 
-  @api path /socket.io* /api*
+  @api path /socket.io* /bombio_api*
   reverse_proxy @api 192.168.1.213:3001
 
   reverse_proxy 192.168.1.213:81
