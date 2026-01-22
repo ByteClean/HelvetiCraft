@@ -55,12 +55,22 @@ map.helveticraft.com {
   }
 }
 
-# --- bombio.notascam.ch (old PC 192.168.1.213) ---
 bombio.notascam.ch {
   encode gzip
 
-  @api path /socket.io* /api*
-  reverse_proxy @api 192.168.1.213:3001
+  # Socket.IO (WebSocket)
+  handle /socket.io* {
+    reverse_proxy 192.168.1.213:3001
+  }
 
-  reverse_proxy 192.168.1.213:81
+  # REST API unter /api/* (strippt /api)
+  handle_path /api/* {
+    reverse_proxy 192.168.1.213:3001
+  }
+
+  # Frontend
+  handle {
+    reverse_proxy 192.168.1.213:81
+  }
 }
+
