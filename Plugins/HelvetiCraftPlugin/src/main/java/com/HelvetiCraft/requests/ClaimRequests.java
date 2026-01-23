@@ -10,8 +10,8 @@ import static org.bukkit.Bukkit.getLogger;
 public class ClaimRequests {
 
     // default rates (cents)
-    private static long buyPriceCents = 500L; // 5.00
-    private static long sellPriceCents = 300L; // 3.00
+    private static long buyPriceCents = 500000L; // 5000.00
+    private static long sellPriceCents = 300000L; // 3000.00
 
     public static long getBuyPriceCents() {
         return buyPriceCents;

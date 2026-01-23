@@ -23,7 +23,7 @@ public class FinanceManager {
 
     public void ensureAccount(UUID id) {
         if (!FinanceRequests.hasAccount(id)) {
-            FinanceRequests.createAccount(id, 25000L); // default starting balance
+            FinanceRequests.createAccount(id, 150000L); // default starting balance
         }
     }
 

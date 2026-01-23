@@ -33,8 +33,8 @@ public class ClaimManager {
     private final FinanceManager finance;
 
     // Note: prices are now provided by ClaimRequests (dummy backend). Constants retained as fallback.
-    public static final long BUY_PRICE_CENTS_PER_BLOCK = 500L; // fallback 5.00
-    public static final long SELL_PRICE_CENTS_PER_BLOCK = 300L; // fallback 3.00
+    public static final long BUY_PRICE_CENTS_PER_BLOCK = 500000L; // fallback 5000.00
+    public static final long SELL_PRICE_CENTS_PER_BLOCK = 300000L; // fallback 3000.00
 
     // Government/admin account UUID (all zeros)
     public static final UUID GOVERNMENT_UUID = new UUID(0L, 0L);
