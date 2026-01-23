@@ -1,6 +1,33 @@
 import { Router } from "express";
 import pool from "../services/mysql.service.js";
 import * as finances from "../services/finances.service.js";
+import * as economy from "../services/economy.service.js";
+
+const ORE_KEYS = [
+  "COAL_ORE_CONVERSION",
+  "IRON_ORE_CONVERSION",
+  "COPPER_ORE_CONVERSION",
+  "GOLD_ORE_CONVERSION",
+  "REDSTONE_ORE_CONVERSION",
+  "LAPIS_ORE_CONVERSION",
+  "DIAMOND_ORE_CONVERSION",
+  "EMERALD_ORE_CONVERSION",
+  "QUARTZ_ORE_CONVERSION",
+  "ANCIENT_DEBRIS_CONVERSION",
+];
+
+function applyBifToOreConfig(result, bifRate) {
+  if (!bifRate || !Number.isFinite(bifRate)) return result;
+  for (const key of ORE_KEYS) {
+    if (result[key] !== undefined) {
+      const base = Number(result[key]);
+      if (Number.isFinite(base)) {
+        result[key] = Math.round(base * bifRate);
+      }
+    }
+  }
+  return result;
+}
 
 const r = Router();
 
@@ -172,14 +199,20 @@ r.get("/tax-config/all", async (req, res) => {
     const configs = await finances.getAllTaxConfig();
     const result = {};
     configs.forEach(cfg => {
-      if (cfg.config_type === 'json') {
+      if (cfg.config_type === "json") {
         result[cfg.config_key] = JSON.parse(cfg.config_value);
-      } else if (cfg.config_type === 'number') {
+      } else if (cfg.config_type === "number") {
         result[cfg.config_key] = parseFloat(cfg.config_value);
       } else {
         result[cfg.config_key] = cfg.config_value;
       }
     });
+
+    // BIF-adjust ore conversions
+    const bipData = await economy.getCurrentBIPData();
+    const bif = bipData?.bif_rate || 1.0;
+    applyBifToOreConfig(result, bif);
+
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -192,14 +225,23 @@ r.get("/tax-config/:key", async (req, res) => {
   try {
     const config = await finances.getTaxConfig(key);
     if (!config) return res.status(404).json({ error: "config_not_found" });
-    
+
     let value = config.config_value;
-    if (config.config_type === 'json') {
+    if (config.config_type === "json") {
       value = JSON.parse(value);
-    } else if (config.config_type === 'number') {
+    } else if (config.config_type === "number") {
       value = parseFloat(value);
     }
-    
+
+    // BIF-adjust ore conversions
+    if (ORE_KEYS.includes(key)) {
+      const bipData = await economy.getCurrentBIPData();
+      const bif = bipData?.bif_rate || 1.0;
+      if (Number.isFinite(value) && Number.isFinite(bif)) {
+        value = Math.round(Number(value) * bif);
+      }
+    }
+
     res.json({ key: config.config_key, value, type: config.config_type });
   } catch (err) {
     res.status(500).json({ error: err.message });
