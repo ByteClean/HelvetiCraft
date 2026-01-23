@@ -20,7 +20,7 @@ export default function Status() {
     setError(null);
     try {
       const response = await fetch(
-        "https://helveticraft.com/api/economy/prices/all",
+        "https://helveticraft.com/api/economy/prices/all"
       );
       const data = await response.json();
       const allPrices = data.prices || [];
@@ -70,7 +70,6 @@ export default function Status() {
       {/* PL3XMAP */}
       <section className="status-section">
         <h3>Live-Karte (Pl3xMap)</h3>
-
         <div className="map-panel">
           <iframe
             title="HelvetiCraft Live Map"
@@ -87,7 +86,7 @@ export default function Status() {
             onClick={fetchPrices}
             disabled={isLoading}
           >
-            {isLoading ? "Loading..." : "Item Preisliste"}
+            {isLoading ? "Loading..." : "Item Preisliste (Empfohlener Preis)"}
           </button>
 
           {isDropdownOpen && (
@@ -96,6 +95,7 @@ export default function Status() {
                 <div className="error-message">{error}</div>
               ) : (
                 <>
+                  {/* Suchleiste */}
                   <div className="search-bar">
                     <input
                       type="text"
@@ -104,22 +104,27 @@ export default function Status() {
                       onChange={handleSearch}
                     />
                   </div>
+
                   <div className="prices-list">
                     <div className="prices-header">
                       <span className="item-name">Item</span>
-                      <span className="price">Recommended Price</span>
+                      <span className="price">Einzelpreis</span>
+                      <span className="price">Stack (64)</span>
                     </div>
+
                     <div className="prices-scroll">
                       {filteredPrices.map((item) => (
                         <div key={item.item_type} className="price-item">
                           <span className="item-name">
                             {item.item_type.replace(/_/g, " ")}
                           </span>
+                          <span className="price">{item.recommended_price}</span>
                           <span className="price">
-                            {item.recommended_price}
+                            {item.recommended_price * 64}
                           </span>
                         </div>
                       ))}
+
                       {filteredPrices.length === 0 && (
                         <div
                           className="price-item"
