@@ -6,6 +6,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import static com.HelvetiCraft.requests.TaxRequests.loadAllTaxConfigFromBackend;
+
 public class ConvertCommand implements CommandExecutor {
 
     private final ConvertManager convertManager;
@@ -25,6 +27,7 @@ public class ConvertCommand implements CommandExecutor {
             return true;
         }
 
+        loadAllTaxConfigFromBackend();
         convertManager.openConvertMenu(p);
         return true;
     }
