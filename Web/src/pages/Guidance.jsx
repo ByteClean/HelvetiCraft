@@ -32,6 +32,13 @@ export default function Guidance() {
           >
             Regelwerk
           </button>
+
+          <button
+            className={activeTab === "commands" ? "active" : ""}
+            onClick={() => setActiveTab("commands")}
+          >
+            Befehlsliste
+          </button>
         </div>
       </div>
 
@@ -528,8 +535,8 @@ export default function Guidance() {
                 (Löschung oder Zurücksetzung von Geld, Grundstücken, Items etc.)
               </li>
               <li>
-                <strong>Weitere Massnahmen</strong> (z. B. Entfernung von Bauten,
-                Konfiszierung von Gegenständen, Sperrung von Rechten im
+                <strong>Weitere Massnahmen</strong> (z. B. Entfernung von
+                Bauten, Konfiszierung von Gegenständen, Sperrung von Rechten im
                 Wirtschaftssystem)
               </li>
             </ul>
@@ -587,6 +594,197 @@ export default function Guidance() {
               <li>spielerisch demokratisch</li>
             </ul>
             <p>Danke, dass du Teil des Projekts bist 💚</p>
+          </div>
+        )}
+
+        {/* ──────────────────────────────────────── */}
+        {/* Befehlsliste */}
+        {activeTab === "commands" && (
+          <div className="minecraft-panel guidance-box commands-panel">
+            <h3>📜 Befehlsliste – HelvetiCraft</h3>
+
+            <h4>🔐 AuthMe</h4>
+            <ul>
+              <li>
+                <code>/register &lt;Passwort&gt; &lt;Passwort&gt;</code> –
+                Registrieren
+              </li>
+              <li>
+                <code>/login &lt;Passwort&gt;</code> – Anmelden
+              </li>
+              <li>
+                <code>/changepassword &lt;alt&gt; &lt;neu&gt;</code> – Passwort
+                ändern
+              </li>
+            </ul>
+
+            <hr />
+
+            <h4>🧰 ChestShop – Shop erstellen</h4>
+
+            <ol>
+              <li>
+                <strong>Truhe platzieren</strong> – Truhe auf den Boden stellen
+              </li>
+
+              <li>
+                <strong>Schild platzieren</strong> – 1 Block von der Truhe
+                entfernt (z. B. darüber)
+              </li>
+
+              <li>
+                <strong>Schild beschriften</strong>
+                <ul className="shop-lines">
+                  <li>
+                    <strong>Zeile:</strong> leer lassen
+                  </li>
+                  <li>
+                    <strong>Zeile:</strong> Menge
+                  </li>
+                  <li>
+                    <strong>Zeile:</strong> Preis
+                  </li>
+                  <li>
+                    <strong>Zeile:</strong> Item
+                  </li>
+                </ul>
+
+                <p>
+                  <strong>Während der Eingabe:</strong>
+                </p>
+                <img
+                  src="https://proxy.spigotmc.org/cc230ee964c1dc963956c70c61e0562bfbd79cbe/68747470733a2f2f692e696d6775722e636f6d2f353578755476672e706e67"
+                  alt="ChestShop Schild beim Erstellen"
+                />
+
+                <p>
+                  <strong>Fertiger Shop:</strong>
+                </p>
+                <img
+                  src="https://proxy.spigotmc.org/07086ec3bbc9eaa6c353afcfbfb40a0939f174bd/68747470733a2f2f692e696d6775722e636f6d2f655a65384176432e706e67"
+                  alt="ChestShop fertiger Shop"
+                />
+              </li>
+            </ol>
+
+            <h5>📝 Erklärung</h5>
+            <ul>
+              <li>
+                <strong>Zeile 2 – Menge:</strong> z. B. <code>64</code>
+              </li>
+              <li>
+                <strong>Zeile 3 – Preis:</strong>
+                <ul>
+                  <li>
+                    <code>B 5</code> – Kaufen für 5
+                  </li>
+                  <li>
+                    <code>S 5</code> – Verkaufen für 5
+                  </li>
+                  <li>
+                    <code>B 5:5 S</code> – Kaufen & Verkaufen
+                  </li>
+                  <li>
+                    <code>S free</code> – Kostenlos
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <strong>Zeile 4 – Item:</strong> <code>?</code> oder Itemname
+              </li>
+            </ul>
+
+            <p>
+              💡 <code>/iteminfo</code> zeigt den exakten Item-Namen.
+            </p>
+
+            <hr />
+
+            <h4>🧳 Essentials</h4>
+            <ul>
+              <li>
+                <code>/ec</code> – Enderchest
+              </li>
+              <li>
+                <code>/home</code> – Home
+              </li>
+              <li>
+                <code>/sethome &lt;Name&gt;</code> – Home setzen
+              </li>
+              <li>
+                <code>/delhome &lt;Name&gt;</code> – Home löschen
+              </li>
+            </ul>
+
+            <hr />
+
+            <h4>🏡 Claims (GriefPrevention)</h4>
+            <ul>
+              <li>
+                <code>/buyclaimblock &lt;Anzahl&gt;</code>
+              </li>
+              <li>
+                <code>/sellclaimblock &lt;Anzahl&gt;</code>
+              </li>
+              <li>
+                <code>/abandonclaim</code>
+              </li>
+              <li>
+                <code>/claimslist</code>
+              </li>
+              <li>
+                <code>/trust &lt;Spieler&gt;</code>
+              </li>
+            </ul>
+
+            <p>
+              📌 Grundstück mit der <strong>goldenen Schaufel</strong> markieren
+            </p>
+
+            <hr />
+
+            <h4>🪑 Sit (GSit)</h4>
+            <ul>
+              <li>
+                <code>/sit</code>
+              </li>
+              <li>
+                <code>/lay</code>
+              </li>
+              <li>
+                <code>/crawl</code>
+              </li>
+            </ul>
+
+            <hr />
+
+            <h4>💰 Wirtschaft</h4>
+            <ul>
+              <li>
+                <code>/finance</code>
+              </li>
+              <li>
+                <code>/networth</code>
+              </li>
+              <li>
+                <code>/pay &lt;Spieler&gt; &lt;Wert&gt;</code>
+              </li>
+              <li>
+                <code>/convert</code>
+              </li>
+              <li>
+                <code>/initative</code>
+              </li>
+            </ul>
+
+            <hr />
+
+            <h4>🎭 Skins</h4>
+            <ul>
+              <li>
+                <code>/skin &lt;Spielername&gt;</code>
+              </li>
+            </ul>
           </div>
         )}
       </div>

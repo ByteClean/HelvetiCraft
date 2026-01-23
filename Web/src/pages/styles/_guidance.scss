@@ -23,7 +23,7 @@
     font-weight: bold;
     font-size: 15px;
     cursor: pointer;
-    border: calc(var(--block-size)/var(--zoom)) solid transparent;
+    border: calc(var(--block-size) / var(--zoom)) solid transparent;
     border-image: url("/imgs/ui/button-border.png") 10% 3% stretch;
     border-image-slice: 10% 3%;
     background: url("/imgs/ui/button-inside.png") center / cover no-repeat;
@@ -52,11 +52,11 @@
 .minecraft-panel.guidance-box {
   padding: 20px;
   background: #8b8b8b;
-  border: calc(var(--block-size)/var(--zoom)) solid transparent;
+  border: calc(var(--block-size) / var(--zoom)) solid transparent;
   border-image: url("/imgs/ui/panel.png") 43% fill;
   border-image-slice: 43% fill;
   image-rendering: pixelated;
-  box-shadow: 10px 10px 0 rgba(0,0,0,0.7);
+  box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.7);
   margin-bottom: 24px;
 
   img {
@@ -68,12 +68,12 @@
     box-shadow: 4px 4px 0 #000;
     image-rendering: pixelated;
   }
-  
+
   h3 {
     font-size: 24px;
     margin-bottom: 12px;
     padding-bottom: 6px;
-    border-bottom: 2px solid rgba(0,0,0,0.4);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.4);
     max-width: 100%;
     word-wrap: break-word;
     overflow-wrap: anywhere;
@@ -98,8 +98,9 @@
     }
   }
 
-  ol, ul {
-    margin: 1em 0 1em 60px;      // mehr Platz links + vertikaler Abstand
+  ol,
+  ul {
+    margin: 1em 0 1em 60px; // mehr Platz links + vertikaler Abstand
     padding-left: 0;
     font-size: 15px;
     line-height: 1.7;
@@ -108,8 +109,8 @@
 
     li {
       position: relative;
-      margin-bottom: 1.4em;       // Abstand zwischen den Schritten
-      padding-top: 4px;           // etwas Luft oben für die Nummer
+      margin-bottom: 1.4em; // Abstand zwischen den Schritten
+      padding-top: 4px; // etwas Luft oben für die Nummer
       counter-increment: li-counter;
 
       strong {
@@ -118,12 +119,15 @@
       }
 
       pre {
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        overflow-wrap: anywhere;
-        max-width: 100%;
-        box-sizing: border-box;
-        margin: 0.6em 0;
+        background: #111;
+        color: #ecf74d;
+        padding: 12px 14px;
+        border-radius: 6px;
+        font-size: 14px;
+        line-height: 1.6;
+        margin: 0.8em 0;
+        box-shadow: inset 0 0 0 2px #000;
+        font-family: monospace; // wichtig!
       }
 
       &::before {
@@ -137,7 +141,7 @@
         font-size: 22px;
         color: #ffffff;
         text-shadow: 3px 3px 0 #000;
-        top: 4px;                   // oben am Text ausrichten
+        top: 4px; // oben am Text ausrichten
         line-height: 1.2;
         image-rendering: pixelated;
       }
@@ -147,7 +151,7 @@
         width: auto;
         max-width: 100%;
         height: auto;
-        margin: 0.8em 0 0.4em 0;   // Abstand zum Text oben + unten
+        margin: 0.8em 0 0.4em 0; // Abstand zum Text oben + unten
         border: 2px solid #000;
         box-shadow: 4px 4px 0 #000;
         image-rendering: pixelated;
@@ -194,11 +198,13 @@
     color: #f7ea38;
   }
 
-  ul, ol {
+  ul,
+  ol {
     margin: 1.2em 0 1.2em 50px;
   }
 
-  ul ul, ol ul {
+  ul ul,
+  ol ul {
     margin: 0.6em 0 0.6em 24px;
     list-style-type: disc;
   }
@@ -216,9 +222,16 @@
   .rules-panel {
     padding: 18px 20px;
 
-    h3 { font-size: 24px; }
-    h4 { font-size: 20px; margin: 28px 0 14px; }
-    h5 { font-size: 17px; }
+    h3 {
+      font-size: 24px;
+    }
+    h4 {
+      font-size: 20px;
+      margin: 28px 0 14px;
+    }
+    h5 {
+      font-size: 17px;
+    }
   }
 }
 
@@ -235,11 +248,14 @@
       font-size: 21px;
     }
 
-    p, ol, ul {
+    p,
+    ol,
+    ul {
       font-size: 14px;
     }
 
-    ol, ul {
+    ol,
+    ul {
       margin: 1em 0 1em 44px;
 
       li {
