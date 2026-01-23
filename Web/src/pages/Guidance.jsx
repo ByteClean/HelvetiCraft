@@ -703,10 +703,13 @@ export default function Guidance() {
             <h4>🧳 Essentials</h4>
             <ul>
               <li>
-                <code>/ec</code> – Enderchest
+                <code>/ec oder /enderchest</code> – Enderchest
               </li>
               <li>
                 <code>/home</code> – Home
+              </li>
+              <li>
+                <code>/home bed</code> – Home
               </li>
               <li>
                 <code>/sethome &lt;Name&gt;</code> – Home setzen
@@ -728,6 +731,9 @@ export default function Guidance() {
               </li>
               <li>
                 <code>/abandonclaim</code>
+              </li>
+              <li>
+                <code>/abandonallclaims</code>
               </li>
               <li>
                 <code>/claimslist</code>
@@ -752,6 +758,9 @@ export default function Guidance() {
                 <code>/lay</code>
               </li>
               <li>
+                <code>/bellyflop</code>
+              </li>
+              <li>
                 <code>/crawl</code>
               </li>
             </ul>
@@ -767,7 +776,19 @@ export default function Guidance() {
                 <code>/networth</code>
               </li>
               <li>
+                <code>/save &lt;Wert&gt;</code>
+              </li>
+              <li>
                 <code>/pay &lt;Spieler&gt; &lt;Wert&gt;</code>
+              </li>
+              <li>
+                <code>/sell &lt;Spieler&gt; &lt;Wert&gt;</code>
+              </li>
+              <li>
+                <code>/sellaccept</code>
+              </li>
+              <li>
+                <code>/selldecline</code>
               </li>
               <li>
                 <code>/convert</code>
