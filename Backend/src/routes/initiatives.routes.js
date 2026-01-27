@@ -8,7 +8,7 @@ const r = Router();
 function phaseToFinalVoteTable(phase) {
   // Phase 1 = Admin-Voting, Phase 2/3 = Spieler-Voting
   if (phase === 1) return "admin_votes";
-  return "player_votes";
+  return "final_votes";
 }
 
 async function getFinalVoteCounts(initiativeId) {
