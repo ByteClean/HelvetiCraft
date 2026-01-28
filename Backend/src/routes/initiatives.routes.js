@@ -375,7 +375,7 @@ r.post("/finalvote/:id", async (req, res, next) => {
       return res.status(403).json({ error: "only_admin_can_finalvote_in_phase_1" });
     }
 
-    const table = phase === 1 ? "admin_votes" : "player_votes";
+    const table = phase === 1 ? "admin_votes" : "final_votes";
 
     const [rows] = await pool.query(
       "SELECT id, aktiv FROM initiatives WHERE id = ?",
