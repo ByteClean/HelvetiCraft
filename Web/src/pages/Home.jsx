@@ -8,7 +8,7 @@ export default function Home() {
 
   const handleCopy = () => {
     navigator.clipboard
-      .writeText("helveticraft.com")
+      .writeText("mc.helveticraft.com")
       .then(() => {
         setCopied(true);
         // nach 2,5 Sekunden zurücksetzen
@@ -61,7 +61,7 @@ export default function Home() {
             </div>
 
             {/* Serverstatus */}
-            <ServerStatus serverIP="helveticraft.com" />
+            <ServerStatus serverIP="mc.helveticraft.com" />
           </div>
 
           {/* Rechte Seite – Weltbild mit Panel-Rahmen */}

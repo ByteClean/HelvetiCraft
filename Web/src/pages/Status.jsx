@@ -64,7 +64,7 @@ export default function Status() {
       {/* SERVER STATUS */}
       <section className="status-section">
         <h3>Serverstatus</h3>
-        <ServerStatus serverIP="helveticraft.com" />
+        <ServerStatus serverIP="mc.helveticraft.com" />
       </section>
 
       {/* PL3XMAP */}

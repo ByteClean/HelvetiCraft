@@ -121,7 +121,10 @@ export default function Guidance() {
                     <strong>Name:</strong> HelvetiCraft
                   </li>
                   <li>
-                    <strong>Adresse:</strong> <code>helveticraft.com</code>
+                    <strong>Adresse allgemein:</strong> <code>mc.helveticraft.com</code>
+                  </li>
+                  <li>
+                    <strong>Adresse am bwd:</strong> <code>notascam.ch</code>
                   </li>
                 </ul>
                 <img src="/imgs/pngs/MC_Srv_Adresse.png" alt="Server Adresse" />
@@ -201,7 +204,10 @@ export default function Guidance() {
                     <strong>Name:</strong> HelvetiCraft
                   </li>
                   <li>
-                    <strong>Adresse:</strong> <code>helveticraft.com</code>
+                    <strong>Adresse allgemein:</strong> <code>mc.helveticraft.com</code>
+                  </li>
+                  <li>
+                    <strong>Adresse am bwd:</strong> <code>notascam.ch</code>
                   </li>
                 </ul>
                 <img src="/imgs/pngs/MC_Srv_Adresse.png" alt="Server Adresse" />
