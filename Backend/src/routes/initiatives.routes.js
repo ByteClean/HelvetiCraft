@@ -486,5 +486,77 @@ r.post("/finalvote/:id", async (req, res, next) => {
     next(err);
   }
 });
+// GET /initiatives/:id/finalvotes
+// Liefert die Finalvote-Zusammenfassung (ja/nein) + optional die Einzelstimmen (admin_votes oder final_votes je nach Phase)
+
+r.get("/:id/finalvotes", async (req, res, next) => {
+  const initiativeId = Number(req.params.id);
+
+  if (!Number.isInteger(initiativeId) || initiativeId <= 0) {
+    return res.status(400).json({ error: "invalid_initiative_id" });
+  }
+
+  try {
+    // sicherstellen, dass Initiative existiert + aktiv ist (wie bei deinen anderen Routen)
+    const [rows] = await pool.query(
+      "SELECT id, aktiv FROM initiatives WHERE id = ?",
+      [initiativeId]
+    );
+
+    if (rows.length === 0) return res.status(404).json({ error: "initiative_not_found" });
+    if (!rows[0].aktiv) return res.status(400).json({ error: "initiative_not_active" });
+
+    // Phase bestimmen → richtige Tabelle
+    const phase = await getCurrentPhase();
+    const table = phaseToFinalVoteTable(phase); // 1 => admin_votes, sonst final_votes
+
+    // Counts
+    const [[finals]] = await pool.query(
+      `SELECT
+         SUM(stimme = 1) AS ja,
+         SUM(stimme = 0) AS nein
+       FROM ${table}
+       WHERE initiative_id = ?`,
+      [initiativeId]
+    );
+
+    // Optional: Liste der Stimmen (damit Frontend nicht pro Initiative mehrfach raten muss)
+    const [votes] = await pool.query(
+      `
+      SELECT
+        v.id AS vote_id,
+        v.user_id,
+        a.username,
+        v.stimme,
+        v.created_at,
+        v.updated_at
+      FROM ${table} v
+      JOIN authme a ON a.id = v.user_id
+      WHERE v.initiative_id = ?
+      ORDER BY v.created_at ASC
+      `,
+      [initiativeId]
+    );
+
+    return res.json({
+      initiative_id: initiativeId,
+      phase,
+      table,
+      ja: finals?.ja || 0,
+      nein: finals?.nein || 0,
+      votes: votes.map((v) => ({
+        vote_id: v.vote_id,
+        user_id: v.user_id,
+        username: v.username,
+        vote: v.stimme === 1,   // boolean fürs Frontend
+        stimme: v.stimme,       // int debug/legacy
+        created_at: v.created_at,
+        updated_at: v.updated_at,
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 export default r;
