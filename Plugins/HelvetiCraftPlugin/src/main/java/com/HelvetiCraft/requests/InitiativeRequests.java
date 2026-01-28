@@ -465,14 +465,20 @@ public class InitiativeRequests {
 
         Map<String, Boolean> votedTitles = new HashMap<>();
         Collection<Initiative> all = getAllInitiatives(playerId);
+        
+        String playerName = org.bukkit.Bukkit.getOfflinePlayer(playerId).getName();
+        if (playerName == null) {
+            playerVotesPhase2.put(playerId, votedTitles);
+            return votedTitles;
+        }
 
         for (Initiative initiative : all) {
             if (initiative.getId() == null) continue;
 
             try {
-                // Use new /finalvotes endpoint for phase 2 votes
+                // Use GET /initiatives/:id to get votes_for and votes_against from stimmen
                 HttpRequest req = HttpRequest.newBuilder()
-                        .uri(URI.create(API_BASE + "/initiatives/" + initiative.getId() + "/finalvotes"))
+                        .uri(URI.create(API_BASE + "/initiatives/" + initiative.getId()))
                         .GET()
                         .header("x-auth-from", "minecraft")
                         .header("x-auth-key", API_KEY)
@@ -481,48 +487,69 @@ public class InitiativeRequests {
                         .build();
 
                 HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
-                System.out.println("[HelvetiCraft] GET /initiatives/" + initiative.getId() + "/finalvotes returned status: " + res.statusCode());
+                System.out.println("[HelvetiCraft] GET /initiatives/" + initiative.getId() + " returned status: " + res.statusCode());
                 if (res.statusCode() >= 200 && res.statusCode() < 300) {
                     System.out.println("[HelvetiCraft] Response: " + res.body());
-                    // Parse JSON response
-                    String body = res.body();
+                    // Parse JSON response using GSON
+                    Map<String, Object> response = GSON.fromJson(res.body(), Map.class);
                     
-                    // Extract votes_for
-                    int votesForIdx = body.indexOf("\"votes_for\"");
-                    if (votesForIdx != -1) {
-                        String sub = body.substring(votesForIdx);
-                        String[] parts = sub.split(":");
-                        if (parts.length > 1) {
-                            String value = parts[1].replaceAll("[^0-9]", "");
-                            if (!value.isEmpty()) {
-                                initiative.setVotesFor(Integer.parseInt(value));
+                    // Extract stimmen object which contains ja (for) and nein (against)
+                    if (response.containsKey("stimmen")) {
+                        Map<String, Object> stimmen = (Map<String, Object>) response.get("stimmen");
+                        if (stimmen != null) {
+                            if (stimmen.containsKey("ja")) {
+                                Object jaObj = stimmen.get("ja");
+                                int ja = 0;
+                                if (jaObj instanceof Number) {
+                                    ja = ((Number) jaObj).intValue();
+                                } else if (jaObj instanceof String) {
+                                    try {
+                                        ja = Integer.parseInt((String) jaObj);
+                                    } catch (NumberFormatException e) {
+                                        ja = 0;
+                                    }
+                                }
+                                initiative.setVotesFor(ja);
+                            }
+                            
+                            if (stimmen.containsKey("nein")) {
+                                Object neinObj = stimmen.get("nein");
+                                int nein = 0;
+                                if (neinObj instanceof Number) {
+                                    nein = ((Number) neinObj).intValue();
+                                } else if (neinObj instanceof String) {
+                                    try {
+                                        nein = Integer.parseInt((String) neinObj);
+                                    } catch (NumberFormatException e) {
+                                        nein = 0;
+                                    }
+                                }
+                                initiative.setVotesAgainst(nein);
                             }
                         }
                     }
                     
-                    // Extract votes_against
-                    int votesAgainstIdx = body.indexOf("\"votes_against\"");
-                    if (votesAgainstIdx != -1) {
-                        String sub = body.substring(votesAgainstIdx);
-                        String[] parts = sub.split(":");
-                        if (parts.length > 1) {
-                            String value = parts[1].replaceAll("[^0-9]", "");
-                            if (!value.isEmpty()) {
-                                initiative.setVotesAgainst(Integer.parseInt(value));
+                    // Check if player has voted by looking at finalvotes endpoint
+                    try {
+                        HttpRequest voteReq = HttpRequest.newBuilder()
+                                .uri(URI.create(API_BASE + "/initiatives/" + initiative.getId() + "/finalvotes"))
+                                .GET()
+                                .header("x-auth-from", "minecraft")
+                                .header("x-auth-key", API_KEY)
+                                .header("x-uuid", playerId.toString())
+                                .header("Content-Type", "application/json")
+                                .build();
+
+                        HttpResponse<String> voteRes = CLIENT.send(voteReq, HttpResponse.BodyHandlers.ofString());
+                        if (voteRes.statusCode() >= 200 && voteRes.statusCode() < 300) {
+                            Map<String, Object> voteResponse = GSON.fromJson(voteRes.body(), Map.class);
+                            if (voteResponse.containsKey("player_vote") && voteResponse.get("player_vote") != null) {
+                                Boolean playerVote = (Boolean) voteResponse.get("player_vote");
+                                votedTitles.put(initiative.getTitle(), playerVote);
                             }
                         }
-                    }
-                    
-                    // Extract player_vote (null, true, or false)
-                    int playerVoteIdx = body.indexOf("\"player_vote\"");
-                    if (playerVoteIdx != -1) {
-                        String sub = body.substring(playerVoteIdx);
-                        if (sub.contains("true")) {
-                            votedTitles.put(initiative.getTitle(), true);
-                        } else if (sub.contains("false")) {
-                            votedTitles.put(initiative.getTitle(), false);
-                        }
-                        // If "null", don't add to votedTitles (player hasn't voted)
+                    } catch (IOException | InterruptedException e) {
+                        Thread.currentThread().interrupt();
                     }
                 } else {
                     System.out.println("[HelvetiCraft] Error body: " + res.body());
