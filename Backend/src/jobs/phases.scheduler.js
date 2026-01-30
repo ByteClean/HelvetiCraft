@@ -11,16 +11,18 @@ function msUntilNextFiveAM() {
   const next = new Date(now);
   next.setHours(5, 0, 0, 0); // 05:00:00
 
-  if (now >= next) {
-    next.setDate(next.getDate() + 1);
-  }
+  if (now >= next) next.setDate(next.getDate() + 1);
+
   return next.getTime() - now.getTime();
 }
 
 export function startPhaseScheduler({ daysForMinVotes = 10 } = {}) {
   const tick = async (reason = "scheduled") => {
-    const conn = await pool.getConnection();
+    let conn;
     try {
+      conn = await pool.getConnection();
+
+      // nur ein Scheduler-Prozess darf laufen (wichtig bei mehreren Instanzen)
       const [[lockRow]] = await conn.query(
         "SELECT GET_LOCK('phases_scheduler', 1) AS got"
       );
@@ -71,28 +73,25 @@ export function startPhaseScheduler({ daysForMinVotes = 10 } = {}) {
     } catch (e) {
       console.error("[PHASE_SCHEDULER] error", e?.message || e);
     } finally {
-      try {
-        await conn.query("SELECT RELEASE_LOCK('phases_scheduler')");
-      } catch {}
-      conn.release();
+      if (conn) {
+        try { await conn.query("SELECT RELEASE_LOCK('phases_scheduler')"); } catch {}
+        try { conn.release(); } catch {}
+      }
     }
   };
 
-  // 1) Sofortiger Check nach Neustart
-  tick("startup").catch(() => {});
+  // 1) Sofortiger Check nach Neustart (direkt wirksam)
+  tick("startup");
 
   // 2) Danach fixe Uhrzeit 05:00 jeden Tag
   const delayMs = msUntilNextFiveAM();
-
-  console.log(
-    `[PHASE_SCHEDULER] next scheduled run in ${Math.round(delayMs / 1000)}s (05:00)`
-  );
+  console.log(`[PHASE_SCHEDULER] next scheduled run in ${Math.round(delayMs / 1000)}s (05:00)`);
 
   setTimeout(() => {
-    tick("daily_05_00").catch(() => {});
+    tick("daily_05_00");
 
     setInterval(() => {
-      tick("daily_05_00").catch(() => {});
+      tick("daily_05_00");
     }, 24 * 60 * 60 * 1000);
   }, delayMs);
 }

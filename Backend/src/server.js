@@ -9,9 +9,9 @@ const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`API laeuft auf Port ${PORT}`);
-});
 
-// 12 Stunden = 12 * 60 * 60 * 1000
-startPhaseScheduler({
-  daysForMinVotes: 10,
+  // Scheduler erst starten, wenn der Server wirklich hochgefahren ist
+  startPhaseScheduler({
+    daysForMinVotes: 10,
+  });
 });
