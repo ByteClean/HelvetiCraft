@@ -5,7 +5,7 @@ import Footer from './components/Footer'
 import Home from './pages/Home'
 import Initiatives from './pages/Initiatives'
 import Status from './pages/Status'
-import Features from './pages/Features'
+import Guidance from './pages/Guidance'
 import News from './pages/News'
 import About from './pages/About'
 
@@ -18,7 +18,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/initiatives" element={<Initiatives />} />
           <Route path="/status" element={<Status />} />
-          <Route path="/features" element={<Features />} />
+          <Route path="/guidance" element={<Guidance />} />
           <Route path="/news" element={<News />} />
           <Route path="/about" element={<About />} />
         </Routes>

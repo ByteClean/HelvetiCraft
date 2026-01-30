@@ -54,6 +54,9 @@ public class NetworthCommand implements CommandExecutor {
         for (UUID id : finance.getKnownPlayers()) {
             if (id.equals(GOVERNMENT_UUID)) continue; // Staat ausschließen
 
+            // Ensure player has a finance account (safety check)
+            finance.ensureAccount(id);
+
             long worth = finance.getMain(id) + finance.getSavings(id);
             playerWorths.put(id, worth);
         }

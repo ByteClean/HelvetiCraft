@@ -196,49 +196,87 @@ public class InitiativeRequests {
     public static int getCurrentPhase(UUID playerId) {
 
         // Load from cache or file
+        // Caching logic: Only fetch from backend if not cached or expired, otherwise use cached schedule.
         if (cachedSchedule == null) {
             cachedSchedule = PhaseFileManager.loadPhaseSchedule();
-
             if (cachedSchedule == null) {
-                cachedSchedule = fetchPhaseScheduleFromBackendDummy();
-                PhaseFileManager.savePhaseSchedule(cachedSchedule);
+                cachedSchedule = fetchPhaseScheduleFromBackend(playerId);
+                if (cachedSchedule != null) PhaseFileManager.savePhaseSchedule(cachedSchedule);
             }
         }
 
         // If the phase has reached "abschluss", refresh from backend
-        if (cachedSchedule.isExpired()) {
+        if (cachedSchedule == null || cachedSchedule.isExpired()) {
             System.out.println("[HelvetiCraft] Phase expired → fetching new schedule.");
-            cachedSchedule = fetchPhaseScheduleFromBackendDummy();
-            PhaseFileManager.savePhaseSchedule(cachedSchedule);
+            cachedSchedule = fetchPhaseScheduleFromBackend(playerId);
+            if (cachedSchedule != null) PhaseFileManager.savePhaseSchedule(cachedSchedule);
         }
 
         // Always return fresh computed phase
-        return cachedSchedule.getCurrentPhase();
+        return cachedSchedule != null ? cachedSchedule.getCurrentPhase() : 0;
     }
 
+    /**
+     * Fetches the phase schedule from the backend /phases/current endpoint.
+     * Maps the backend response to PhaseSchedule fields.
+     */
+    private static PhaseSchedule fetchPhaseScheduleFromBackend(UUID playerId) {
+        try {
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(API_BASE + "/phases/current"))
+                    .GET()
+                    .header("x-auth-from", "minecraft")
+                    .header("x-auth-key", API_KEY)
+                    .header("x-uuid", playerId != null ? playerId.toString() : "")
+                    .header("Content-Type", "application/json")
+                    .build();
 
-    private static PhaseSchedule fetchPhaseScheduleFromBackendDummy() {
-        PhaseSchedule schedule = new PhaseSchedule();
-
-        Instant now = Instant.now();
-
-        schedule.setStart1(now);
-        schedule.setStart2(now.plusSeconds(4 * 86400));  // +4 days
-        schedule.setStart3(now.plusSeconds(8 * 86400));  // +8 days
-        schedule.setAbschluss(now.plusSeconds(12 * 86400)); // +12 days
-
-        return schedule;
+            HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+            System.out.println("[HelvetiCraft] GET /phases/current returned status: " + res.statusCode());
+            if (res.statusCode() >= 200 && res.statusCode() < 300) {
+                System.out.println("[HelvetiCraft] Response: " + res.body());
+                // Parse JSON and map to PhaseSchedule
+                Map<String, Object> map = GSON.fromJson(res.body(), Map.class);
+                PhaseSchedule schedule = new PhaseSchedule();
+                // The backend returns ISO strings for start_phase0, start_phase1, ...
+                String s0 = (String) map.get("start_phase0");
+                String s1 = (String) map.get("start_phase1");
+                String s2 = (String) map.get("start_phase2");
+                String s3 = (String) map.get("start_phase3");
+                Double d0 = map.get("duration_phase0") instanceof Number ? ((Number) map.get("duration_phase0")).doubleValue() : null;
+                Double d1 = map.get("duration_phase1") instanceof Number ? ((Number) map.get("duration_phase1")).doubleValue() : null;
+                Double d2 = map.get("duration_phase2") instanceof Number ? ((Number) map.get("duration_phase2")).doubleValue() : null;
+                Double d3 = map.get("duration_phase3") instanceof Number ? ((Number) map.get("duration_phase3")).doubleValue() : null;
+                // Parse instants
+                schedule.setStart0(Instant.parse(s0));
+                schedule.setStart1(Instant.parse(s1));
+                schedule.setStart2(Instant.parse(s2));
+                schedule.setStart3(Instant.parse(s3));
+                // Abschluss = start_phase3 + duration_phase3 (all durations in seconds)
+                Instant abschluss = Instant.parse(s3);
+                if (d3 != null) abschluss = abschluss.plusSeconds(d3.longValue());
+                schedule.setAbschluss(abschluss);
+                return schedule;
+            } else {
+                System.out.println("[HelvetiCraft] Error body: " + res.body());
+                return null;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public static boolean canCreateInitiative(UUID playerId, String playerName) {
         int phase = getCurrentPhase(playerId);
-        if (phase != 1) return false;
+        if (phase != 0) return false; // Only allow in phase 0
 
-        // Check whether player already created in phase 1
+        // Check whether player already created in phase 0
         Collection<Initiative> all = getAllInitiatives(playerId);
         for (Initiative i : all) {
-            if (i.getAuthor() != null && i.getAuthor().equalsIgnoreCase(playerName) && i.getPhase() == 1)
+            if (i.getAuthor() != null && i.getAuthor().equalsIgnoreCase(playerName)) {
                 return false;
+            }
         }
         return true;
     }
@@ -272,7 +310,7 @@ public class InitiativeRequests {
             String encoded = URLEncoder.encode(id, StandardCharsets.UTF_8);
             Map<String, Object> votePayload = Map.of(
                     "playerId", playerId.toString(),
-                    "phase", 1,
+                    "phase", 0,
                     "vote", !isRemoving // true to add support, false if removing
             );
             String json = GSON.toJson(votePayload);
@@ -389,7 +427,8 @@ public class InitiativeRequests {
         try {
             String encoded = URLEncoder.encode(id, StandardCharsets.UTF_8);
             Map<String, Object> votePayload = Map.of(
-                    "vote", voteFor
+                    "vote", voteFor,
+                    "phase", 2
             );
             String json = GSON.toJson(votePayload);
 
@@ -426,16 +465,20 @@ public class InitiativeRequests {
 
         Map<String, Boolean> votedTitles = new HashMap<>();
         Collection<Initiative> all = getAllInitiatives(playerId);
-
+        
         String playerName = org.bukkit.Bukkit.getOfflinePlayer(playerId).getName();
-        if (playerName == null) return votedTitles;
+        if (playerName == null) {
+            playerVotesPhase2.put(playerId, votedTitles);
+            return votedTitles;
+        }
 
         for (Initiative initiative : all) {
             if (initiative.getId() == null) continue;
 
             try {
+                // Use GET /initiatives/:id to get votes_for and votes_against from stimmen
                 HttpRequest req = HttpRequest.newBuilder()
-                        .uri(URI.create(API_BASE + "/initiatives/" + initiative.getId() + "/votes"))
+                        .uri(URI.create(API_BASE + "/initiatives/" + initiative.getId()))
                         .GET()
                         .header("x-auth-from", "minecraft")
                         .header("x-auth-key", API_KEY)
@@ -444,23 +487,69 @@ public class InitiativeRequests {
                         .build();
 
                 HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
-                System.out.println("[HelvetiCraft] GET /initiatives/" + initiative.getId() + "/votes (Phase 2) returned status: " + res.statusCode());
+                System.out.println("[HelvetiCraft] GET /initiatives/" + initiative.getId() + " returned status: " + res.statusCode());
                 if (res.statusCode() >= 200 && res.statusCode() < 300) {
                     System.out.println("[HelvetiCraft] Response: " + res.body());
-                    VoteResponse vr = GSON.fromJson(res.body(), VoteResponse.class);
-                    if (vr != null) {
-                        // Update global votes count
-                        initiative.setVotesFor(vr.votes_for);
-                        initiative.setVotesAgainst(vr.votes_against);
-
-                        if (vr.votes != null) {
-                            for (VoteEntry entry : vr.votes) {
-                                if (playerName.equalsIgnoreCase(entry.username)) {
-                                    votedTitles.put(initiative.getTitle(), entry.vote);
-                                    break;
+                    // Parse JSON response using GSON
+                    Map<String, Object> response = GSON.fromJson(res.body(), Map.class);
+                    
+                    // Extract stimmen object which contains ja (for) and nein (against)
+                    if (response.containsKey("stimmen")) {
+                        Map<String, Object> stimmen = (Map<String, Object>) response.get("stimmen");
+                        if (stimmen != null) {
+                            if (stimmen.containsKey("ja")) {
+                                Object jaObj = stimmen.get("ja");
+                                int ja = 0;
+                                if (jaObj instanceof Number) {
+                                    ja = ((Number) jaObj).intValue();
+                                } else if (jaObj instanceof String) {
+                                    try {
+                                        ja = Integer.parseInt((String) jaObj);
+                                    } catch (NumberFormatException e) {
+                                        ja = 0;
+                                    }
                                 }
+                                initiative.setVotesFor(ja);
+                            }
+                            
+                            if (stimmen.containsKey("nein")) {
+                                Object neinObj = stimmen.get("nein");
+                                int nein = 0;
+                                if (neinObj instanceof Number) {
+                                    nein = ((Number) neinObj).intValue();
+                                } else if (neinObj instanceof String) {
+                                    try {
+                                        nein = Integer.parseInt((String) neinObj);
+                                    } catch (NumberFormatException e) {
+                                        nein = 0;
+                                    }
+                                }
+                                initiative.setVotesAgainst(nein);
                             }
                         }
+                    }
+                    
+                    // Check if player has voted by looking at finalvotes endpoint
+                    try {
+                        HttpRequest voteReq = HttpRequest.newBuilder()
+                                .uri(URI.create(API_BASE + "/initiatives/" + initiative.getId() + "/finalvotes"))
+                                .GET()
+                                .header("x-auth-from", "minecraft")
+                                .header("x-auth-key", API_KEY)
+                                .header("x-uuid", playerId.toString())
+                                .header("Content-Type", "application/json")
+                                .build();
+
+                        HttpResponse<String> voteRes = CLIENT.send(voteReq, HttpResponse.BodyHandlers.ofString());
+                        if (voteRes.statusCode() >= 200 && voteRes.statusCode() < 300) {
+                            Map<String, Object> voteResponse = GSON.fromJson(voteRes.body(), Map.class);
+                            if (voteResponse.containsKey("player_vote") && voteResponse.get("player_vote") != null) {
+                                Boolean playerVote = (Boolean) voteResponse.get("player_vote");
+                                votedTitles.put(initiative.getTitle(), playerVote);
+                            }
+                        }
+                    } catch (IOException | InterruptedException e) {
+                        Thread.currentThread().interrupt();
                     }
                 } else {
                     System.out.println("[HelvetiCraft] Error body: " + res.body());
@@ -481,5 +570,15 @@ public class InitiativeRequests {
                 .map(Initiative::getId)
                 .findFirst()
                 .orElse(null);
+    }
+
+    /**
+     * Forces a refresh of the phase schedule from the backend for the given player.
+     */
+    public static void refreshPhaseSchedule(UUID playerId) {
+        cachedSchedule = fetchPhaseScheduleFromBackend(playerId);
+        if (cachedSchedule != null) {
+            PhaseFileManager.savePhaseSchedule(cachedSchedule);
+        }
     }
 }

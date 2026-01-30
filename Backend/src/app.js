@@ -14,6 +14,7 @@ import initiativesRoutes from "./routes/initiatives.routes.js";
 import newsRoutes from "./routes/news.routes.js";
 import financesRoutes from "./routes/finances.routes.js";
 import quizRoutes from "./routes/quiz.routes.js";
+import economyRoutes from "./routes/economy.routes.js";
 
 const app = express();
 
@@ -36,7 +37,8 @@ app.use("/phases", phasesRouter);
 app.use("/discord-logging", discordLoggingRoutes);
 app.use("/auth", authRoutes);
 app.use("/news", newsRoutes);
-app.use("/finance", financesRoutes);
+app.use("/finances", financesRoutes);
+app.use("/economy", economyRoutes);
 
 // 404 + Fehlerhandler
 app.use((req, res) => res.status(404).json({ error: "Route nicht gefunden" }));

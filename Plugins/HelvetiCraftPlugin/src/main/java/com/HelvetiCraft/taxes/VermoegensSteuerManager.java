@@ -37,6 +37,9 @@ public class VermoegensSteuerManager {
                 for (UUID id : financeManager.getKnownPlayers()) {
                     if (id.equals(ClaimManager.GOVERNMENT_UUID)) continue;
 
+                    // Ensure player has a finance account (safety check)
+                    financeManager.ensureAccount(id);
+
                     OfflinePlayer p = Bukkit.getOfflinePlayer(id);
                     String playerName = (p != null && p.getName() != null) ? p.getName() : id.toString();
 

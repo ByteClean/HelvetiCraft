@@ -93,7 +93,7 @@
         <dependency>
             <groupId>com.github.TechFortress</groupId>
             <artifactId>GriefPrevention</artifactId>
-            <version>master-17.0.0-g885c0ee-54</version>
+            <version>17.0.0</version>
             <scope>provided</scope>
         </dependency>
 

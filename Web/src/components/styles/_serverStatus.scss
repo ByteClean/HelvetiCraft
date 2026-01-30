@@ -1,0 +1,109 @@
+.server-status-card {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 16px;
+  max-width: 900px; // maximale Breite für Desktop
+  width: 100%;      // volle Breite innerhalb des Containers
+  box-sizing: border-box;
+}
+
+.server-status-inner {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 15px;
+  width: 100%;
+}
+
+.server-icon {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0; // Bildgröße bleibt fix
+}
+
+.server-status-text {
+  flex: 1;        // nimmt den restlichen Platz ein
+  min-width: 0;   // wichtig, damit Text bei kleinen Screens umbrechen kann
+}
+
+.server-ip-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0;
+  flex-wrap: wrap; // Buttons und IP umbrechen bei sehr kleinen Screens
+}
+
+.server-info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap; // Online-Status + Spieleranzahl umbrechen bei kleinen Screens
+}
+
+.player-count {
+  margin-left: 6px;
+}
+
+.server-description {
+  display: flex;
+  flex-direction: column;
+  gap: 2px; // Abstand zwischen MOTD-Zeilen
+}
+
+.motd-line {
+  line-height: 1.3em;
+  white-space: normal; // Zeilen dürfen umbrechen
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* =========================
+   RESPONSIVE BREAKPOINTS
+========================= */
+@media (max-width: 768px) {
+  .server-status-card {
+    flex-direction: column;
+    padding: 12px;
+    max-width: 100%;
+  }
+
+  .server-status-inner {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .server-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 6px;
+  }
+
+  .server-info-row {
+    font-size: 14px;
+    gap: 6px;
+  }
+
+  .server-description {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .server-ip-row {
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .server-info-row {
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .server-description {
+    font-size: 12px;
+  }
+}

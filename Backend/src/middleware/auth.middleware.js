@@ -48,6 +48,18 @@ export async function verifyAuth(req, res, next) {
         return res.status(400).json({ error: "missing_x-uuid_header" });
       }
 
+      // Special case: Government account (all-zeros UUID)
+      if (uuid === "00000000-0000-0000-0000-000000000000") {
+        req.user = {
+          id: null,
+          username: "government",
+          discord_id: null,
+          isAdmin: true
+        };
+        req.source = "minecraft";
+        return next();
+      }
+
       const [rows] = await pool.query(
         "SELECT id, username, discord_id, isAdmin FROM authme WHERE uuid = ?",
         [uuid]

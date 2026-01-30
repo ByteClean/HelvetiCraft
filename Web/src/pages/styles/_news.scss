@@ -1,0 +1,99 @@
+// src/styles/pages/_news.scss
+
+@import '../../styles/_variables';
+@import '../../styles/_mixins';
+
+.news-page {
+  h2 {
+    margin-bottom: 0.5rem;
+  }
+
+  .desc {
+    color: #cccccc;
+    margin-bottom: 2rem;
+    font-size: 16px;
+  }
+
+  .info {
+    text-align: center;
+    opacity: 0.8;
+    margin-top: 2rem;
+  }
+
+  .error {
+    color: #ff6b6b;
+    font-weight: bold;
+    text-align: center;
+    margin-top: 2rem;
+  }
+}
+
+.news-list {
+  display: grid;
+  gap: 2.5rem;
+}
+
+.news-card {
+  --zoom: 10;
+  background: #8b8b8b;
+  border: calc(var(--block-size)/var(--zoom)) solid transparent;
+  border-image: url('/imgs/ui/panel.png') 43% fill;
+  border-image-slice: 43% fill;
+  box-shadow: 12px 12px 0 rgba(0,0,0,0.7);
+  image-rendering: pixelated;
+
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+
+  .news-head {
+    h3 {
+      margin: 0;
+      font-size: 20px;
+      color: #ffffff;
+      text-shadow: 2px 2px 0 #000;
+    }
+
+    .news-meta {
+      font-size: 13px;
+      opacity: 0.85;
+      text-shadow: 1px 1px 0 #000;
+    }
+  }
+
+.news-image {
+  margin: 1.2rem 0 1.8rem;
+  text-align: center;           // zentriert das Bild (wichtig bei schmalen Bildern)
+  line-height: 0;               // verhindert unsichtbaren Leerraum unter dem Bild
+
+  img {
+    display: inline-block;      // ← das lässt den Rahmen genau um das Bild sitzen
+    width: auto;                // ← natürliche Breite (nicht gestreckt)
+    max-width: 100%;            // ← verhindert, dass es aus der Card rausläuft
+    height: auto;
+    max-height: 520px;          // ← deine maximale Höhe – ändere nach Bedarf
+
+    object-fit: contain;        // Proportionen bleiben erhalten
+
+    border: 4px solid #000;     // ← RAHMEN JETZT DIREKT AM BILD → passt sich an!
+    box-shadow: 
+      8px 8px 0 #000,           // äußerer Schatten
+      inset 0 0 0 2px #222;     // optional: leichter innerer Rand für Tiefe
+
+    image-rendering: pixelated;
+    border-radius: 2px;         // optional – sieht bei Pixel-Art oft besser aus
+  }
+}
+
+  .news-content {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #ffffff;
+    text-shadow: 2px 2px 0 #000;
+
+    p {
+      margin-bottom: 0.8rem;
+    }
+  }
+}

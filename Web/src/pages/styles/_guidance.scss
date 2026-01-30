@@ -1,0 +1,278 @@
+.guidance {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* Haupttitel */
+.guidance-title {
+  font-size: 34px;
+  margin-bottom: 32px;
+  text-align: center;
+  text-shadow: 3px 3px 0 #000;
+}
+
+/* Launcher Buttons */
+.launcher-select .buttons {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  button {
+    padding: 8px 16px;
+    font-family: "Minecraft", sans-serif;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+    border: calc(var(--block-size) / var(--zoom)) solid transparent;
+    border-image: url("/imgs/ui/button-border.png") 10% 3% stretch;
+    border-image-slice: 10% 3%;
+    background: url("/imgs/ui/button-inside.png") center / cover no-repeat;
+    color: #fff;
+    text-shadow: 3px 3px 0 #000;
+    image-rendering: pixelated;
+
+    &.active {
+      background: url("/imgs/ui/button-inside.png");
+      border-image-source: url("/imgs/ui/button-border.png");
+      color: #fff;
+    }
+
+    &:hover {
+      background-image: url("/imgs/ui/button-inside-hover.png");
+      color: #ffff55;
+    }
+
+    &:active {
+      transform: translateY(3px);
+    }
+  }
+}
+
+/* Minecraft Panel Look für Anleitung */
+.minecraft-panel.guidance-box {
+  padding: 20px;
+  background: #8b8b8b;
+  border: calc(var(--block-size) / var(--zoom)) solid transparent;
+  border-image: url("/imgs/ui/panel.png") 43% fill;
+  border-image-slice: 43% fill;
+  image-rendering: pixelated;
+  box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.7);
+  margin-bottom: 24px;
+
+  img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 0.8em 0;
+    border: 2px solid #000;
+    box-shadow: 4px 4px 0 #000;
+    image-rendering: pixelated;
+  }
+
+  h3 {
+    font-size: 24px;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.4);
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    box-sizing: border-box;
+  }
+
+  p {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  a {
+    color: #55ffff;
+    text-decoration: underline;
+    font-weight: bold;
+    text-shadow: 2px 2px 0 #000;
+    transition: color 0.2s;
+
+    &:hover {
+      color: #ffff55;
+    }
+  }
+
+  ol,
+  ul {
+    margin: 1em 0 1em 60px; // mehr Platz links + vertikaler Abstand
+    padding-left: 0;
+    font-size: 15px;
+    line-height: 1.7;
+    counter-reset: li-counter;
+    list-style: none;
+
+    li {
+      position: relative;
+      margin-bottom: 1.4em; // Abstand zwischen den Schritten
+      padding-top: 4px; // etwas Luft oben für die Nummer
+      counter-increment: li-counter;
+
+      strong {
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+      }
+
+      pre {
+        background: #111;
+        color: #ecf74d;
+        padding: 12px 14px;
+        border-radius: 6px;
+        font-size: 14px;
+        line-height: 1.6;
+        margin: 0.8em 0;
+        box-shadow: inset 0 0 0 2px #000;
+        font-family: monospace; // wichtig!
+      }
+
+      &::before {
+        content: counter(li-counter) ".";
+        position: absolute;
+        left: -60px;
+        width: 50px;
+        text-align: right;
+        font-family: "Minecraft", sans-serif;
+        font-weight: bold;
+        font-size: 22px;
+        color: #ffffff;
+        text-shadow: 3px 3px 0 #000;
+        top: 4px; // oben am Text ausrichten
+        line-height: 1.2;
+        image-rendering: pixelated;
+      }
+
+      img {
+        display: block;
+        width: auto;
+        max-width: 100%;
+        height: auto;
+        margin: 0.8em 0 0.4em 0; // Abstand zum Text oben + unten
+        border: 2px solid #000;
+        box-shadow: 4px 4px 0 #000;
+        image-rendering: pixelated;
+      }
+
+      // Innere Listen etwas kleinerer Einzug
+      ul {
+        margin: 0.6em 0 0.6em 20px;
+      }
+    }
+  }
+
+  code {
+    background: #000;
+    color: #ecf74d;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+}
+
+.rules-panel {
+  padding: 24px 28px;
+  font-size: 15px;
+  line-height: 1.65;
+
+  h3 {
+    font-size: 28px;
+    margin-bottom: 24px;
+    color: #ecd92b;
+  }
+
+  h4 {
+    font-size: 22px;
+    margin: 36px 0 16px;
+    color: #f9e026;
+    border-bottom: 2px solid rgba(255, 255, 85, 0.25);
+    padding-bottom: 8px;
+  }
+
+  h5 {
+    font-size: 18px;
+    margin: 24px 0 12px;
+    color: #f7ea38;
+  }
+
+  ul,
+  ol {
+    margin: 1.2em 0 1.2em 50px;
+  }
+
+  ul ul,
+  ol ul {
+    margin: 0.6em 0 0.6em 24px;
+    list-style-type: disc;
+  }
+
+  strong {
+    color: #ffffaa;
+  }
+
+  p {
+    margin-bottom: 1.1em;
+  }
+}
+
+@media (max-width: 768px) {
+  .rules-panel {
+    padding: 18px 20px;
+
+    h3 {
+      font-size: 24px;
+    }
+    h4 {
+      font-size: 20px;
+      margin: 28px 0 14px;
+    }
+    h5 {
+      font-size: 17px;
+    }
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .guidance-title {
+    font-size: 28px;
+  }
+
+  .minecraft-panel.guidance-box {
+    padding: 16px;
+
+    h3 {
+      font-size: 21px;
+    }
+
+    p,
+    ol,
+    ul {
+      font-size: 14px;
+    }
+
+    ol,
+    ul {
+      margin: 1em 0 1em 44px;
+
+      li {
+        padding-top: 2px;
+        margin-bottom: 1.2em;
+
+        &::before {
+          left: -44px;
+          width: 36px;
+          font-size: 19px;
+          top: 2px;
+        }
+
+        img {
+          margin: 0.6em 0 0.3em 0;
+        }
+      }
+    }
+  }
+}

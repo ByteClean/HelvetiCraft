@@ -28,6 +28,7 @@ public class QuizRequests {
     private static final HttpClient CLIENT = HttpClient.newBuilder().build();
     private static String API_KEY = "";
     private static UUID PLAYER_UUID = null;
+    static UUID govUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     /**
      * Initialize QuizRequests using config file and parameters.
@@ -64,12 +65,12 @@ public class QuizRequests {
                     .header("Accept", "application/json")
                     .header("x-auth-from", "minecraft")
                     .header("x-auth-key", API_KEY)
-                    .header("x-uuid", PLAYER_UUID != null ? PLAYER_UUID.toString() : "")
+                    .header("x-uuid", govUUID.toString())
                     .build();
 
                 HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
                 if (res.statusCode() < 200 || res.statusCode() >= 300) {
-                    throw new RuntimeException("Failed : HTTP error code : " + res.statusCode());
+                    throw new RuntimeException("Failed : HTTP error code : " + res.statusCode() + res.body());
                 }
                 QuizJson parsed = GSON.fromJson(res.body(), QuizJson.class);
 
@@ -114,7 +115,7 @@ public class QuizRequests {
                 .header("Content-Type", "application/json")
                 .header("x-auth-from", "minecraft")
                 .header("x-auth-key", API_KEY)
-                .header("x-uuid", PLAYER_UUID != null ? PLAYER_UUID.toString() : "")
+                .header("x-uuid", govUUID.toString())
                 .build();
 
             HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());

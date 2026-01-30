@@ -28,17 +28,26 @@
 }
 
 .hero-title {
-  font-size: 56px;
+  // 1. Wir senken die 8vw leicht auf 7vw, damit es auf Laptops früher schrumpft
+  // 2. Wir senken die Min-Size auf 24px für kleine Handys
+  font-size: clamp(24px, 7vw, 56px); 
+  
   margin: 0 0 0.4rem 0;
-  text-shadow: 5px 5px 0 #000;
+  text-shadow: 4px 4px 0 #000;
   color: #ffffff;
-  line-height: 1;
+  line-height: 1.1;
+
+  // WICHTIG: Das hier verhindert das "Abcutten" (Abschneiden)
+  white-space: nowrap; // Zwingt das Wort in eine Zeile
+  word-wrap: normal;   // Deaktiviert den Umbruch mitten im Wort
+  overflow-wrap: normal; 
 }
+
 
 .hero-subtitle {
   font-size: 30px;
   margin: 0 0 1.8rem 0;
-  color: #aaffaa;
+  color: #f7ea38;
   text-shadow: 4px 4px 0 #000;
 }
 
@@ -99,7 +108,7 @@
 .copy-btn-small {
   background: none;
   border: none;
-  color: #55ff55;
+  color: #f7ea38;
   font-weight: bold;
   cursor: pointer;
   font-size: 13px;
@@ -108,13 +117,13 @@
 }
 
 .status-online {
-  color: #55ff55;
+  color: #07ba07;
   font-weight: bold;
   text-shadow: 0 0 8px #55ff55;
 }
 
 .ping {
-  color: #55ff55;
+  color: #f7ea38;
 }
 
 /* RIGHT SIDE PANEL / IMAGE FRAME */
@@ -159,6 +168,11 @@
   display: block;
 }
 
+.copy-ip-button {
+  min-width: 260px;           // 240–280 px – teste was bei dir perfekt passt
+  text-align: center;
+}
+
 /* LARGE SCREENS */
 @media (min-width: 1400px) {
   .world-preview {
@@ -179,3 +193,4 @@
     padding: 16px;
   }
 }
+
