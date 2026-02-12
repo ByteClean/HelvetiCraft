@@ -31,7 +31,11 @@ public class InitiativeRequests {
         if (apiKey != null) API_KEY = apiKey;
     }
 
+    // Global phase schedule cache and fetch control
     private static PhaseSchedule cachedSchedule = null;
+    private static long lastScheduleFetch = 0L;
+    private static final long MIN_FETCH_INTERVAL_MS = 5000; // 5 seconds between fetches
+    private static final Object scheduleLock = new Object();
 
     private static final Map<UUID, Set<String>> playerVotesPhase1 = new ConcurrentHashMap<>();
     private static final Map<UUID, Map<String, Boolean>> playerVotesPhase2 = new ConcurrentHashMap<>();
@@ -194,26 +198,25 @@ public class InitiativeRequests {
     // --- Phase Management (status endpoint) ---
 
     public static int getCurrentPhase(UUID playerId) {
-
-        // Load from cache or file
-        // Caching logic: Only fetch from backend if not cached or expired, otherwise use cached schedule.
-        if (cachedSchedule == null) {
-            cachedSchedule = PhaseFileManager.loadPhaseSchedule();
+        synchronized (scheduleLock) {
+            // Try to load from file if not loaded yet
             if (cachedSchedule == null) {
-                cachedSchedule = fetchPhaseScheduleFromBackend(playerId);
-                if (cachedSchedule != null) PhaseFileManager.savePhaseSchedule(cachedSchedule);
+                cachedSchedule = PhaseFileManager.loadPhaseSchedule();
             }
+            boolean needsFetch = (cachedSchedule == null || cachedSchedule.isExpired());
+            long now = System.currentTimeMillis();
+            if (needsFetch && (now - lastScheduleFetch > MIN_FETCH_INTERVAL_MS)) {
+                System.out.println("[HelvetiCraft] Phase expired → fetching new schedule.");
+                PhaseSchedule newSchedule = fetchPhaseScheduleFromBackend(playerId);
+                if (newSchedule != null) {
+                    cachedSchedule = newSchedule;
+                    PhaseFileManager.savePhaseSchedule(cachedSchedule);
+                }
+                lastScheduleFetch = now;
+            }
+            // Always return fresh computed phase
+            return cachedSchedule != null ? cachedSchedule.getCurrentPhase() : 0;
         }
-
-        // If the phase has reached "abschluss", refresh from backend
-        if (cachedSchedule == null || cachedSchedule.isExpired()) {
-            System.out.println("[HelvetiCraft] Phase expired → fetching new schedule.");
-            cachedSchedule = fetchPhaseScheduleFromBackend(playerId);
-            if (cachedSchedule != null) PhaseFileManager.savePhaseSchedule(cachedSchedule);
-        }
-
-        // Always return fresh computed phase
-        return cachedSchedule != null ? cachedSchedule.getCurrentPhase() : 0;
     }
 
     /**
@@ -576,9 +579,13 @@ public class InitiativeRequests {
      * Forces a refresh of the phase schedule from the backend for the given player.
      */
     public static void refreshPhaseSchedule(UUID playerId) {
-        cachedSchedule = fetchPhaseScheduleFromBackend(playerId);
-        if (cachedSchedule != null) {
-            PhaseFileManager.savePhaseSchedule(cachedSchedule);
+        synchronized (scheduleLock) {
+            PhaseSchedule newSchedule = fetchPhaseScheduleFromBackend(playerId);
+            if (newSchedule != null) {
+                cachedSchedule = newSchedule;
+                PhaseFileManager.savePhaseSchedule(cachedSchedule);
+                lastScheduleFetch = System.currentTimeMillis();
+            }
         }
     }
 }
