@@ -107,23 +107,39 @@ export default function Status() {
 
                   <div className="prices-list">
                     <div className="prices-header">
+                      <span className="item-image" style={{ width: 32 }}></span>
                       <span className="item-name">Item</span>
                       <span className="price">Einzelpreis</span>
                       <span className="price">Stack (64)</span>
                     </div>
 
                     <div className="prices-scroll">
-                      {filteredPrices.map((item) => (
-                        <div key={item.item_type} className="price-item">
-                          <span className="item-name">
-                            {item.item_type.replace(/_/g, " ")}
-                          </span>
-                          <span className="price">{item.recommended_price}</span>
-                          <span className="price">
-                            {item.recommended_price * 64}
-                          </span>
-                        </div>
-                      ))}
+                      {filteredPrices.map((item) => {
+                        // Use normal arrow image for all arrow types
+                        const isArrow = /_arrow$/.test(item.item_type);
+                        const imageName = isArrow ? 'arrow' : item.item_type;
+                        const imageUrl = `https://minecraft-economy-price-guide.net/.netlify/images?url=/images/items/${imageName}.png&w=64&fm=webp&q=90`;
+                        return (
+                          <div key={item.item_type} className="price-item">
+                            <span className="item-image" style={{ width: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <img
+                                src={imageUrl}
+                                alt={item.item_type.replace(/_/g, ' ')}
+                                style={{ width: 28, height: 28, objectFit: 'contain', marginRight: 8 }}
+                                loading="lazy"
+                                onError={e => { e.target.style.display = 'none'; }}
+                              />
+                            </span>
+                            <span className="item-name">
+                              {item.item_type.replace(/_/g, " ")}
+                            </span>
+                            <span className="price">{item.recommended_price}</span>
+                            <span className="price">
+                              {item.recommended_price * 64}
+                            </span>
+                          </div>
+                        );
+                      })}
 
                       {filteredPrices.length === 0 && (
                         <div
