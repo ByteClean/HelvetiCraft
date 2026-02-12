@@ -2,6 +2,7 @@
 @import '../../styles/_mixins';
 
 .status-page {
+
   h2 {
     margin-bottom: 0.5rem;
   }
@@ -24,26 +25,48 @@
     }
   }
 
-  /* SERVER STATUS PANEL */
+  /* ============================= */
+  /* SERVER STATUS PANEL           */
+  /* ============================= */
+
   .status-panel {
     max-width: 520px;
   }
 
-  /* MAP PANEL */
-  .map-panel {
-    padding: 0;
-    overflow: hidden;
+  /* ============================= */
+  /* MAP PANEL (RESPONSIVE FRAME)  */
+  /* ============================= */
 
-    iframe {
-      width: 100%;
-      height: 70vh;
-      min-height: 480px;
-      border: none;
-      display: block;
-    }
-  }
+.map-panel {
+  position: relative;
 
-  /* ECONOMY DROPDOWN PANEL */
+  width: min(80vw, 900px);   // kleiner als vorher (war 95vw / 1200px)
+  aspect-ratio: 1 / 1;       // quadratisch
+  margin: 0 auto;
+
+  background-image: url("/imgs/ui/map.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  image-rendering: pixelated;
+}
+
+.map-panel iframe {
+  position: absolute;
+
+  top: 9.375%;
+  left: 9.375%;
+  width: 81.25%;
+  height: 81.25%;
+
+  border: none;
+}
+
+
+  /* ============================= */
+  /* ECONOMY DROPDOWN PANEL        */
+  /* ============================= */
+
   .economy-dropdown {
     margin-top: 2rem;
     width: 100%;
@@ -173,15 +196,19 @@
   }
 }
 
-/* MOBILE */
+/* ============================= */
+/* MOBILE                        */
+/* ============================= */
+
 @media (max-width: 768px) {
   .status-page {
-    .map-panel iframe {
-      height: 60vh;
-      min-height: 360px;
+    .map-panel {
+      width: 95vw;  // passt auf kleinere Bildschirme
     }
 
+    /* iframe skaliert automatisch mit Prozentwerten */
     .economy-dropdown {
+
       .dropdown-toggle {
         font-size: 15px;
         padding: 10px 14px;
