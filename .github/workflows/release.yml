@@ -16,9 +16,10 @@ jobs:
       with:
         fetch-depth: 0
     - name: Get next version
-      uses: thenativeweb/get-next-version@2.0.0
+      id: get-next-version
+      uses: thenativeweb/get-next-version@3.0.0
     - name: Create new release
-      if: ${{ steps.get-next-version.outputs.version == 'true' }}
+      if: ${{ steps.get-next-version.outputs.version != 'false' }}
       run: |
         NEXT_VERSION=${{ steps.get-next-version.outputs.version }}
         git tag $NEXT_VERSION
