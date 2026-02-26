@@ -26,7 +26,7 @@ export default function About() {
           <h3>Spyros</h3>
           <p className="role">Discord & Plugin-Entwicklung</p>
           <p className="info">
-            18 Jahre alt. Zuständig für Discord-Integration und Plugin-Entwicklung.
+            19 Jahre alt. Zuständig für Discord-Integration und Plugin-Entwicklung.
             Unterstützt zudem bei der technischen Logik des Systems.
           </p>
         </article>
