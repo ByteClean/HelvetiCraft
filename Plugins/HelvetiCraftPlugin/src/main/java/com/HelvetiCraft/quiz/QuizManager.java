@@ -3,6 +3,7 @@ package com.HelvetiCraft.quiz;
 import com.HelvetiCraft.Main;
 import com.HelvetiCraft.requests.QuizRequests;
 import com.HelvetiCraft.util.SafeScheduler;
+import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -15,6 +16,7 @@ public class QuizManager {
 
     private final Main plugin;
     private final Permission perms;
+    private final Economy economy;
 
     private QuizQuestion currentQuestion;
     private boolean hasWinner = false;
@@ -39,6 +41,15 @@ public class QuizManager {
 
         if (perms == null) {
             Bukkit.getLogger().severe("[Quiz] ERROR: Vault Permission provider missing!");
+        }
+
+        RegisteredServiceProvider<Economy> economyProvider =
+                Bukkit.getServicesManager().getRegistration(Economy.class);
+
+        this.economy = economyProvider != null ? economyProvider.getProvider() : null;
+
+        if (economy == null) {
+            Bukkit.getLogger().severe("[Quiz] ERROR: Vault Economy provider missing!");
         }
     }
 
@@ -76,6 +87,16 @@ public class QuizManager {
 
                 Bukkit.broadcastMessage(ChatColor.GREEN
                         + "[Quiz] Richtige Antwort von " + player.getName() + "!");
+
+                // Award 200 CHF
+                if (economy != null) {
+                    economy.depositPlayer(player, 200.0);
+                    player.sendMessage(ChatColor.YELLOW + "Du hast " + ChatColor.GOLD + "200 CHF" 
+                            + ChatColor.YELLOW + " gewonnen!");
+                    Bukkit.getLogger().info("[Quiz] Awarded 200 CHF to " + player.getName());
+                } else {
+                    Bukkit.getLogger().warning("[Quiz] Economy not available, could not award 200 CHF");
+                }
 
                 // Logging
                 Bukkit.getLogger().info("[Quiz] Player '" + player.getName() + "' answered correctly.");
