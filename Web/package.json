@@ -11,7 +11,6 @@
     "test:ui": "vitest --ui",
     "lint:scss": "stylelint \"**/*.scss\"",
     "lint:scss:fix": "stylelint \"**/*.scss\" --fix"
-    
   },
   "dependencies": {
     "@vitejs/plugin-rsc": "^0.5.5",
