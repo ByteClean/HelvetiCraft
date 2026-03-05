@@ -2,13 +2,12 @@
 @import '../../styles/_mixins';
 
 .status-page {
-
   h2 {
     margin-bottom: 0.5rem;
   }
 
   .desc {
-    color: #cccccc;
+    color: #ccc;
     margin-bottom: 2.5rem;
     font-size: 16px;
     max-width: 800px;
@@ -20,13 +19,15 @@
     h3 {
       font-size: 22px;
       margin-bottom: 1rem;
-      color: #ffffff;
+      color: #fff;
       text-shadow: 3px 3px 0 #000;
     }
   }
 
   /* ============================= */
+
   /* SERVER STATUS PANEL           */
+
   /* ============================= */
 
   .status-panel {
@@ -34,16 +35,16 @@
   }
 
   /* ============================= */
+
   /* MAP PANEL (RESPONSIVE FRAME)  */
+
   /* ============================= */
 
 .map-panel {
   position: relative;
-
   width: min(80vw, 900px);   // kleiner als vorher (war 95vw / 1200px)
   aspect-ratio: 1 / 1;       // quadratisch
   margin: 0 auto;
-
   background-image: url("/imgs/ui/map.png");
   background-repeat: no-repeat;
   background-position: center;
@@ -53,18 +54,18 @@
 
 .map-panel iframe {
   position: absolute;
-
   top: 9.375%;
   left: 9.375%;
   width: 81.25%;
   height: 81.25%;
-
   border: none;
 }
 
 
   /* ============================= */
+
   /* ECONOMY DROPDOWN PANEL        */
+
   /* ============================= */
 
   .economy-dropdown {
@@ -77,7 +78,7 @@
       font-size: 16px;
       font-weight: bold;
       background: url("/imgs/ui/button-inside.png") center / cover no-repeat;
-      color: #ffff55;
+      color: #ff5;
       border: calc(var(--block-size)/var(--zoom)) solid transparent;
       border-image: url("/imgs/ui/button-border.png") 10% 3% stretch;
       text-align: left;
@@ -104,7 +105,7 @@
       border: calc(var(--block-size)/var(--zoom)) solid transparent;
       border-image: url("/imgs/ui/panel.png") 43% fill;
       border-image-slice: 43% fill;
-      box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.7);
+      box-shadow: 10px 10px 0 rgb(0 0 0 / 70%);
       image-rendering: pixelated;
       border-radius: 4px;
       max-height: 500px;
@@ -121,22 +122,22 @@
           border: 2px solid #000;
           border-radius: 4px;
           background: #6b6b6b;
-          color: #ffffff;
+          color: #fff;
           text-shadow: 1px 1px 0 #000;
 
           &:focus {
             outline: none;
-            border-color: #ffff55;
+            border-color: #ff5;
           }
 
           &::placeholder {
-            color: #cccccc;
+            color: #ccc;
           }
         }
       }
 
       .error-message {
-        color: #ff6666;
+        color: #f66;
         font-weight: bold;
         text-align: center;
       }
@@ -151,7 +152,7 @@
           padding: 12px 16px;
           background: #6b6b6b;
           font-weight: bold;
-          color: #ffffaa;
+          color: #ffa;
           border-bottom: 2px solid #000;
 
           .item-name {
@@ -175,18 +176,18 @@
           display: flex;
           justify-content: space-between;
           padding: 10px 16px;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+          border-bottom: 1px solid rgb(0 0 0 / 20%);
 
           .item-name {
             flex: 1 1 50%;
-            color: #ffffff;
+            color: #fff;
             text-transform: capitalize;
             word-break: break-word;
           }
 
           .price {
             flex: 0 0 25%;
-            color: #ffff55;
+            color: #ff5;
             font-weight: bold;
             text-align: right;
           }
@@ -197,10 +198,12 @@
 }
 
 /* ============================= */
+
 /* MOBILE                        */
+
 /* ============================= */
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .status-page {
     .map-panel {
       width: 95vw;  // passt auf kleinere Bildschirme
@@ -208,7 +211,6 @@
 
     /* iframe skaliert automatisch mit Prozentwerten */
     .economy-dropdown {
-
       .dropdown-toggle {
         font-size: 15px;
         padding: 10px 14px;

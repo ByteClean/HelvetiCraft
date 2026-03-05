@@ -31,7 +31,7 @@ body {
   background: url("/imgs/blocks/stone.png") repeat fixed;
   background-size: 64px 64px;
   color: white;
-  font-family: "Minecraft", "Press Start 2P", sans-serif;
+  font-family: Minecraft, "Press Start 2P", sans-serif;
   image-rendering: pixelated;
   text-shadow: 3px 3px 0 #000;
 }
@@ -65,21 +65,16 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
   min-height: 48px;
   padding: 12px 24px;
-
   font-size: 16px;
   font-weight: bold;
   color: #e0e0e0;
-
   text-shadow: 3px 3px 0 #000;
   background: url("/imgs/ui/button-inside.png") center / cover no-repeat;
-
   border: calc(var(--block-size) / var(--zoom)) solid transparent;
   border-image: url("/imgs/ui/button-border.png") 10% 3% stretch;
   border-image-slice: 10% 3%;
-
   image-rendering: pixelated;
   cursor: pointer;
   white-space: nowrap;
@@ -91,7 +86,7 @@ body {
   }
 
   &:active {
-    color: #bbbbbb;
+    color: #bbb;
     background-image: url("/imgs/ui/button-inside-active.png");
     border-image-source: url("/imgs/ui/button-border-active.png");
     transform: translateY(3px);
@@ -113,19 +108,17 @@ body {
 
   padding: 20px;
   background: #8b8b8b;
-
   border: calc(var(--block-size) / var(--zoom)) solid transparent;
   border-image: url("/imgs/ui/panel.png") 43% fill;
   border-image-slice: 43% fill;
-
   image-rendering: pixelated;
-  box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.7);
+  box-shadow: 10px 10px 0 rgb(0 0 0 / 70%);
 }
 
 /* ======================================
    RESPONSIVE
 ====================================== */
-@media (max-width: 1024px) {
+@media (width <= 1024px) {
   .main-content {
     padding: 2rem 1rem;
   }
@@ -136,7 +129,7 @@ body {
   }
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .main-content {
     padding: 1.5rem 0.8rem;
   }
@@ -148,7 +141,7 @@ body {
   }
 }
 
-@media (max-width: 480px) {
+@media (width <= 480px) {
   body {
     font-size: 14px;
   }

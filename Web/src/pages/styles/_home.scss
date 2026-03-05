@@ -31,22 +31,20 @@
   // 1. Wir senken die 8vw leicht auf 7vw, damit es auf Laptops früher schrumpft
   // 2. Wir senken die Min-Size auf 24px für kleine Handys
   font-size: clamp(24px, 7vw, 56px); 
-  
-  margin: 0 0 0.4rem 0;
+  margin: 0 0 0.4rem;
   text-shadow: 4px 4px 0 #000;
-  color: #ffffff;
+  color: #fff;
   line-height: 1.1;
 
   // WICHTIG: Das hier verhindert das "Abcutten" (Abschneiden)
-  white-space: nowrap; // Zwingt das Wort in eine Zeile
-  word-wrap: normal;   // Deaktiviert den Umbruch mitten im Wort
+  white-space: nowrap; // Zwingt das Wort in eine Zeile   // Deaktiviert den Umbruch mitten im Wort
   overflow-wrap: normal; 
 }
 
 
 .hero-subtitle {
   font-size: 30px;
-  margin: 0 0 1.8rem 0;
+  margin: 0 0 1.8rem;
   color: #f7ea38;
   text-shadow: 4px 4px 0 #000;
 }
@@ -83,7 +81,7 @@
   height: 64px;
   image-rendering: pixelated;
   border: 3px solid #000;
-  box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
+  box-shadow: 4px 4px 0 rgb(0 0 0 / 50%);
 }
 
 .server-name {
@@ -102,7 +100,7 @@
 .server-ip {
   font-size: 17px;
   color: #ddd;
-  font-family: 'Minecraft', sans-serif;
+  font-family: Minecraft, sans-serif;
 }
 
 .copy-btn-small {
@@ -119,7 +117,7 @@
 .status-online {
   color: #07ba07;
   font-weight: bold;
-  text-shadow: 0 0 8px #55ff55;
+  text-shadow: 0 0 8px #5f5;
 }
 
 .ping {
@@ -137,24 +135,19 @@
 
 .world-preview {
   --zoom: 10;
+
   background: #8b8b8b;
   border: calc(var(--block-size)/var(--zoom)) solid transparent;
   border-image: url('/imgs/ui/panel.png') 43% fill;
   border-image-slice: 43% fill;
   image-rendering: pixelated;
-  box-shadow: 10px 10px 0 rgba(0,0,0,0.7);
-
-  padding-top: 0px;
-  padding-bottom: 25px;
-  padding-left: 20px;
-  padding-right: 20px;
-
+  box-shadow: 10px 10px 0 rgb(0 0 0 / 70%);
+  padding: 0 20px 25px;
   width: auto;
   height: auto;
   max-width: 900px;
   max-height: 900px;
   margin: 0 auto;
-
   display: flex;
   justify-content: center;
   align-items: center;
@@ -174,17 +167,17 @@
 }
 
 /* LARGE SCREENS */
-@media (min-width: 1400px) {
+@media (width >= 1400px) {
   .world-preview {
     max-width: 1100px;
     max-height: 1100px;
     padding: 28px;
-    box-shadow: 14px 14px 0 rgba(0,0,0,0.8);
+    box-shadow: 14px 14px 0 rgb(0 0 0 / 80%);
   }
 }
 
 /* MOBILE */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .world-preview {
     width: 88vmin;
     height: 88vmin;

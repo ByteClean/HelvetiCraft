@@ -64,7 +64,7 @@
 /* =========================
    RESPONSIVE BREAKPOINTS
 ========================= */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .server-status-card {
     flex-direction: column;
     padding: 12px;
@@ -92,7 +92,7 @@
   }
 }
 
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .server-ip-row {
     gap: 6px;
     font-size: 12px;

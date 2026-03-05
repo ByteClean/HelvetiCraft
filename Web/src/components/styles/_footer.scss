@@ -11,13 +11,11 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 1rem;
-
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 1.5rem;
-
   font-size: 13px;
 }
 
@@ -33,7 +31,7 @@
   .footer-link-btn {
     background: none;
     border: none;
-    color: #ffffff;
+    color: #fff;
     font-size: 13px;
     cursor: pointer;
     padding: 0;
@@ -42,7 +40,7 @@
 
     &:hover,
     &:focus {
-      color: #aaffaa;
+      color: #afa;
       text-decoration: underline;
       outline: none;
     }
@@ -51,11 +49,11 @@
 
 .site-footer a,
 .site-footer a:visited {
-  color: #ffffff;
+  color: #fff;
   text-decoration: none;
 
   &:hover {
-    color: #aaffaa;
+    color: #afa;
     text-decoration: underline;
   }
 }
@@ -67,13 +65,12 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgb(0 0 0 / 75%);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px); // für Safari
+  backdrop-filter: blur(4px); // für Safari
 }
 
 .modal-content {
@@ -81,7 +78,7 @@
   border: 3px solid #444;
   border-image: url('/imgs/ui/panel.png') 10 stretch;
   border-image-slice: 10;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 80%);
   max-width: 90%;
   width: 620px;
   max-height: 85vh;
@@ -94,7 +91,7 @@
   line-height: 1.65;
 
   h2 {
-    margin: 0 0 1.6rem 0;
+    margin: 0 0 1.6rem;
     color: #f7ea38;
     text-shadow: 2px 2px 0 #000;
     font-size: 24px;
@@ -114,11 +111,11 @@
   }
 
   a {
-    color: #55ffff;
+    color: #5ff;
     text-decoration: underline;
 
     &:hover {
-      color: #ffff55;
+      color: #ff5;
     }
   }
 
@@ -137,7 +134,7 @@
   right: 18px;
   background: none;
   border: none;
-  color: #ffffff;
+  color: #fff;
   font-size: 32px;
   font-weight: bold;
   cursor: pointer;
@@ -147,13 +144,13 @@
 
   &:hover,
   &:focus {
-    color: #ff5555;
+    color: #f55;
     transform: scale(1.1);
   }
 }
 
 /* Responsive Anpassungen */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .footer-inner {
     flex-direction: column;
     text-align: center;
@@ -162,7 +159,7 @@
 
   .modal-content {
     width: 92%;
-    padding: 1.8rem 1.4rem 1.8rem;
+    padding: 1.8rem 1.4rem;
   }
 
   .modal-close-btn {
@@ -172,7 +169,7 @@
   }
 }
 
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .modal-content {
     padding: 1.5rem 1.2rem;
   }

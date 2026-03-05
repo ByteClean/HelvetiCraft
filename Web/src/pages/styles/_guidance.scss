@@ -19,7 +19,7 @@
 
   button {
     padding: 8px 16px;
-    font-family: "Minecraft", sans-serif;
+    font-family: Minecraft, sans-serif;
     font-weight: bold;
     font-size: 15px;
     cursor: pointer;
@@ -39,7 +39,7 @@
 
     &:hover {
       background-image: url("/imgs/ui/button-inside-hover.png");
-      color: #ffff55;
+      color: #ff5;
     }
 
     &:active {
@@ -56,7 +56,7 @@
   border-image: url("/imgs/ui/panel.png") 43% fill;
   border-image-slice: 43% fill;
   image-rendering: pixelated;
-  box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.7);
+  box-shadow: 10px 10px 0 rgb(0 0 0 / 70%);
   margin-bottom: 24px;
 
   img {
@@ -73,9 +73,9 @@
     font-size: 24px;
     margin-bottom: 12px;
     padding-bottom: 6px;
-    border-bottom: 2px solid rgba(0, 0, 0, 0.4);
+    border-bottom: 2px solid rgb(0 0 0 / 40%);
     max-width: 100%;
-    word-wrap: break-word;
+    overflow-wrap: break-word;
     overflow-wrap: anywhere;
     white-space: normal;
     box-sizing: border-box;
@@ -87,14 +87,14 @@
   }
 
   a {
-    color: #55ffff;
+    color: #5ff;
     text-decoration: underline;
     font-weight: bold;
     text-shadow: 2px 2px 0 #000;
     transition: color 0.2s;
 
     &:hover {
-      color: #ffff55;
+      color: #ff5;
     }
   }
 
@@ -114,7 +114,7 @@
       counter-increment: li-counter;
 
       strong {
-        word-wrap: break-word;
+        overflow-wrap: break-word;
         overflow-wrap: anywhere;
       }
 
@@ -136,10 +136,10 @@
         left: -60px;
         width: 50px;
         text-align: right;
-        font-family: "Minecraft", sans-serif;
+        font-family: Minecraft, sans-serif;
         font-weight: bold;
         font-size: 22px;
-        color: #ffffff;
+        color: #fff;
         text-shadow: 3px 3px 0 #000;
         top: 4px; // oben am Text ausrichten
         line-height: 1.2;
@@ -151,7 +151,7 @@
         width: auto;
         max-width: 100%;
         height: auto;
-        margin: 0.8em 0 0.4em 0; // Abstand zum Text oben + unten
+        margin: 0.8em 0 0.4em; // Abstand zum Text oben + unten
         border: 2px solid #000;
         box-shadow: 4px 4px 0 #000;
         image-rendering: pixelated;
@@ -188,7 +188,7 @@
     font-size: 22px;
     margin: 36px 0 16px;
     color: #f9e026;
-    border-bottom: 2px solid rgba(255, 255, 85, 0.25);
+    border-bottom: 2px solid rgb(255 255 85 / 25%);
     padding-bottom: 8px;
   }
 
@@ -210,7 +210,7 @@
   }
 
   strong {
-    color: #ffffaa;
+    color: #ffa;
   }
 
   p {
@@ -218,17 +218,19 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .rules-panel {
     padding: 18px 20px;
 
     h3 {
       font-size: 24px;
     }
+
     h4 {
       font-size: 20px;
       margin: 28px 0 14px;
     }
+
     h5 {
       font-size: 17px;
     }
@@ -236,7 +238,7 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .guidance-title {
     font-size: 28px;
   }
@@ -270,7 +272,7 @@
         }
 
         img {
-          margin: 0.6em 0 0.3em 0;
+          margin: 0.6em 0 0.3em;
         }
       }
     }
