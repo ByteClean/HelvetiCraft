@@ -23,8 +23,11 @@ if (!PUBLIC_X_AUTH_KEY) {
   throw new Error("PUBLIC_X_AUTH_KEY missing");
 }
 
-// Nur lesen
+// Allow the website to POST to /auth/login (login must be proxied to backend)
 app.use((req, res, next) => {
+  // allow POST /auth/login through the public proxy
+  if (req.method === "POST" && req.path === "/auth/login") return next();
+
   if (req.method !== "GET" && req.method !== "HEAD") {
     return res.status(405).json({ message: "method_not_allowed" });
   }
