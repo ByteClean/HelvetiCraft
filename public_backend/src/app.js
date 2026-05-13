@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { createProxyMiddleware } from "http-proxy-middleware";
+import publicRoutes from "./routes/public.routes.js";
 
 dotenv.config();
 
@@ -23,8 +24,12 @@ if (!PUBLIC_X_AUTH_KEY) {
   throw new Error("PUBLIC_X_AUTH_KEY missing");
 }
 
-// Nur lesen
+// Mount the public read routes and allow the login POST
+app.use(publicRoutes);
+
+// Nur lesen (erlaube POST /auth/login)
 app.use((req, res, next) => {
+  if (req.method === "POST" && req.path === "/auth/login") return next();
   if (req.method !== "GET" && req.method !== "HEAD") {
     return res.status(405).json({ message: "method_not_allowed" });
   }
