@@ -4,14 +4,16 @@ import PixelButton from './PixelButton'
 import { useNavigate } from 'react-router-dom'
 
 export default function Header() {
-  const navigate = useNavigate();
-  const username = typeof window !== 'undefined' ? localStorage.getItem('hc_username') : null;
+  const navigate = useNavigate()
+  const username = typeof window !== 'undefined' ? localStorage.getItem('hc_username') : null
 
-  function handleLogout() {
-    localStorage.removeItem('hc_token');
-    localStorage.removeItem('hc_username');
-    navigate('/');
-    window.location.reload();
+  function handleLogout(){
+    try{
+      localStorage.removeItem('hc_token')
+      localStorage.removeItem('hc_username')
+    }catch(e){}
+    navigate('/')
+    window.location.reload()
   }
 
   return (

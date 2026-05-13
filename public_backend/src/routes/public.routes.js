@@ -1,35 +1,7 @@
 import { Router } from "express";
 import pool from "../services/mysql.service.js";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 
 const r = Router();
-
-// Public login endpoint (website -> public_backend -> DB)
-// Returns { token, username }
-r.post("/auth/login", async (req, res, next) => {
-  const { username, password } = req.body || {};
-  if (!username || !password) return res.status(400).json({ error: "missing_credentials" });
-
-  try {
-    const [rows] = await pool.query(
-      "SELECT id, password FROM authme WHERE username = ?",
-      [username]
-    );
-
-    if (rows.length === 0) return res.status(401).json({ error: "user_not_found" });
-
-    const user = rows[0];
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) return res.status(401).json({ error: "invalid_password" });
-
-    const token = jwt.sign({ sub: user.id, username }, process.env.JWT_SECRET, { expiresIn: "12h" });
-
-    res.json({ token, username });
-  } catch (err) {
-    next(err);
-  }
-});
 
 // health
 r.get("/health", (req, res) => res.json({ ok: true }));
