@@ -2,8 +2,52 @@ import { Router } from "express";
 import pool from "../services/mysql.service.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { createHash } from "crypto";
 
 const r = Router();
+
+function normalizeAuthmeHash(hash) {
+  if (typeof hash !== "string") return "";
+  // Some AuthMe setups store bcrypt as $2y$; bcryptjs expects $2a$/$2b$.
+  if (hash.startsWith("$2y$")) return `$2b$${hash.slice(4)}`;
+  return hash;
+}
+
+function sha256Hex(value) {
+  return createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+async function verifyAuthmePassword(plainPassword, storedPasswordHash) {
+  const normalized = normalizeAuthmeHash(storedPasswordHash || "");
+
+  // bcrypt variants
+  if (normalized.startsWith("$2a$") || normalized.startsWith("$2b$") || normalized.startsWith("$2y$")) {
+    return bcrypt.compare(plainPassword, normalizeAuthmeHash(normalized));
+  }
+
+  // AuthMe SHA format: $SHA$<salt>$<hash>
+  if (normalized.startsWith("$SHA$")) {
+    const parts = normalized.split("$");
+    // ["", "SHA", "<salt>", "<hash>"]
+    if (parts.length >= 4) {
+      const salt = parts[2] || "";
+      const expected = (parts[3] || "").toLowerCase();
+      const passHash = sha256Hex(plainPassword);
+
+      const candidates = [
+        sha256Hex(passHash + salt),
+        sha256Hex(salt + passHash),
+        sha256Hex(plainPassword + salt),
+        sha256Hex(salt + plainPassword),
+      ];
+
+      return candidates.some((candidate) => candidate.toLowerCase() === expected);
+    }
+  }
+
+  // Unknown format => no match, but don't throw.
+  return false;
+}
 
 // health
 r.get("/health", (req, res) => res.json({ ok: true }));
@@ -18,7 +62,7 @@ r.post("/auth/login", async (req, res, next) => {
 
   try {
     const [rows] = await pool.query(
-      "SELECT id, password FROM authme WHERE username = ?",
+      "SELECT id, username, password FROM authme WHERE LOWER(username) = LOWER(?) LIMIT 1",
       [username]
     );
 
@@ -27,7 +71,15 @@ r.post("/auth/login", async (req, res, next) => {
     }
 
     const user = rows[0];
-    const valid = await bcrypt.compare(password, user.password);
+    let valid = false;
+
+    try {
+      valid = await verifyAuthmePassword(password, user.password);
+    } catch (hashErr) {
+      // Unsupported hash format should not crash the endpoint.
+      console.error("Login hash verification failed:", hashErr?.message || hashErr);
+      return res.status(401).json({ error: "invalid_password" });
+    }
     
     if (!valid) {
       return res.status(401).json({ error: "invalid_password" });
@@ -39,15 +91,15 @@ r.post("/auth/login", async (req, res, next) => {
     }
 
     const token = jwt.sign(
-      { sub: user.id, username },
+      { sub: user.id, username: user.username || username },
       JWT_SECRET,
       { expiresIn: "12h" }
     );
 
-    res.json({ token, username });
+    res.json({ token, username: user.username || username });
   } catch (err) {
-    console.error("Login Error:", err.message);
-    next(err);
+    console.error("Login Error:", err?.message || err);
+    return res.status(500).json({ error: "login_internal_error" });
   }
 });
 

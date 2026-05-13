@@ -75,5 +75,13 @@ app.use(
   })
 );
 
+app.use((err, req, res, next) => {
+  console.error("Public backend error:", err?.message || err);
+  if (res.headersSent) return next(err);
+  res.status(err?.status || 500).json({
+    error: err?.message || "internal_server_error",
+  });
+});
+
 
 export default app;
