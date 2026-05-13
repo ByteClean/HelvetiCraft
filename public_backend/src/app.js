@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { createProxyMiddleware } from "http-proxy-middleware";
+import publicRoutes from "./routes/public.routes.js";
 
 dotenv.config();
 
@@ -9,6 +10,9 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Mount public routes directly (including login)
+app.use(publicRoutes);
 
 const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL;
 if (!BACKEND_BASE_URL) {
@@ -23,11 +27,8 @@ if (!PUBLIC_X_AUTH_KEY) {
   throw new Error("PUBLIC_X_AUTH_KEY missing");
 }
 
-// Allow the website to POST to /auth/login (login must be proxied to backend)
+// Allow only GET/HEAD requests to be proxied to backend (POST/PUT/DELETE blocked)
 app.use((req, res, next) => {
-  // allow POST /auth/login through the public proxy
-  if (req.method === "POST" && req.path === "/auth/login") return next();
-
   if (req.method !== "GET" && req.method !== "HEAD") {
     return res.status(405).json({ message: "method_not_allowed" });
   }
@@ -55,11 +56,22 @@ app.use(
     onProxyReq: (proxyReq, req, res) => {
       proxyReq.setHeader("x-auth-from", "website");
       proxyReq.setHeader("x-auth-key", process.env.PUBLIC_X_AUTH_KEY);
+      
+      // Explicitly forward request body for POST/PUT/PATCH
+      if (req.method !== "GET" && req.body) {
+        const bodyData = JSON.stringify(req.body);
+        proxyReq.setHeader("Content-Type", "application/json");
+        proxyReq.setHeader("Content-Length", Buffer.byteLength(bodyData));
+        proxyReq.write(bodyData);
+      }
     },
 
     onError: (err, req, res) => {
+      console.error("Proxy Error:", err.message, "Path:", req.path, "Method:", req.method);
       res.status(502).json({ message: "backend_unreachable", detail: err?.message });
     },
+
+    timeout: 30000,
   })
 );
 
