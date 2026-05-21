@@ -1,92 +1,94 @@
 @import '../../styles/_variables';
 @import '../../styles/_mixins';
 
-.page {
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #2b2b2b;
-}
+/* ======================================
+   LOGIN PAGE - Scoped
+====================================== */
 
-.container {
-  width: 100%;
-  max-width: 420px;
-  padding: 20px;
-}
-
-h2 {
-  text-align: center;
-  margin-bottom: 1rem;
-  color: #fff;
-  text-shadow: 2px 2px 0 #000;
-}
-
-.login-form {
-  --zoom: 10;
-
-  background: #8b8b8b;
-  border: calc(var(--block-size) / var(--zoom)) solid transparent;
-  border-image: url('/imgs/ui/panel.png') 43% fill;
-  border-image-slice: 43% fill;
-  box-shadow: 12px 12px 0 rgb(0 0 0 / 70%);
-  image-rendering: pixelated;
-  padding: 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-label {
-  display: flex;
-  flex-direction: column;
-  font-size: 14px;
-  color: #fff;
-  text-shadow: 1px 1px 0 #000;
-  gap: 6px;
-}
-
-input {
-  padding: 10px;
-  border: 2px solid #000;
-  background: #c6c6c6;
-  font-size: 14px;
-  outline: none;
-  image-rendering: pixelated;
-
-  &:focus {
-    background: #e0e0e0;
-    border-color: #3b82f6;
-  }
-}
-
-button {
-  margin-top: 10px;
-  padding: 10px;
-  border: 2px solid #000;
-  background: #4caf50;
-  color: #fff;
-  font-weight: bold;
-  cursor: pointer;
-  text-shadow: 1px 1px 0 #000;
-  box-shadow: 4px 4px 0 #000;
-  transition: 0.1s;
-
-  &:hover {
-    background: #45a049;
+.login-page {
+  .page {
+    min-height: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: url('/imgs/blocks/stone.png') repeat fixed;
+    background-size: 64px 64px;
+    padding: 20px 10px;
   }
 
-  &:active {
-    transform: translate(2px, 2px);
-    box-shadow: 2px 2px 0 #000;
+  .container {
+    width: 100%;
+    max-width: 460px;
   }
-}
 
-.error {
-  margin-top: 10px;
-  padding: 10px;
-  background: #b71c1c;
-  border: 2px solid #000;
-  color: #fff;
-  text-shadow: 1px 1px 0 #000;
+  /* Title */
+  h2 {
+    text-align: center;
+    margin-bottom: 2.2rem;
+    font-size: 28px;
+    text-shadow: 4px 4px 0 #000;
+  }
+
+  /* Login Card */
+  .login-form {
+    @extend .minecraft-panel;
+
+    padding: 42px 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* Labels */
+  .login-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    font-size: 15.5px;
+    color: #fff;
+    text-shadow: 2px 2px 0 #000;
+  }
+
+  /* Inputs */
+  .login-form input {
+    padding: 15px 14px;
+    font-size: 16px;
+    color: #222;
+    background: #c6c6c6;
+    border: 3px solid #000;
+    image-rendering: pixelated;
+    box-shadow: 
+      inset 5px 5px 0 #7a7a7a,
+      inset -5px -5px 0 #e0e0e0;
+    transition: all 0.12s ease;
+  }
+
+  .login-form input:focus {
+    background: #f0f0f0;
+    box-shadow: 
+      inset 3px 3px 0 #7a7a7a,
+      inset -3px -3px 0 #e0e0e0,
+      0 0 0 4px #ffeb3b;
+  }
+
+  /* Button */
+  .login-form button {
+    @extend .minecraft-button;
+
+    margin-top: 8px;
+    padding: 16px;
+    font-size: 17px;
+    width: 100%;
+  }
+
+  /* Error */
+  .error {
+    padding: 16px;
+    background: rgb(139 0 0 / 85%);
+    border: 3px solid #000;
+    color: #faa;
+    text-shadow: 2px 2px 0 #000;
+    font-size: 14.5px;
+    text-align: center;
+  }
 }

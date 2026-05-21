@@ -16,6 +16,9 @@ module.exports = {
     "declaration-block-single-line-max-declarations": null,
 
     // @import Positionen nicht prüfen
-    "no-invalid-position-at-import-rule": null
+    "no-invalid-position-at-import-rule": null,
+
+    // ❗ WICHTIG: erlaubt @extend ohne %placeholders
+    "scss/at-extend-no-missing-placeholder": null
   }
 };
