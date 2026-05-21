@@ -6,36 +6,73 @@ import pool from "../services/mysql.service.js";
 const JWT_SECRET = process.env.JWT_SECRET;
 const MINECRAFT_API_KEY = process.env.MINECRAFT_API_KEY;
 const DISCORD_API_KEY = process.env.BOT_API_KEY;
+const WEBSITE_API_KEY = process.env.WEBSITE_API_KEY;
 
 /**
- * Einheitliche Authentifizierung für:
- * - Minecraft (Key + UUID → authme.id)
- * - Discord Bot (Key + Discord-ID → authme.id)
- * - Web-Login (JWT → authme.id oder authme.username)
- *
- * Setzt IMMER:
- *   req.user = {
- *      id: <authme.id>,
- *      username: <string>,
- *      discord_id: <string|null>,
- *      isAdmin: true|false
- *   }
+ * Einheitliche Authentifizierung:
+ * - Web (JWT)
+ * - Minecraft (API Key + UUID)
+ * - Discord Bot (API Key + Discord ID)
+ * - Website Service (API Key)
  */
 export async function verifyAuth(req, res, next) {
-  const origin = req.headers["x-auth-from"];     
-  const key    = req.headers["x-auth-key"];      
-
-  if (!origin) {
-    return res.status(400).json({ error: "missing_x-auth-from_header" });
-  }
-  if (!key) {
-    return res.status(401).json({ error: "missing_x-auth-key_header" });
-  }
-
   try {
 
     // -----------------------------------------------------------
-    // 1) Minecraft
+    // 0) WEB LOGIN (JWT) - MUSS ZUERST KOMMEN
+    // -----------------------------------------------------------
+    const authHeader = req.headers.authorization;
+
+    if (authHeader?.startsWith("Bearer ")) {
+      try {
+        const token = authHeader.split(" ")[1];
+
+        const payload = jwt.verify(token, JWT_SECRET);
+
+        const [rows] = await pool.query(
+          "SELECT id, username, discord_id, isAdmin FROM authme WHERE id = ? LIMIT 1",
+          [payload.sub]
+        );
+
+        if (rows.length === 0) {
+          return res.status(401).json({ error: "jwt_user_not_found" });
+        }
+
+        const u = rows[0];
+
+        req.user = {
+          id: u.id,
+          username: u.username,
+          discord_id: u.discord_id || null,
+          isAdmin: u.isAdmin === 1
+        };
+
+        req.source = "web";
+        return next();
+
+      } catch (err) {
+        console.error("JWT error:", err);
+        return res.status(401).json({ error: "invalid_token" });
+      }
+    }
+
+    // -----------------------------------------------------------
+    // 1) REST (Minecraft / Discord / Website)
+    // -----------------------------------------------------------
+
+    const origin = req.headers["x-auth-from"];
+    const key = req.headers["x-auth-key"];
+
+    if (!origin) {
+      return res.status(400).json({ error: "missing_x-auth-from_header" });
+    }
+
+    if (!key) {
+      return res.status(401).json({ error: "missing_x-auth-key_header" });
+    }
+
+    // -----------------------------------------------------------
+    // 2) MINECRAFT
     // -----------------------------------------------------------
     if (origin === "minecraft") {
 
@@ -44,11 +81,11 @@ export async function verifyAuth(req, res, next) {
       }
 
       const uuid = req.headers["x-uuid"];
+
       if (!uuid) {
         return res.status(400).json({ error: "missing_x-uuid_header" });
       }
 
-      // Special case: Government account (all-zeros UUID)
       if (uuid === "00000000-0000-0000-0000-000000000000") {
         req.user = {
           id: null,
@@ -83,7 +120,7 @@ export async function verifyAuth(req, res, next) {
     }
 
     // -----------------------------------------------------------
-    // 2) Discord Bot
+    // 3) DISCORD
     // -----------------------------------------------------------
     if (origin === "discord") {
 
@@ -92,6 +129,7 @@ export async function verifyAuth(req, res, next) {
       }
 
       const discordId = req.headers["x-discord-user"];
+
       if (!discordId) {
         return res.status(400).json({ error: "missing_x-discord-user_header" });
       }
@@ -118,29 +156,28 @@ export async function verifyAuth(req, res, next) {
       return next();
     }
 
-   const WEBSITE_API_KEY = process.env.WEBSITE_API_KEY;
+    // -----------------------------------------------------------
+    // 4) WEBSITE API KEY (SERVER-TO-SERVER)
+    // -----------------------------------------------------------
+    if (origin === "website") {
 
-// ...
+      if (key !== WEBSITE_API_KEY) {
+        return res.status(403).json({ error: "invalid_website_key" });
+      }
 
-if (origin === "website") {
-  if (key !== WEBSITE_API_KEY) {
-    return res.status(403).json({ error: "invalid_website_key" });
-  }
+      req.user = {
+        id: 0,
+        username: "website",
+        discord_id: null,
+        isAdmin: false
+      };
 
-  req.user = {
-    id: 0,
-    username: "website",
-    discord_id: null,
-    isAdmin: false
-  };
-
-  req.source = "website";
-  return next();
-}
-
+      req.source = "website";
+      return next();
+    }
 
     // -----------------------------------------------------------
-    // Unbekannte Quelle
+    // UNKNOWN ORIGIN
     // -----------------------------------------------------------
     return res.status(400).json({ error: "unknown_origin" });
 
