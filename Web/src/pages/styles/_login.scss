@@ -6,7 +6,6 @@
 ====================================== */
 
 .login-page {
-  
   .page {
     min-height: auto;
     display: flex;
@@ -58,11 +57,9 @@
     background: #c6c6c6;
     border: 3px solid #000;
     image-rendering: pixelated;
-
     box-shadow: 
       inset 5px 5px 0 #7a7a7a,
       inset -5px -5px 0 #e0e0e0;
-
     transition: all 0.12s ease;
   }
 
@@ -77,6 +74,7 @@
   /* Button */
   .login-form button {
     @extend .minecraft-button;
+
     margin-top: 8px;
     padding: 16px;
     font-size: 17px;
@@ -86,9 +84,9 @@
   /* Error */
   .error {
     padding: 16px;
-    background: rgba(139, 0, 0, 0.85);
+    background: rgb(139 0 0 / 85%);
     border: 3px solid #000;
-    color: #ffaaaa;
+    color: #faa;
     text-shadow: 2px 2px 0 #000;
     font-size: 14.5px;
     text-align: center;
