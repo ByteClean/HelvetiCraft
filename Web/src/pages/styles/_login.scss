@@ -24,15 +24,12 @@ h2 {
 
 .login-form {
   --zoom: 10;
-
   background: #8b8b8b;
   border: calc(var(--block-size) / var(--zoom)) solid transparent;
   border-image: url('/imgs/ui/panel.png') 43% fill;
   border-image-slice: 43% fill;
-
   box-shadow: 12px 12px 0 rgb(0 0 0 / 70%);
   image-rendering: pixelated;
-
   padding: 28px;
   display: flex;
   flex-direction: column;
