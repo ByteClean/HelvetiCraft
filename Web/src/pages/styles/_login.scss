@@ -24,6 +24,7 @@ h2 {
 
 .login-form {
   --zoom: 10;
+
   background: #8b8b8b;
   border: calc(var(--block-size) / var(--zoom)) solid transparent;
   border-image: url('/imgs/ui/panel.png') 43% fill;
