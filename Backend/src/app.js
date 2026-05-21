@@ -1,4 +1,3 @@
-// src/app.js
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -23,31 +22,53 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
 
-// Public health
+/* -------------------------
+   PUBLIC ROUTES (NO AUTH)
+--------------------------*/
+
+// Health check
 app.get("/health", (req, res) => res.json({ ok: true }));
 
-// Gilt fuer ALLE Requests
+// Auth MUST be public
+app.use("/auth", authRoutes);
+
+// Public read-only routes (optional public access)
+app.use("/news", newsRoutes);
+
+/* -------------------------
+   AUTH MIDDLEWARE (ONLY BELOW)
+--------------------------*/
+
+// attach origin detection globally (safe)
 app.use(detectOrigin);
+
+// protect everything below
 app.use(verifyAuth);
 
-// Routes
+/* -------------------------
+   PROTECTED ROUTES
+--------------------------*/
+
 app.use("/initiatives", initiativesRoutes);
 app.use("/quiz", quizRoutes);
 app.use("/phases", phasesRouter);
 app.use("/discord-logging", discordLoggingRoutes);
-app.use("/auth", authRoutes);
-app.use("/news", newsRoutes);
 app.use("/finances", financesRoutes);
 app.use("/economy", economyRoutes);
 
-// 404 + Fehlerhandler
-app.use((req, res) => res.status(404).json({ error: "Route nicht gefunden" }));
+/* -------------------------
+   404 + ERROR HANDLER
+--------------------------*/
+
+app.use((req, res) =>
+  res.status(404).json({ error: "Route nicht gefunden" })
+);
 
 app.use((err, req, res, next) => {
   console.error(err);
-  res
-    .status(err.status || 500)
-    .json({ error: err.message || "Interner Fehler" });
+  res.status(err.status || 500).json({
+    error: err.message || "Interner Fehler",
+  });
 });
 
 export default app;
