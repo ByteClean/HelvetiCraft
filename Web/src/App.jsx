@@ -9,6 +9,7 @@ import Guidance from './pages/Guidance'
 import News from './pages/News'
 import About from './pages/About'
 import Login from './pages/Login'
+import Profile from './pages/Profile'
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/news" element={<News />} />
           <Route path="/about" element={<About />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </main>
       <Footer />
