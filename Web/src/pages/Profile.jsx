@@ -79,18 +79,69 @@ function getTradeItems(allItems) {
 }
 
 function buildPriceHistoryForTime(basePrice, itemName, minutesSinceEpoch, length = 60) {
-  const rng = seededRng(hashString(`${itemName}-${minutesSinceEpoch}`));
+  // Market-aware correlated random-walk
   const history = [];
+  const start = Math.max(0, minutesSinceEpoch - (length - 1));
   let current = basePrice;
-  
-  // Generiere History für die letzten 60 Minuten bis zur aktuellen Minute
-  for (let i = 0; i < length; i += 1) {
-    const drift = (rng() - 0.5) * 0.03;
-    const volatility = (rng() - 0.5) * 0.06;
-    current = Math.max(Math.round(basePrice * 0.7), Math.round(current * (1 + drift + volatility)));
+
+  const itemSeed = hashString(itemName) % 100;
+  const longBias = ((hashString(itemName) % 51) - 25) / 10000; // tiny deterministic drift
+
+  // classify item into a simple sector for correlated moves
+  const group = (() => {
+    const n = itemName.toLowerCase();
+    if (/ore|deepslate|ancient|diamond_ore|iron_ore|gold_ore|copper_ore/.test(n)) return 'ore';
+    if (/ingot|gem|emerald|diamond|netherite|amethyst_shard|quartz|coal|redstone|lapis/.test(n)) return 'commodity';
+    if (/chestplate|helmet|legs|boots|armor/.test(n)) return 'armor';
+    if (/block|obsidian|blackstone|deepslate/.test(n)) return 'block';
+    return 'other';
+  })();
+
+  // previous shock for volatility clustering
+  let prevShock = 0;
+
+  for (let t = start; t <= minutesSinceEpoch; t += 1) {
+    // deterministic shocks
+    const marketRng = seededRng(hashString(`market-${t}`));
+    const sectorRng = seededRng(hashString(`${group}-${t}`));
+    const itemRng = seededRng(hashString(`${itemName}-${t}`));
+
+    const marketShock = marketRng() - 0.5; // global market move
+    const sectorShock = sectorRng() - 0.5; // sector-specific
+    const itemShock = itemRng() - 0.5; // idiosyncratic
+
+    // base volatility and clustering: more movement if previous shock was large
+    const baseVol = 0.009; // ~0.9% base per minute
+    const cluster = Math.min(0.06, Math.abs(prevShock) * 0.06 + Math.abs(itemShock) * 0.02);
+    const volatility = baseVol + cluster; // total volatility multiplier
+
+    // small cyclical component to simulate intraday rhythm
+    const cycle = Math.sin((t + itemSeed) / 10) * 0.006;
+
+    // combine shocks: market has largest weight, then sector, then item
+    const combinedShock = marketShock * 0.5 + sectorShock * 0.3 + itemShock * 0.2;
+
+    // mean reversion toward basePrice (small)
+    const meanReversion = (basePrice - current) / Math.max(1, basePrice) * 0.0008;
+
+    const changePct = longBias + cycle + meanReversion + combinedShock * volatility;
+
+    // compute next price, ensure integer cents and minimum bound
+    let next = Math.max(Math.round(basePrice * 0.4), Math.round(current * (1 + changePct)));
+    if (next === current) next += changePct >= 0 ? 1 : -1;
+
+    // update state
+    prevShock = combinedShock;
+    current = next;
     history.push(current);
   }
-  return history;
+
+  if (history.length < length) {
+    const pad = new Array(length - history.length).fill(history[0] || basePrice);
+    return pad.concat(history);
+  }
+
+  return history.slice(-length);
 }
 
 function formatMoney(cents) {
@@ -291,6 +342,7 @@ export default function Profile() {
           [itemType]: currentAmount + amount,
         },
       }));
+      setProfile((p) => ({ ...p, main: (p.main || 0) - cost }));
     } else {
       if (amount > currentAmount) {
         setError("Du besitzt nicht genug Einheiten zum Verkaufen.");
@@ -304,6 +356,7 @@ export default function Profile() {
           [itemType]: currentAmount - amount,
         },
       }));
+      setProfile((p) => ({ ...p, main: (p.main || 0) + cost }));
     }
   }
 
