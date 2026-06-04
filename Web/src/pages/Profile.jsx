@@ -6,29 +6,29 @@ const TRADED_ITEM_COUNT = 20;
 const LOCAL_STORAGE_KEY = "hc_trade_state";
 const TRADE_QUANTITIES = [1, 5, 10];
 
-// Liste mit 20 guten Minecraft-Items (keine Potions, Bücher, Pfeile)
-// Alle Spieler sehen die gleichen Items
+// Präferierte, gemischte 20-Item-Liste (Ores, ganze Blöcke, Rüstungsteile, Edelsteine)
+// Keine Potions, Bücher oder Pfeile. Reihenfolge bestimmt Auswahlpriorität.
 const PREFERRED_ITEMS = [
   "diamond",
+  "diamond_ore",
+  "netherite_ingot",
+  "ancient_debris",
   "iron_ingot",
+  "iron_ore",
+  "iron_chestplate",
   "gold_ingot",
+  "gold_ore",
+  "gold_chestplate",
   "emerald",
   "copper_ingot",
+  "copper_ore",
+  "copper_block",
+  "obsidian",
+  "blackstone",
+  "deepslate",
   "coal",
   "redstone",
   "lapis_lazuli",
-  "netherite_ingot",
-  "quartz",
-  "amethyst_shard",
-  "diamond_ore",
-  "iron_ore",
-  "gold_ore",
-  "copper_ore",
-  "ancient_debris",
-  "obsidian",
-  "crying_obsidian",
-  "blackstone",
-  "deepslate",
 ];
 
 function hashString(value) {
@@ -51,14 +51,31 @@ function seededRng(seed) {
 
 // Filtere und wähle aus globaler Liste
 function getTradeItems(allItems) {
-  // Filtere items die in unserer preferred list sind
-  const preferred = allItems.filter((item) =>
-    PREFERRED_ITEMS.some((p) =>
-      item.item_type.toLowerCase().includes(p.toLowerCase())
-    )
-  );
-  // Nimm die ersten 20
-  return preferred.slice(0, TRADED_ITEM_COUNT);
+  if (!Array.isArray(allItems)) return [];
+
+  // Exclude unwanted types (potions, books, arrows)
+  const blacklistRe = /potion|book|arrow|tipped_arrow|enchanted_book/i;
+
+  const normalized = allItems.filter((it) => !blacklistRe.test(it.item_type));
+
+  const selected = [];
+
+  // Pick items in the order defined by PREFERRED_ITEMS to ensure variety
+  for (const pref of PREFERRED_ITEMS) {
+    if (selected.length >= TRADED_ITEM_COUNT) break;
+    const found = normalized.find(
+      (it) => it.item_type.toLowerCase().includes(pref.toLowerCase()) && !selected.some(s => s.item_type === it.item_type)
+    );
+    if (found) selected.push(found);
+  }
+
+  // If we don't have enough yet, fill with remaining valid items (non-blacklisted), preserving original order
+  for (const it of normalized) {
+    if (selected.length >= TRADED_ITEM_COUNT) break;
+    if (!selected.some((s) => s.item_type === it.item_type)) selected.push(it);
+  }
+
+  return selected.slice(0, TRADED_ITEM_COUNT);
 }
 
 function buildPriceHistoryForTime(basePrice, itemName, minutesSinceEpoch, length = 60) {
@@ -182,6 +199,7 @@ export default function Profile() {
     }
   });
   const [minuteTick, setMinuteTick] = useState(0);
+  const [tradeSizes, setTradeSizes] = useState(() => ({}));
 
   useEffect(() => {
     async function load() {
