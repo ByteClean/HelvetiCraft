@@ -1,10 +1,35 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import api from "../services/api";
 import "./styles/_profile.scss";
 
-const TRADED_ITEM_COUNT = 15;
+const TRADED_ITEM_COUNT = 20;
 const LOCAL_STORAGE_KEY = "hc_trade_state";
 const TRADE_QUANTITIES = [1, 5, 10];
+
+// Liste mit 20 guten Minecraft-Items (keine Potions, Bücher, Pfeile)
+// Alle Spieler sehen die gleichen Items
+const PREFERRED_ITEMS = [
+  "diamond",
+  "iron_ingot",
+  "gold_ingot",
+  "emerald",
+  "copper_ingot",
+  "coal",
+  "redstone",
+  "lapis_lazuli",
+  "netherite_ingot",
+  "quartz",
+  "amethyst_shard",
+  "diamond_ore",
+  "iron_ore",
+  "gold_ore",
+  "copper_ore",
+  "ancient_debris",
+  "obsidian",
+  "crying_obsidian",
+  "blackstone",
+  "deepslate",
+];
 
 function hashString(value) {
   let hash = 0;
@@ -24,28 +49,29 @@ function seededRng(seed) {
   };
 }
 
-function stableSelectItems(items, username, count) {
-  const seed = hashString(username || "guest");
-  return [...items]
-    .map((item) => ({
-      item,
-      score: seededRng(hashString(`${seed}-${item.item_type}`))(),
-    }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, count)
-    .map(({ item }) => item);
+// Filtere und wähle aus globaler Liste
+function getTradeItems(allItems) {
+  // Filtere items die in unserer preferred list sind
+  const preferred = allItems.filter((item) =>
+    PREFERRED_ITEMS.some((p) =>
+      item.item_type.toLowerCase().includes(p.toLowerCase())
+    )
+  );
+  // Nimm die ersten 20
+  return preferred.slice(0, TRADED_ITEM_COUNT);
 }
 
-function buildPriceHistory(basePrice, seed, length = 10) {
-  const rng = seededRng(seed);
-  const history = [basePrice];
-  let last = basePrice;
-  for (let i = 1; i < length; i += 1) {
-    const drift = (rng() - 0.5) * 0.04;
-    const volatility = (rng() - 0.5) * 0.08;
-    const next = Math.max(1, last * (1 + drift + volatility));
-    history.push(Math.round(next));
-    last = next;
+function buildPriceHistoryForTime(basePrice, itemName, minutesSinceEpoch, length = 60) {
+  const rng = seededRng(hashString(`${itemName}-${minutesSinceEpoch}`));
+  const history = [];
+  let current = basePrice;
+  
+  // Generiere History für die letzten 60 Minuten bis zur aktuellen Minute
+  for (let i = 0; i < length; i += 1) {
+    const drift = (rng() - 0.5) * 0.03;
+    const volatility = (rng() - 0.5) * 0.06;
+    current = Math.max(Math.round(basePrice * 0.7), Math.round(current * (1 + drift + volatility)));
+    history.push(current);
   }
   return history;
 }
@@ -60,9 +86,87 @@ function formatMoney(cents) {
 }
 
 function imageUrlForItem(itemType) {
-  const isArrow = /_arrow$/.test(itemType);
-  const imageName = isArrow ? "arrow" : itemType;
+  const imageName = itemType.toLowerCase();
   return `https://minecraft-economy-price-guide.net/.netlify/images?url=/images/items/${imageName}.png&w=64&fm=webp&q=90`;
+}
+
+function PriceLineChart({ history, itemType }) {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (!canvasRef.current || !history || history.length === 0) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    const width = canvas.width;
+    const height = canvas.height;
+    const padding = 32;
+
+    ctx.fillStyle = "#1a1a1a";
+    ctx.fillRect(0, 0, width, height);
+
+    const minPrice = Math.min(...history);
+    const maxPrice = Math.max(...history);
+    const priceRange = maxPrice - minPrice || 1;
+
+    // Draw grid and axes
+    ctx.strokeStyle = "#333";
+    ctx.lineWidth = 1;
+    ctx.fillStyle = "#888";
+    ctx.font = "10px monospace";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+
+    // Y-axis labels (price)
+    for (let i = 0; i <= 3; i += 1) {
+      const price = minPrice + (priceRange * i) / 3;
+      const y = height - padding - (i / 3) * (height - padding * 1.5);
+      ctx.fillText(Math.round(price), padding - 6, y);
+      ctx.beginPath();
+      ctx.moveTo(padding, y);
+      ctx.lineTo(width - 4, y);
+      ctx.stroke();
+    }
+
+    // X-axis
+    ctx.strokeStyle = "#555";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padding, height - padding);
+    ctx.lineTo(width - 4, height - padding);
+    ctx.stroke();
+
+    // Draw line chart
+    ctx.strokeStyle = "#4a90e2";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+
+    for (let i = 0; i < history.length; i += 1) {
+      const x = padding + (i / (history.length - 1 || 1)) * (width - padding - 8);
+      const y =
+        height -
+        padding -
+        ((history[i] - minPrice) / priceRange) * (height - padding * 1.5);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Draw points on line
+    ctx.fillStyle = "#7eb3ff";
+    for (let i = 0; i < history.length; i += Math.max(1, Math.floor(history.length / 8))) {
+      const x = padding + (i / (history.length - 1 || 1)) * (width - padding - 8);
+      const y =
+        height -
+        padding -
+        ((history[i] - minPrice) / priceRange) * (height - padding * 1.5);
+      ctx.beginPath();
+      ctx.arc(x, y, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }, [history, itemType]);
+
+  return <canvas ref={canvasRef} width={220} height={130} className="price-chart" />;
 }
 
 export default function Profile() {
@@ -77,7 +181,7 @@ export default function Profile() {
       return {};
     }
   });
-  const [tradeSizes, setTradeSizes] = useState({});
+  const [minuteTick, setMinuteTick] = useState(0);
 
   useEffect(() => {
     async function load() {
@@ -115,14 +219,22 @@ export default function Profile() {
     load();
   }, []);
 
+  // Update prices every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMinuteTick((t) => t + 1);
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(tradeState));
   }, [tradeState]);
 
   const tradeItems = useMemo(() => {
-    if (!profile || marketPrices.length === 0) return [];
-    return stableSelectItems(marketPrices, profile.username || "guest", TRADED_ITEM_COUNT);
-  }, [marketPrices, profile]);
+    if (marketPrices.length === 0) return [];
+    return getTradeItems(marketPrices);
+  }, [marketPrices]);
 
   const portfolio = tradeState.portfolio || {};
   const cashBalance = tradeState.cashBalance ?? profile?.main ?? 0;
@@ -204,7 +316,7 @@ export default function Profile() {
       <div className="profile-intro minecraft-panel">
         <h2>Mein Spielerbereich</h2>
         <p>
-          Auf der linken Seite siehst du deine echten Finanzen. Rechts findest du einen simulierten Markt mit 15 ausgewählten Minecraft-Blöcken, die du handeln kannst.
+          Auf der linken Seite siehst du deine echten Finanzen. Rechts findest du einen simulierten Markt mit {TRADED_ITEM_COUNT} ausgewählten Minecraft-Blöcken, die sich jede Minute aktualisieren.
         </p>
       </div>
 
@@ -216,24 +328,24 @@ export default function Profile() {
             <strong>{profile.username}</strong>
           </div>
           <div className="finance-row">
-            <span>Aktuelles Hauptkonto</span>
-            <strong>{formatMoney(profile.main)}</strong>
+            <span>Hauptkonto</span>
+            <strong className="money-value">{formatMoney(profile.main)}</strong>
           </div>
           <div className="finance-row">
             <span>Sparkonto</span>
-            <strong>{formatMoney(profile.savings)}</strong>
+            <strong className="money-value">{formatMoney(profile.savings)}</strong>
           </div>
           <div className="finance-row highlight">
             <span>Trading-Guthaben</span>
-            <strong>{formatMoney(cashBalance)}</strong>
+            <strong className="money-value">{formatMoney(cashBalance)}</strong>
           </div>
           <div className="finance-row highlight">
             <span>Portfoliowert</span>
-            <strong>{formatMoney(portfolioValue)}</strong>
+            <strong className="money-value">{formatMoney(portfolioValue)}</strong>
           </div>
           <div className="finance-row total">
             <span>Geschätztes Gesamtvermögen</span>
-            <strong>{formatMoney(netWorth)}</strong>
+            <strong className="money-value">{formatMoney(netWorth)}</strong>
           </div>
 
           <div className="portfolio-list">
@@ -262,7 +374,7 @@ export default function Profile() {
             <div>
               <h3>Block-Aktienmarkt</h3>
               <p>
-                15 ausgewählte Items aus unserer Wirtschaftsliste. Die Preise bewegen sich realistisch mit einem leichten Trend.
+                {TRADED_ITEM_COUNT} Items mit realistischen Preisbewegungen. Kurse aktualisieren sich jede Minute.
               </p>
             </div>
             <div className="market-stats">
@@ -273,10 +385,12 @@ export default function Profile() {
 
           <div className="market-grid">
             {tradeItems.map((item) => {
-              const history = buildPriceHistory(
+              const minutesSinceEpoch = Math.floor(Date.now() / 60000);
+              const history = buildPriceHistoryForTime(
                 item.recommended_price,
-                hashString(item.item_type + profile.username),
-                8
+                item.item_type,
+                minutesSinceEpoch,
+                60
               );
               const current = history[history.length - 1];
               const previous = history[history.length - 2] || current;
@@ -288,7 +402,11 @@ export default function Profile() {
                 <article key={item.item_type} className="market-card">
                   <div className="card-head">
                     <div className="item-badge">
-                      <img src={imageUrlForItem(item.item_type)} alt={item.item_type} onError={(e) => { e.target.style.display = "none" }} />
+                      <img
+                        src={imageUrlForItem(item.item_type)}
+                        alt={item.item_type}
+                        onError={(e) => { e.target.style.display = "none" }}
+                      />
                     </div>
                     <div>
                       <h4>{item.item_type.replace(/_/g, " ")}</h4>
@@ -300,20 +418,10 @@ export default function Profile() {
                     <span className={diff >= 0 ? "positive" : "negative"}>
                       {diff >= 0 ? "+" : ""}{ratio}%
                     </span>
-                    <small>{diff >= 0 ? "gestiegen" : "gefallen"} gegenüber gestern</small>
+                    <small>{diff >= 0 ? "gestiegen" : "gefallen"}</small>
                   </div>
 
-                  <div className="history-bars">
-                    {history.map((value, index) => (
-                      <div
-                        key={`${item.item_type}-bar-${index}`}
-                        className="history-bar"
-                        style={{
-                          height: `${Math.max(10, Math.min(100, (value / Math.max(...history)) * 100))}%`,
-                        }}
-                      />
-                    ))}
-                  </div>
+                  <PriceLineChart history={history} itemType={item.item_type} />
 
                   <div className="market-actions">
                     <div className="quantity-control">
@@ -365,3 +473,4 @@ export default function Profile() {
     </div>
   );
 }
+
