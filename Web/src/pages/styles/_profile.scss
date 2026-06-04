@@ -223,7 +223,7 @@
         }
 
         .negative {
-          color: #ff9999;
+          color: #f99;
         }
       }
 
@@ -312,7 +312,7 @@
   }
 }
 
-@media (max-width: 1024px) {
+@media (width <= 1024px) {
   .profile-page {
     .profile-grid {
       grid-template-columns: 1fr;
@@ -324,7 +324,7 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (width <= 640px) {
   .profile-page {
     .finance-panel {
       .finance-row,
