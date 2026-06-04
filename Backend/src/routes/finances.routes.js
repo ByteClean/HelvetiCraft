@@ -98,6 +98,37 @@ r.get("/knownPlayers", async (req, res) => {
   }
 });
 
+// Get current logged-in user's finances
+r.get("/me", async (req, res) => {
+  const userId = req.user?.id;
+  try {
+    const [[row]] = await pool.query(
+      `SELECT a.id, a.username, a.uuid,
+        COALESCE(f.main_cents, 0) AS main_cents,
+        COALESCE(f.savings_cents, 0) AS savings_cents
+      FROM authme a
+      LEFT JOIN finances f ON f.uuid = a.uuid
+      WHERE a.id = ?`,
+      [userId]
+    );
+
+    if (!row) {
+      return res.status(404).json({ error: "user_not_found" });
+    }
+
+    res.json({
+      id: row.id,
+      username: row.username,
+      uuid: row.uuid,
+      main: Number(row.main_cents),
+      savings: Number(row.savings_cents),
+      networth: Number(row.main_cents) + Number(row.savings_cents),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Transfer main -> main (muss vor /:uuid stehen!)
 r.post("/transfer", async (req, res) => {
   const { from, to, cents } = req.body;
