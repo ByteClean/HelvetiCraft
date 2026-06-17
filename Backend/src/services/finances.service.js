@@ -85,6 +85,46 @@ export async function transferMain(fromUuid, toUuid, cents) {
   }
 }
 
+export async function adjustMain(uuid, deltaCents) {
+  if (deltaCents === 0) return null;
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [[row]] = await conn.query(
+      "SELECT main_cents FROM finances WHERE uuid = ? FOR UPDATE",
+      [uuid]
+    );
+
+    if (!row) {
+      await conn.rollback();
+      return null;
+    }
+
+    const current = Number(row.main_cents || 0);
+    const updated = current + Number(deltaCents);
+
+    if (updated < 0) {
+      await conn.rollback();
+      return false;
+    }
+
+    await conn.query(
+      "UPDATE finances SET main_cents = ? WHERE uuid = ?",
+      [updated, uuid]
+    );
+
+    await conn.commit();
+    return updated;
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
 // -------- get all known players --------
 
 export async function getKnownPlayers() {
