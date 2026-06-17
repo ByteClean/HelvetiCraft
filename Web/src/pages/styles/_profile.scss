@@ -159,6 +159,38 @@
       }
     }
 
+    .chart-time-selector {
+      display: flex;
+      gap: 0.6rem;
+      margin: 0.8rem 0;
+      flex-wrap: wrap;
+
+      .time-btn {
+        padding: 0.5rem 1rem;
+        border: 2px solid #666;
+        background: rgb(0 0 0 / 30%);
+        color: #bbb;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-radius: 2px;
+
+        &:hover {
+          background: rgb(0 0 0 / 50%);
+          border-color: #999;
+          color: #ddd;
+        }
+
+        &.active {
+          background: #4a90e2;
+          border-color: #4a90e2;
+          color: #fff;
+          font-weight: 600;
+        }
+      }
+    }
+
     .market-grid {
       display: grid;
       gap: 1.2rem;

@@ -31,24 +31,6 @@ const PREFERRED_ITEMS = [
   "lapis_lazuli",
 ];
 
-function hashString(value) {
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash << 5) - hash + value.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
-
-function seededRng(seed) {
-  let state = seed % 2147483647;
-  if (state <= 0) state += 2147483646;
-  return () => {
-    state = (state * 16807) % 2147483647;
-    return (state - 1) / 2147483646;
-  };
-}
-
 // Filtere und wähle aus globaler Liste
 function getTradeItems(allItems) {
   if (!Array.isArray(allItems)) return [];
@@ -78,16 +60,31 @@ function getTradeItems(allItems) {
   return selected.slice(0, TRADED_ITEM_COUNT);
 }
 
-function buildPriceHistoryForTime(basePrice, itemName, minutesSinceEpoch, length = 60) {
-  // Market-aware correlated random-walk
-  const history = [];
-  const start = Math.max(0, minutesSinceEpoch - (length - 1));
-  let current = basePrice;
+// Preis-Cache mit lokaler Persistierung
+const PRICE_CACHE_KEY = "hc_price_cache";
 
-  const itemSeed = hashString(itemName) % 100;
-  const longBias = ((hashString(itemName) % 51) - 25) / 10000; // tiny deterministic drift
+function getPriceCache() {
+  try {
+    const cached = localStorage.getItem(PRICE_CACHE_KEY);
+    return cached ? JSON.parse(cached) : {};
+  } catch {
+    return {};
+  }
+}
 
-  // classify item into a simple sector for correlated moves
+function setPriceCache(cache) {
+  try {
+    localStorage.setItem(PRICE_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // Silently fail if localStorage is full
+  }
+}
+
+function calculateNextPrice(currentPrice, itemName, volatilityModifier = 1.0) {
+  // Echte Zufälligkeit basierend auf Math.random()
+  const randomShock = (Math.random() - 0.5) * 2; // -1 to 1
+  
+  // Item-Kategorien für korrelierte Bewegungen
   const group = (() => {
     const n = itemName.toLowerCase();
     if (/ore|deepslate|ancient|diamond_ore|iron_ore|gold_ore|copper_ore/.test(n)) return 'ore';
@@ -97,51 +94,93 @@ function buildPriceHistoryForTime(basePrice, itemName, minutesSinceEpoch, length
     return 'other';
   })();
 
-  // previous shock for volatility clustering
-  let prevShock = 0;
-
-  for (let t = start; t <= minutesSinceEpoch; t += 1) {
-    // deterministic shocks
-    const marketRng = seededRng(hashString(`market-${t}`));
-    const sectorRng = seededRng(hashString(`${group}-${t}`));
-    const itemRng = seededRng(hashString(`${itemName}-${t}`));
-
-    const marketShock = marketRng() - 0.5; // global market move
-    const sectorShock = sectorRng() - 0.5; // sector-specific
-    const itemShock = itemRng() - 0.5; // idiosyncratic
-
-    // base volatility and clustering: more movement if previous shock was large
-    const baseVol = 0.009; // ~0.9% base per minute
-    const cluster = Math.min(0.06, Math.abs(prevShock) * 0.06 + Math.abs(itemShock) * 0.02);
-    const volatility = baseVol + cluster; // total volatility multiplier
-
-    // small cyclical component to simulate intraday rhythm
-    const cycle = Math.sin((t + itemSeed) / 10) * 0.006;
-
-    // combine shocks: market has largest weight, then sector, then item
-    const combinedShock = marketShock * 0.5 + sectorShock * 0.3 + itemShock * 0.2;
-
-    // mean reversion toward basePrice (small)
-    const meanReversion = (basePrice - current) / Math.max(1, basePrice) * 0.0008;
-
-    const changePct = longBias + cycle + meanReversion + combinedShock * volatility;
-
-    // compute next price, ensure integer cents and minimum bound
-    let next = Math.max(Math.round(basePrice * 0.4), Math.round(current * (1 + changePct)));
-    if (next === current) next += changePct >= 0 ? 1 : -1;
-
-    // update state
-    prevShock = combinedShock;
-    current = next;
-    history.push(current);
+  // Globale Marktmove (alle Items beeinflussend)
+  const globalMarketMove = (Math.random() - 0.5) * 0.02; // ±1%
+  
+  // Gruppen-spezifische Bewegung
+  const groupMove = (Math.random() - 0.5) * 0.015; // ±0.75%
+  
+  // Item-spezifische Bewegung
+  const itemMove = randomShock * 0.025; // ±2.5%
+  
+  // Basis-Volatilität mit Clustering
+  const baseVol = 0.015; // 1.5% Basis-Volatilität
+  const extraVol = Math.abs(randomShock) * 0.01; // Höhere Volatilität bei großen Shocks
+  
+  // Kombiniere alles
+  const changePct = globalMarketMove + groupMove * 0.7 + itemMove * (baseVol + extraVol);
+  
+  // Mean Reversion - Preise driften leicht zurück zum Durchschnitt
+  const meanReversionStrength = 0.0005;
+  const meanReversion = -meanReversionStrength * (currentPrice - currentPrice);
+  
+  const totalChange = changePct + meanReversion;
+  
+  // Berechne neuen Preis, minimum 1 Cent
+  let newPrice = Math.max(1, Math.round(currentPrice * (1 + totalChange)));
+  
+  // Stelle sicher, dass der Preis sich mindestens um 1 Cent ändert wenn es sollte
+  if (newPrice === currentPrice && totalChange !== 0) {
+    newPrice = currentPrice + (totalChange > 0 ? 1 : -1);
   }
+  
+  return newPrice;
+}
 
-  if (history.length < length) {
-    const pad = new Array(length - history.length).fill(history[0] || basePrice);
-    return pad.concat(history);
+function buildPriceHistoryForTime(basePrice, itemName, minutesSinceEpoch, length = 60) {
+  const cache = getPriceCache();
+  const cacheKey = itemName;
+  
+  let itemCache = cache[cacheKey];
+  
+  // Initialisiere Cache wenn nicht vorhanden
+  if (!itemCache) {
+    itemCache = {
+      basePrice,
+      lastMinute: minutesSinceEpoch,
+      lastPrice: basePrice,
+      history: [basePrice]
+    };
   }
-
-  return history.slice(-length);
+  
+  // Laufe durch alle fehlenden Minuten auf
+  let currentPrice = itemCache.lastPrice;
+  let currentMinute = itemCache.lastMinute;
+  
+  // Wenn wir zu weit in der Zeit sind (z.B. neuer Tag), reset
+  if (minutesSinceEpoch - currentMinute > 1440) {
+    itemCache = {
+      basePrice,
+      lastMinute: minutesSinceEpoch,
+      lastPrice: basePrice,
+      history: [basePrice]
+    };
+    currentPrice = basePrice;
+    currentMinute = minutesSinceEpoch;
+  }
+  
+  // Füge neue Minuten hinzu, falls wir über dem Cache sind
+  while (currentMinute < minutesSinceEpoch) {
+    currentMinute++;
+    currentPrice = calculateNextPrice(currentPrice, itemName);
+    itemCache.history.push(currentPrice);
+    
+    // Behalte nur die letzten 1440 Minuten (24 Stunden)
+    if (itemCache.history.length > 1440) {
+      itemCache.history.shift();
+    }
+  }
+  
+  // Update Cache
+  itemCache.lastMinute = minutesSinceEpoch;
+  itemCache.lastPrice = currentPrice;
+  
+  cache[cacheKey] = itemCache;
+  setPriceCache(cache);
+  
+  // Gebe die letzten `length` Einträge zurück
+  const start = Math.max(0, itemCache.history.length - length);
+  return itemCache.history.slice(start);
 }
 
 function formatMoney(cents) {
@@ -249,8 +288,18 @@ export default function Profile() {
       return {};
     }
   });
-  const [minuteTick, setMinuteTick] = useState(0);
+  const [minuteTick, setMinuteTick] = useState(Math.floor(Date.now() / 60000));
   const [tradeSizes, setTradeSizes] = useState(() => ({}));
+  const [chartTimeRange, setChartTimeRange] = useState(60); // 60 = 1 hour default
+
+  // Available time ranges: label, minutes
+  const timeRanges = [
+    { label: "15 Min", minutes: 15 },
+    { label: "30 Min", minutes: 30 },
+    { label: "1 Std", minutes: 60 },
+    { label: "6 Std", minutes: 360 },
+    { label: "12 Std", minutes: 720 },
+  ];
 
   useEffect(() => {
     async function load() {
@@ -288,12 +337,29 @@ export default function Profile() {
     load();
   }, []);
 
-  // Update prices every minute
+  // Update prices every minute with forced re-render
   useEffect(() => {
-    const interval = setInterval(() => {
+    // Check for new minute on load
+    setMinuteTick(Math.floor(Date.now() / 60000));
+    
+    // Synchronize to minute boundary for accurate updates
+    const now = Date.now();
+    const nextMinute = (Math.floor(now / 60000) + 1) * 60000;
+    const delayToNextMinute = nextMinute - now;
+    
+    // Set timer to trigger at exact minute boundary
+    const timeout = setTimeout(() => {
       setMinuteTick((t) => t + 1);
-    }, 60000);
-    return () => clearInterval(interval);
+      
+      // Then set interval for subsequent minutes
+      const interval = setInterval(() => {
+        setMinuteTick((t) => t + 1);
+      }, 60000);
+      
+      return () => clearInterval(interval);
+    }, delayToNextMinute);
+    
+    return () => clearTimeout(timeout);
   }, []);
 
   useEffect(() => {
@@ -454,6 +520,18 @@ export default function Profile() {
             </div>
           </div>
 
+          <div className="chart-time-selector">
+            {timeRanges.map((range) => (
+              <button
+                key={range.minutes}
+                className={`time-btn ${chartTimeRange === range.minutes ? "active" : ""}`}
+                onClick={() => setChartTimeRange(range.minutes)}
+              >
+                {range.label}
+              </button>
+            ))}
+          </div>
+
           <div className="market-grid">
             {tradeItems.map((item) => {
               const minutesSinceEpoch = Math.floor(Date.now() / 60000);
@@ -461,7 +539,7 @@ export default function Profile() {
                 item.recommended_price,
                 item.item_type,
                 minutesSinceEpoch,
-                60
+                chartTimeRange
               );
               const current = history[history.length - 1];
               const previous = history[history.length - 2] || current;
