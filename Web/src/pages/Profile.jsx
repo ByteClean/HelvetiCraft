@@ -374,12 +374,36 @@ export default function Profile() {
   const portfolio = tradeState.portfolio || {};
   const cashBalance = tradeState.cashBalance ?? profile?.main ?? 0;
 
+  const marketData = useMemo(() => {
+    const minutesSinceEpoch = Math.floor(Date.now() / 60000);
+    return tradeItems.map((item) => {
+      const history = buildPriceHistoryForTime(
+        item.recommended_price,
+        item.item_type,
+        minutesSinceEpoch,
+        chartTimeRange
+      );
+      const current = history[history.length - 1];
+      const previous = history[history.length - 2] || current;
+      const diff = current - previous;
+      const ratio = previous > 0 ? Math.round((diff / previous) * 100) : 0;
+      return {
+        ...item,
+        history,
+        current,
+        previous,
+        diff,
+        ratio,
+      };
+    });
+  }, [tradeItems, minuteTick, chartTimeRange]);
+
   const portfolioValue = useMemo(() => {
-    return tradeItems.reduce((sum, item) => {
+    return marketData.reduce((sum, item) => {
       const quantity = portfolio[item.item_type] || 0;
-      return sum + quantity * item.recommended_price;
+      return sum + quantity * item.current;
     }, 0);
-  }, [tradeItems, portfolio]);
+  }, [marketData, portfolio]);
 
   const netWorth = useMemo(() => {
     return (profile?.savings || 0) + cashBalance + portfolioValue;
@@ -389,10 +413,9 @@ export default function Profile() {
     setTradeSizes((prev) => ({ ...prev, [itemType]: amount }));
   }
 
-  function handleTrade(item, action) {
-    const itemType = item.item_type;
+  async function handleTrade(itemType, currentPrice, action) {
     const amount = tradeSizes[itemType] || 1;
-    const cost = item.recommended_price * amount;
+    const cost = currentPrice * amount;
     const currentAmount = portfolio[itemType] || 0;
 
     if (action === "buy") {
@@ -400,29 +423,55 @@ export default function Profile() {
         setError("Nicht genug Guthaben für diesen Trade.");
         return;
       }
-      setTradeState((prev) => ({
-        ...prev,
-        cashBalance: (prev.cashBalance ?? profile.main) - cost,
-        portfolio: {
-          ...prev.portfolio,
-          [itemType]: currentAmount + amount,
-        },
-      }));
-      setProfile((p) => ({ ...p, main: (p.main || 0) - cost }));
+
+      try {
+        const response = await api.post("/finances/me/adjustMain", {
+          deltaCents: -cost,
+          transactionType: "TRADE_BUY",
+        });
+
+        setTradeState((prev) => ({
+          ...prev,
+          cashBalance: (prev.cashBalance ?? profile.main) - cost,
+          portfolio: {
+            ...prev.portfolio,
+            [itemType]: currentAmount + amount,
+          },
+        }));
+
+        setProfile((p) => ({ ...p, main: response.data.main }));
+      } catch (err) {
+        setError(
+          err?.response?.data?.error === "insufficient_funds"
+            ? "Nicht genug Guthaben für diesen Trade."
+            : "Fehler beim Aktualisieren deines Guthabens."
+        );
+      }
     } else {
       if (amount > currentAmount) {
         setError("Du besitzt nicht genug Einheiten zum Verkaufen.");
         return;
       }
-      setTradeState((prev) => ({
-        ...prev,
-        cashBalance: (prev.cashBalance ?? profile.main) + cost,
-        portfolio: {
-          ...prev.portfolio,
-          [itemType]: currentAmount - amount,
-        },
-      }));
-      setProfile((p) => ({ ...p, main: (p.main || 0) + cost }));
+
+      try {
+        const response = await api.post("/finances/me/adjustMain", {
+          deltaCents: cost,
+          transactionType: "TRADE_SELL",
+        });
+
+        setTradeState((prev) => ({
+          ...prev,
+          cashBalance: (prev.cashBalance ?? profile.main) + cost,
+          portfolio: {
+            ...prev.portfolio,
+            [itemType]: currentAmount - amount,
+          },
+        }));
+
+        setProfile((p) => ({ ...p, main: response.data.main }));
+      } catch (err) {
+        setError("Fehler beim Aktualisieren deines Guthabens.");
+      }
     }
   }
 
@@ -533,32 +582,28 @@ export default function Profile() {
           </div>
 
           <div className="market-grid">
-            {tradeItems.map((item) => {
-              const minutesSinceEpoch = Math.floor(Date.now() / 60000);
-              const history = buildPriceHistoryForTime(
-                item.recommended_price,
-                item.item_type,
-                minutesSinceEpoch,
-                chartTimeRange
-              );
-              const current = history[history.length - 1];
-              const previous = history[history.length - 2] || current;
-              const diff = current - previous;
-              const ratio = previous > 0 ? Math.round((diff / previous) * 100) : 0;
-              const quantity = portfolio[item.item_type] || 0;
+            {marketData.map((item) => {
+              const {
+                item_type,
+                history,
+                current,
+                diff,
+                ratio,
+              } = item;
+              const quantity = portfolio[item_type] || 0;
 
               return (
-                <article key={item.item_type} className="market-card">
+                <article key={item_type} className="market-card">
                   <div className="card-head">
                     <div className="item-badge">
                       <img
-                        src={imageUrlForItem(item.item_type)}
-                        alt={item.item_type}
+                        src={imageUrlForItem(item_type)}
+                        alt={item_type}
                         onError={(e) => { e.target.style.display = "none" }}
                       />
                     </div>
                     <div>
-                      <h4>{item.item_type.replace(/_/g, " ")}</h4>
+                      <h4>{item_type.replace(/_/g, " ")}</h4>
                       <p>{formatMoney(current)}</p>
                     </div>
                   </div>
@@ -570,15 +615,15 @@ export default function Profile() {
                     <small>{diff >= 0 ? "gestiegen" : "gefallen"}</small>
                   </div>
 
-                  <PriceLineChart history={history} itemType={item.item_type} />
+                  <PriceLineChart history={history} itemType={item_type} />
 
                   <div className="market-actions">
                     <div className="quantity-control">
                       <label>
                         Menge
                         <select
-                          value={tradeSizes[item.item_type] || 1}
-                          onChange={(e) => handleAmountChange(item.item_type, Number(e.target.value))}
+                          value={tradeSizes[item_type] || 1}
+                          onChange={(e) => handleAmountChange(item_type, Number(e.target.value))}
                         >
                           {TRADE_QUANTITIES.map((amount) => (
                             <option key={amount} value={amount}>
@@ -593,15 +638,15 @@ export default function Profile() {
                       <button
                         className="buy"
                         type="button"
-                        onClick={() => handleTrade(item, "buy")}
-                        disabled={cashBalance < item.recommended_price}
+                        onClick={() => handleTrade(item_type, current, "buy")}
+                        disabled={cashBalance < current}
                       >
                         Kaufen
                       </button>
                       <button
                         className="sell"
                         type="button"
-                        onClick={() => handleTrade(item, "sell")}
+                        onClick={() => handleTrade(item_type, current, "sell")}
                         disabled={quantity === 0}
                       >
                         Verkaufen

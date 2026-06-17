@@ -136,6 +136,43 @@ r.post("/transfer", async (req, res) => {
   res.json({ ok });
 });
 
+r.post("/me/adjustMain", async (req, res) => {
+  const { deltaCents, transactionType } = req.body;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ ok: false, error: "not_authenticated" });
+  }
+
+  try {
+    const [[row]] = await pool.query(
+      "SELECT uuid FROM authme WHERE id = ? LIMIT 1",
+      [userId]
+    );
+
+    if (!row) {
+      return res.status(404).json({ ok: false, error: "user_not_found" });
+    }
+
+    const updatedMain = await finances.adjustMain(row.uuid, Number(deltaCents));
+    if (updatedMain === false) {
+      return res.status(400).json({ ok: false, error: "insufficient_funds" });
+    }
+    if (updatedMain === null) {
+      return res.status(500).json({ ok: false, error: "balance_update_failed" });
+    }
+
+    if (transactionType) {
+      await finances.logTransaction(row.uuid, null, Math.abs(Number(deltaCents)), transactionType);
+    }
+
+    res.json({ ok: true, main: updatedMain });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Networth (fixer Prefix, auch vor /:uuid)
 r.get("/networth/:uuid", async (req, res, next) => {
   const { uuid } = req.params;
