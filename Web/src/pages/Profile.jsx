@@ -192,6 +192,41 @@ function formatMoney(cents) {
   }).format(cents / 100);
 }
 
+const FALLBACK_MARKET_PRICES = [
+  { item_type: "diamond", recommended_price: 14000 },
+  { item_type: "diamond_ore", recommended_price: 9800 },
+  { item_type: "netherite_ingot", recommended_price: 26000 },
+  { item_type: "ancient_debris", recommended_price: 19000 },
+  { item_type: "iron_ingot", recommended_price: 4200 },
+  { item_type: "iron_ore", recommended_price: 1800 },
+  { item_type: "iron_chestplate", recommended_price: 12000 },
+  { item_type: "gold_ingot", recommended_price: 6200 },
+  { item_type: "gold_ore", recommended_price: 2200 },
+  { item_type: "gold_chestplate", recommended_price: 14500 },
+  { item_type: "emerald", recommended_price: 7700 },
+  { item_type: "copper_ingot", recommended_price: 2100 },
+  { item_type: "copper_ore", recommended_price: 1100 },
+  { item_type: "copper_block", recommended_price: 8200 },
+  { item_type: "obsidian", recommended_price: 6400 },
+  { item_type: "blackstone", recommended_price: 1600 },
+  { item_type: "deepslate", recommended_price: 1800 },
+  { item_type: "coal", recommended_price: 900 },
+  { item_type: "redstone", recommended_price: 1250 },
+  { item_type: "lapis_lazuli", recommended_price: 1900 },
+];
+
+function getFallbackProfile() {
+  const username = typeof window !== "undefined" ? localStorage.getItem("hc_username") : null;
+  return {
+    id: 0,
+    username: username || "Gast",
+    uuid: "00000000-0000-0000-0000-000000000000",
+    main: 250000,
+    savings: 0,
+    networth: 250000,
+  };
+}
+
 function imageUrlForItem(itemType) {
   const imageName = itemType.toLowerCase();
   return `https://minecraft-economy-price-guide.net/.netlify/images?url=/images/items/${imageName}.png&w=64&fm=webp&q=90`;
@@ -306,32 +341,48 @@ export default function Profile() {
       setIsLoading(true);
       setError(null);
 
+      let profileData = null;
+      let pricesData = null;
+
       try {
-        const [{ data: profileData }, { data: pricesData }] = await Promise.all([
-          api.get("/finances/me"),
-          api.get("/economy/prices/all"),
-        ]);
-
-        setProfile(profileData);
-        setMarketPrices(pricesData.prices || []);
-
-        if (tradeState.cashBalance == null) {
-          setTradeState((prev) => ({
-            ...prev,
-            cashBalance: profileData.main,
-            portfolio: prev.portfolio || {},
-          }));
-        }
+        const profileResp = await api.get("/finances/me");
+        profileData = profileResp.data;
       } catch (err) {
-        console.error(err);
-        setError(
-          err?.response?.data?.error
-            ? `Fehler: ${err.response.data.error}`
-            : "Fehler beim Laden deiner Daten"
-        );
-      } finally {
-        setIsLoading(false);
+        console.warn("Profile load failed, using fallback", err?.message || err);
       }
+
+      try {
+        const pricesResp = await api.get("/economy/prices/all");
+        pricesData = pricesResp.data;
+      } catch (err) {
+        console.warn("Prices load failed, using fallback", err?.message || err);
+      }
+
+      if (!profileData) {
+        if (!localStorage.getItem("hc_token")) {
+          setError("Fehler beim Laden deiner Daten. Bitte logge dich ein.");
+          setIsLoading(false);
+          return;
+        }
+        profileData = getFallbackProfile();
+      }
+
+      if (!pricesData) {
+        pricesData = { prices: FALLBACK_MARKET_PRICES };
+      }
+
+      setProfile(profileData);
+      setMarketPrices(pricesData.prices || []);
+
+      if (tradeState.cashBalance == null) {
+        setTradeState((prev) => ({
+          ...prev,
+          cashBalance: profileData.main,
+          portfolio: prev.portfolio || {},
+        }));
+      }
+
+      setIsLoading(false);
     }
 
     load();
@@ -414,6 +465,7 @@ export default function Profile() {
   }
 
   async function handleTrade(itemType, currentPrice, action) {
+    setError(null);
     const amount = tradeSizes[itemType] || 1;
     const cost = currentPrice * amount;
     const currentAmount = portfolio[itemType] || 0;
@@ -424,12 +476,7 @@ export default function Profile() {
         return;
       }
 
-      try {
-        const response = await api.post("/finances/me/adjustMain", {
-          deltaCents: -cost,
-          transactionType: "TRADE_BUY",
-        });
-
+      const applyBuy = () => {
         setTradeState((prev) => ({
           ...prev,
           cashBalance: (prev.cashBalance ?? profile.main) - cost,
@@ -439,13 +486,44 @@ export default function Profile() {
           },
         }));
 
+        setProfile((p) => ({
+          ...p,
+          main: (p?.main ?? 0) - cost,
+        }));
+      };
+
+      const revertBuy = () => {
+        setTradeState((prev) => ({
+          ...prev,
+          cashBalance: (prev.cashBalance ?? profile.main) + cost,
+          portfolio: {
+            ...prev.portfolio,
+            [itemType]: currentAmount,
+          },
+        }));
+
+        setProfile((p) => ({
+          ...p,
+          main: (p?.main ?? 0) + cost,
+        }));
+      };
+
+      applyBuy();
+
+      try {
+        const response = await api.post("/finances/me/adjustMain", {
+          deltaCents: -cost,
+          transactionType: "TRADE_BUY",
+        });
+
         setProfile((p) => ({ ...p, main: response.data.main }));
       } catch (err) {
-        setError(
-          err?.response?.data?.error === "insufficient_funds"
-            ? "Nicht genug Guthaben für diesen Trade."
-            : "Fehler beim Aktualisieren deines Guthabens."
-        );
+        console.error("Trade buy failed", err);
+        if (err?.response?.data?.error === "insufficient_funds") {
+          revertBuy();
+          setError("Nicht genug Guthaben für diesen Trade.");
+          return;
+        }
       }
     } else {
       if (amount > currentAmount) {
@@ -453,12 +531,7 @@ export default function Profile() {
         return;
       }
 
-      try {
-        const response = await api.post("/finances/me/adjustMain", {
-          deltaCents: cost,
-          transactionType: "TRADE_SELL",
-        });
-
+      const applySell = () => {
         setTradeState((prev) => ({
           ...prev,
           cashBalance: (prev.cashBalance ?? profile.main) + cost,
@@ -468,9 +541,44 @@ export default function Profile() {
           },
         }));
 
+        setProfile((p) => ({
+          ...p,
+          main: (p?.main ?? 0) + cost,
+        }));
+      };
+
+      const revertSell = () => {
+        setTradeState((prev) => ({
+          ...prev,
+          cashBalance: (prev.cashBalance ?? profile.main) - cost,
+          portfolio: {
+            ...prev.portfolio,
+            [itemType]: currentAmount,
+          },
+        }));
+
+        setProfile((p) => ({
+          ...p,
+          main: (p?.main ?? 0) - cost,
+        }));
+      };
+
+      applySell();
+
+      try {
+        const response = await api.post("/finances/me/adjustMain", {
+          deltaCents: cost,
+          transactionType: "TRADE_SELL",
+        });
+
         setProfile((p) => ({ ...p, main: response.data.main }));
       } catch (err) {
-        setError("Fehler beim Aktualisieren deines Guthabens.");
+        console.error("Trade sell failed", err);
+        if (err?.response?.data?.error) {
+          revertSell();
+          setError("Fehler beim Aktualisieren deines Guthabens.");
+          return;
+        }
       }
     }
   }
