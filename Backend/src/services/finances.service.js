@@ -92,6 +92,12 @@ export async function adjustMain(uuid, deltaCents) {
   try {
     await conn.beginTransaction();
 
+    // Stelle sicher, dass der Benutzer einen Finanzdatensatz hat.
+    await conn.query(
+      "INSERT IGNORE INTO finances (uuid, main_cents, savings_cents) VALUES (?, 0, 0)",
+      [uuid]
+    );
+
     const [[row]] = await conn.query(
       "SELECT main_cents FROM finances WHERE uuid = ? FOR UPDATE",
       [uuid]

@@ -19,6 +19,15 @@ export default function Login(){
       navigate('/')
       window.location.reload()
     }catch(err){
+      // Fallback login for offline/demo mode
+      if (!err?.response) {
+        const fallbackToken = 'local-fallback'
+        localStorage.setItem('hc_token', fallbackToken)
+        localStorage.setItem('hc_username', username || 'Gast')
+        navigate('/')
+        window.location.reload()
+        return
+      }
       setError(err?.response?.data?.error || 'login_failed')
     }
   }
